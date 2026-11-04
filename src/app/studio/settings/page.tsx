@@ -6,6 +6,7 @@ import { StudioBar } from "../../../components/studio/studio-bar";
 
 type Invite = { id: string; email: string; expiresAt: string; usedAt?: string; revokedAt?: string };
 type Usage = { id: string; label: string; configured: boolean; used: number | null; limit: number | null };
+type Token = { id: string; name: string; prefix: string; revokedAt?: string; expiresAt?: string };
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -22,6 +23,10 @@ export default function SettingsPage() {
   const [resetError, setResetError] = useState("");
   const [usage, setUsage] = useState<Usage[]>([]);
   const [connectNote, setConnectNote] = useState("");
+  const [tokens, setTokens] = useState<Token[]>([]);
+  const [tokenName, setTokenName] = useState("");
+  const [freshToken, setFreshToken] = useState("");
+  const [tokenError, setTokenError] = useState("");
 
   async function loadInvites() {
     const response = await fetch("/api/invites");
@@ -36,6 +41,9 @@ export default function SettingsPage() {
       setEmail(body.user.email);
       setIsOwner(body.user.isOwner);
       if (body.user.isOwner) void loadInvites();
+    });
+    fetch("/api/tokens").then(async (response) => {
+      if (response.ok) setTokens((await response.json()).items || []);
     });
     fetch("/api/usage").then(async (response) => {
       if (response.ok) setUsage((await response.json()).providers || []);
@@ -90,6 +98,40 @@ export default function SettingsPage() {
           {connectNote ? <p className="fine" role="status">{connectNote}</p> : null}
         </section>
       </div>
+
+      <section className="surface panel" aria-label="API tokens">
+        <div>
+          <p className="kicker">API</p>
+          <h2>Personal tokens</h2>
+          <p className="fine">The CLI and an AI editor use the same account as this studio. A token is shown once.</p>
+        </div>
+        <form className="copy-row" onSubmit={async (event) => {
+          event.preventDefault();
+          setTokenError("");
+          setFreshToken("");
+          const response = await fetch("/api/tokens", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: tokenName, days: 90 }) });
+          const body = await response.json();
+          if (!response.ok) { setTokenError(body?.error?.message || "Could not create a token."); return; }
+          setFreshToken(body.token);
+          setTokenName("");
+          const list = await fetch("/api/tokens");
+          if (list.ok) setTokens((await list.json()).items || []);
+        }}>
+          <input className="field" value={tokenName} onChange={(event) => setTokenName(event.target.value)} placeholder="Token name" aria-label="Token name" required maxLength={60} />
+          <button className="btn" type="submit">Create token</button>
+        </form>
+        {tokenError ? <p className="error" role="alert">{tokenError}</p> : null}
+        {freshToken ? <input className="field mono" aria-label="New token" readOnly value={freshToken} onFocus={(event) => event.currentTarget.select()} /> : null}
+        {tokens.map((token) => (
+          <div className="list-row" key={token.id}>
+            <span>{token.name} <span className="fine mono">{token.prefix}</span></span>
+            {token.revokedAt ? <span className="badge">Revoked</span> : <button className="btn quiet sm" type="button" onClick={async () => {
+              await fetch(`/api/tokens/${token.id}`, { method: "DELETE" });
+              setTokens((current) => current.map((item) => item.id === token.id ? { ...item, revokedAt: new Date().toISOString() } : item));
+            }}>Revoke</button>}
+          </div>
+        ))}
+      </section>
 
       {isOwner ? (
         <div className="split">

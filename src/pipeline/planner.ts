@@ -287,6 +287,23 @@ const STYLE_TEXT: Record<string, string> = {
   clay: "claymation look, soft clay figures, miniature set, studio lighting",
 };
 
+const STAGE_ACTIONS = ["talk", "walk", "turn", "wave", "hold"] as const;
+
+/** Pick a registered performance from the picture. The picture never becomes code. */
+export function stageAction(picture: string, index: number): (typeof STAGE_ACTIONS)[number] {
+  const text = picture.toLowerCase();
+  if (/\b(walk|walks|walking|run|runs|running|cross|crosses|step|steps|chase|chases)\b/.test(text)) return "walk";
+  if (/\b(wave|waves|waving|hello|greet|bye)\b/.test(text)) return "wave";
+  if (/\b(turn|turns|turning|spin|spins|looks back)\b/.test(text)) return "turn";
+  if (/\b(hold|holds|sit|sits|wait|waits|still)\b/.test(text)) return "hold";
+  return STAGE_ACTIONS[index % STAGE_ACTIONS.length];
+}
+
+export function stageLook(style: string | undefined, mode: string): "storybook" | "cartoon" {
+  if (mode === "cartoon" || style === "cartoon") return "cartoon";
+  return "storybook";
+}
+
 export function stillPrompt(style: string, description: string, cast: { name: string }[]): string {
   const who = cast.length ? ` Characters, matching the reference images exactly (same face, hair, outfit, colours): ${cast.map((member) => member.name).join(", ")}.` : "";
   return `${STYLE_TEXT[style] ?? STYLE_TEXT.storybook}. ${description}${who} Original artwork, no text, no letters, no logos, no real people.`;
@@ -329,10 +346,12 @@ async function storyPlan(req: PlanRequest, opts: { apiKey?: string; beforeCall?:
   }
   if (items.length < 3) throw new Error("The planner did not return enough beats. Try again.");
   const style = req.style ?? (req.mode === "cartoon" ? "cartoon" : "storybook");
+  const look = stageLook(style, req.mode);
   const scenes = items.map((beat, index) => {
     const members = cast.filter((member) => beat.cast.some((name) => name.toLowerCase() === member.name.toLowerCase()));
+    const rigs = members.length >= 2 || cast.length >= 2 ? 2 : 1;
     const layers: Plan["scenes"][number]["layers"] = [
-      { id: "still", component: "image.still@1", props: { prompt: beat.picture.replaceAll(/[—–]/g, ", ").slice(0, 600), characterIds: members.map((member) => member.id).slice(0, 4), style }, slot: "full" },
+      { id: "stage", component: "stage.perform@1", props: { action: stageAction(beat.picture, index), look, rigs }, slot: "full" },
     ];
     if (index === 0) layers.push({ id: "kicker", component: "text.kicker@1", props: { text: shortTitle(title, 30) }, slot: "top" });
     const caption = beat.caption.replaceAll(/[—–]/g, " ").slice(0, 28);

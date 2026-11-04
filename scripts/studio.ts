@@ -28,7 +28,7 @@ async function main(args: string[]) {
         schemaVersion: 1, modes: ['explainer', 'code_lab'], languages: ['en', 'hi', 'hinglish'], formats: ['9x16', '16x9', '1x1'],
         voices: VOICES.map(voice => ({ id: voice.id, timing: voice.timing, commercial: voice.commercial, available: !voiceUnavailable(voice, env), reason: voiceUnavailable(voice, env) ?? undefined })),
         render: { renderer: 'hyperframes@0.8.176', output: 'mp4 1080x1920 30fps h264/aac, -14 LUFS, srt, vtt, thumbnail, contact sheet' },
-        note: 'Explainer and Code Lab render. Story, Audio, Cartoon and Montage are not available yet.',
+        note: 'Explainer, Code Lab, Audio, Story, Cartoon, Lyrics and Montage render. Story and Cartoon perform on a 3D stage.',
       };
     }
     case 'trace': {
@@ -57,7 +57,7 @@ async function main(args: string[]) {
         language: (flag('--language') ?? 'en') as 'en' | 'hi' | 'hinglish',
         format: (flag('--format') ?? '9x16') as '9x16' | '16x9' | '1x1',
         targetMs: Number(flag('--seconds') ?? 45) * 1000,
-        mode: trace ? 'code_lab' : rest.includes('--audio') ? 'audio' : 'explainer',
+        mode: trace ? 'code_lab' : (['story', 'cartoon', 'audio'] as const).find((item) => item === flag('--mode')) ?? (rest.includes('--audio') ? 'audio' : 'explainer'),
         voiceId: flag('--voice') ?? 'elevenlabs:alice',
         brief: flag('--script') ? { exactScript: await readFile(flag('--script')!, 'utf8') } : null,
         trace: trace ? { entry: trace.entry, input: trace.input, returned: trace.returned, code: trace.code, states: keyStates(trace.steps) } : null,

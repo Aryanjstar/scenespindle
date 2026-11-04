@@ -1,7 +1,6 @@
 import { json } from "../../../server/guard";
 import { loadEnv } from "../../../config/env";
 import { VOICES, voiceUnavailable } from "../../../config/providers";
-import { imageConfig } from "../../../server/providers/images";
 
 /** Only implemented and configured combinations are available; the rest say why. */
 export async function GET() {
@@ -10,9 +9,9 @@ export async function GET() {
     modes: [
       { id: "explainer", label: "Explainer", available: true },
       { id: "code_lab", label: "Code Lab", available: true, note: "Traces run in your browser. Films use the explainer renderer." },
-      { id: "story", label: "Story", available: Boolean(imageConfig()), reason: imageConfig() ? undefined : "Image generation is not configured.", note: "Illustrated beats drawn from your characters, read by a narrator." },
+      { id: "story", label: "Story", available: true, note: "A 3D cast performs the beats. Head, mouth and body move with the narration." },
       { id: "audio", label: "Audio", available: true, note: "Your script, read aloud, with the words on screen as they are spoken." },
-      { id: "cartoon", label: "Cartoon", available: Boolean(imageConfig()), reason: imageConfig() ? undefined : "Image generation is not configured.", note: "Bold 2D cartoon frames with a recurring cast." },
+      { id: "cartoon", label: "Cartoon", available: true, note: "The same 3D stage, drawn brighter, with a recurring cast." },
       { id: "lyrics", label: "Lyrics", available: true, note: "Your song with its words on screen, timed from your lyric file." },
       { id: "montage", label: "Montage", available: true, note: "Your photos and clips, cut on the beats of your music." },
     ],

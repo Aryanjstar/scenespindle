@@ -5,6 +5,7 @@ import type { Format, Plan } from "../contracts/plan";
 import type { TraceState } from "../trace/states";
 import { chalkAndChai as ink } from "../catalog/style";
 import { assertSafeId, escapeHtml } from "./escape";
+import { mouthTrack, stageModule, STAGE_ACTIONS, STAGE_LOOKS, type StageScene } from "./stage";
 
 export type TimedWord = { text: string; startMs: number; endMs: number };
 
@@ -203,6 +204,25 @@ function layerHtml(plan: Plan, sceneIndex: number, startSec: number, durationSec
       const drift = sceneIndex % 2 === 0 ? -24 : 24;
       tweens.push(tween({ target: id, from: { scale: 1.02, x: 0, opacity: 0 }, to: { scale: 1.02, x: 0, opacity: 1 }, at: startSec, duration: 0.35, ease: "power2.out" }));
       tweens.push(tween({ target: id, from: { scale: 1.02, x: 0 }, to: { scale: 1.12, x: drift }, at: startSec + 0.35, duration: Math.max(0.5, durationSec - 0.35), ease: "none" }));
+    } else if (layer.component === "kinetic.words@1" && plan.mode === "lyrics") {
+      const blocks = timed.map((line, li) => {
+        const words = line.words.length ? line.words : [{ text: line.text, startMs: 0, endMs: line.durationMs }];
+        const spans = words.map((word, n) => {
+          const wid = assertSafeId(`${id}-l${li}w${n}`);
+          const at0 = (line.startMs + word.startMs) / 1000;
+          const until = (line.startMs + (words[n + 1]?.startMs ?? word.endMs)) / 1000;
+          tweens.push(tween({ target: wid, from: { opacity: 0.4, scale: 0.92 }, to: { opacity: 1, scale: 1.08 }, at: at0, duration: 0.08, ease: "power2.out" }));
+          tweens.push(tween({ target: wid, from: { opacity: 1, scale: 1.08 }, to: { opacity: 0.72, scale: 1 }, at: Math.max(at0 + 0.08, until - 0.02), duration: 0.06, ease: "none" }));
+          return `<span id="${wid}" class="lyric-word">${escapeHtml(word.text)}</span>`;
+        }).join(" ");
+        const lid = assertSafeId(`${id}-line${li}`);
+        const start = line.startMs / 1000;
+        const end = (line.startMs + line.durationMs) / 1000;
+        tweens.push(tween({ target: lid, from: { opacity: 0, y: 16 }, to: { opacity: 1, y: 0 }, at: Math.max(0, start - 0.04), duration: 0.12, ease: "power2.out" }));
+        tweens.push(tween({ target: lid, from: { opacity: 1 }, to: { opacity: 0 }, at: Math.max(start + 0.2, end - 0.08), duration: 0.1, ease: "none" }));
+        return `<p id="${lid}" class="lyric-line" style="opacity:0">${spans}</p>`;
+      }).join("");
+      chunks.push(`<div class="slot-hero lyric">${blocks}</div>`);
     } else if (layer.component === "kinetic.words@1") {
       // One word at a time, on the measured word times. Long words get the accent.
       const words = timed.flatMap((line) => line.words.map((word) => ({ ...word, startMs: line.startMs + word.startMs, endMs: line.startMs + word.endMs })));
@@ -375,6 +395,8 @@ function css(L: Layout): string {
   .kinetic { position: absolute; display: grid; place-items: center; height: ${Math.round(L.h * 0.3)}px; }
   .kword { grid-area: 1 / 1; font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: ${Math.round(150 * L.type)}px; line-height: 1; letter-spacing: -0.03em; color: ${ink.ink}; text-align: center; }
   .kword.strong { color: ${ink.saffron}; }
+  #stage { position: absolute; inset: 0; width: ${L.w}px; height: ${L.h}px; z-index: 1; }
+  .scene, .cap { z-index: 2; }
   .pulse { display: flex; gap: 10px; align-items: center; justify-content: center; height: 140px; }
   .pulse i { display: block; width: 14px; border-radius: 7px; background: ${ink.teal}; opacity: .7; transform-origin: 50% 50%; }
   .trace { position: relative; width: 100%; height: 100%; }
@@ -412,6 +434,37 @@ function illustratedCss(L: Layout): string {
   .kicker { display: inline-block; padding: 6px 18px 10px; border-radius: 14px; background: ${ink.moon}; color: ${ink.ink}; border: 4px solid ${ink.ink}; transform: rotate(-2deg); box-shadow: 6px 6px 0 ${ink.ink}; }
   .still-shade { height: 34%; background: linear-gradient(to top, rgba(20,16,28,.55), rgba(20,16,28,0)); }
 `;
+}
+
+function lyricsCss(L: Layout): string {
+  return `
+  html, body, #root { background: #120d18; }
+  .wash { background:
+    radial-gradient(ellipse at 50% 42%, rgba(255, 95, 162, .28), transparent 42%),
+    radial-gradient(ellipse at 50% 80%, rgba(61, 227, 245, .16), transparent 46%),
+    #120d18; }
+  .slot-hero.lyric { top: ${Math.round(L.h * 0.34)}px; height: auto; display: grid; place-items: center; }
+  .lyric-line { margin: 0; grid-area: 1 / 1; text-align: center; max-width: 92%; }
+  .lyric-word { display: inline-block; margin: 0 0.14em; font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: ${Math.round(72 * L.type)}px; line-height: 1.15; color: #fff8ee; text-shadow: -3px 0 0 #120d18, 3px 0 0 #120d18, 0 -3px 0 #120d18, 0 3px 0 #120d18; }
+  .pulse i { background: #ff5fa2; }
+  .kicker { color: #fff8ee; }
+  `;
+}
+
+function performedScenes(plan: Plan, timeline: Timeline): StageScene[] {
+  const scenes: StageScene[] = [];
+  for (const scene of plan.scenes) {
+    const layer = scene.layers.find((item) => item.component === "stage.perform@1");
+    if (!layer) continue;
+    const slot = timeline.scenes.find((item) => item.id === scene.id);
+    const start = (slot?.startMs ?? 0) / 1000;
+    const end = start + (slot?.durationMs ?? 1000) / 1000;
+    const action = STAGE_ACTIONS.find((item) => item === layer.props.action) ?? "talk";
+    const look = STAGE_LOOKS.find((item) => item === layer.props.look) ?? "storybook";
+    const rigs = layer.props.rigs === 2 ? 2 : 1;
+    scenes.push({ start, end, action, look, rigs });
+  }
+  return scenes;
 }
 
 function fontFace(): string {
@@ -459,7 +512,7 @@ export function compileProject(opts: { plan: Plan; timeline: Timeline; outDir: s
   });
 
   // Audio films show the words themselves, so they skip the caption band.
-  const captions = (opts.plan.mode === "audio" ? [] : opts.timeline.lines).map((line) => {
+  const captions = (opts.plan.mode === "audio" || opts.plan.mode === "lyrics" ? [] : opts.timeline.lines).map((line) => {
     const page = captionPages(line, layout.cap.chars);
     tweens.push(...page.tweens);
     return page.html;
@@ -472,6 +525,12 @@ export function compileProject(opts: { plan: Plan; timeline: Timeline; outDir: s
   });
 
   const duration = (opts.timeline.durationMs / 1000).toFixed(3);
+  const performed = performedScenes(opts.plan, opts.timeline);
+  if (performed.length) {
+    copyFileSync(resolve(ROOT, "node_modules/three/build/three.module.js"), resolve(dir, "assets/three.module.js"));
+    copyFileSync(resolve(ROOT, "node_modules/three/build/three.core.js"), resolve(dir, "assets/three.core.js"));
+    writeFileSync(resolve(dir, "assets/stage.mjs"), stageModule({ width: layout.w, height: layout.h, scenes: performed, mouth: mouthTrack(opts.timeline.lines) }));
+  }
   const script = `const tweens = ${JSON.stringify(tweens)};
 const tl = gsap.timeline({ paused: true });
 const seen = new Set();
@@ -481,6 +540,7 @@ for (const tw of tweens) {
   seen.add(tw.target);
   tl.fromTo("#" + tw.target, tw.from, Object.assign({}, tw.to, { duration: tw.duration, ease: tw.ease === "back.out" ? "back.out(1.4)" : tw.ease, immediateRender: first }), tw.at);
 }
+tl.eventCallback("onUpdate", () => { if (window.__stage) window.__stage(tl.time()); });
 window.__timelines["main"] = tl;`;
 
   const html = `<!doctype html>
@@ -490,15 +550,18 @@ window.__timelines["main"] = tl;`;
   <meta name="viewport" content="width=${layout.w}, height=${layout.h}" />
   <title>${escapeHtml(opts.plan.title)}</title>
   <script src="assets/gsap.min.js"></script>
-  <style>${fontFace()}${css(layout)}${ILLUSTRATED_MODES.has(opts.plan.mode) ? illustratedCss(layout) : ""}</style>
+  ${performed.length ? `<script type="importmap">{"imports":{"three":"./assets/three.module.js"}}</script>` : ""}
+  <style>${fontFace()}${css(layout)}${ILLUSTRATED_MODES.has(opts.plan.mode) ? illustratedCss(layout) : ""}${opts.plan.mode === "lyrics" ? lyricsCss(layout) : ""}</style>
 </head>
 <body>
   <div id="root" data-composition-id="main" data-start="0" data-duration="${duration}" data-width="${layout.w}" data-height="${layout.h}">
     <div class="wash"></div>
+    ${performed.length ? `<canvas id="stage" width="${layout.w}" height="${layout.h}"></canvas>` : ""}
     ${scenes.join("\n")}
     ${captions.join("\n")}
     ${audios.join("\n")}
   </div>
+  ${performed.length ? `<script type="module" src="assets/stage.mjs"></script>` : ""}
   <script>${script}</script>
 </body>
 </html>`;

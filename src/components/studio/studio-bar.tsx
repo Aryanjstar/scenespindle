@@ -7,6 +7,7 @@ import { Brand } from "../brand";
 const LINKS = [
   { href: "/studio", label: "Projects" },
   { href: "/studio/library", label: "Library" },
+  { href: "/studio/series", label: "Series" },
   { href: "/studio/settings", label: "Settings" },
 ];
 

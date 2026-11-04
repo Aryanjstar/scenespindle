@@ -18,7 +18,7 @@ export const films: Film[] = [
     audio: true,
     src: "/films/story-new.mp4",
     poster: "/films/story-new.jpg",
-    detail: "Made in the studio from one reference drawing: Meera stays the same girl in every scene, the stills are drawn to the beats, and the narrator reads them.",
+    detail: "A performed story. The character walks, waves and turns, and the mouth moves with the narration.",
   },
   {
     id: "tikku",
@@ -28,7 +28,7 @@ export const films: Film[] = [
     audio: true,
     src: "/films/cartoon-new.mp4",
     poster: "/films/cartoon-new.jpg",
-    detail: "An original tiffin-box robot, described in one sentence, drawn consistently across a Mumbai street and narrated in Hinglish.",
+    detail: "The same 3D stage in cartoon colours. The body, head and mouth move with the line.",
   },
   {
     id: "find",
@@ -59,6 +59,16 @@ export const films: Film[] = [
     src: "/films/story.mp4",
     poster: "/films/story-poster.jpg",
     detail: "It should fall. A string and a spin, and it walks. The moon does the same trick, and it never lands.",
+  },
+  {
+    id: "lyrics",
+    title: "Spin the spindle",
+    kind: "Lyrics",
+    length: "20s",
+    audio: true,
+    src: "/films/lyrics.mp4",
+    poster: "/films/lyrics.jpg",
+    detail: "The line sits on the beat. The words you hear are the words on the screen.",
   },
   {
     id: "launch",

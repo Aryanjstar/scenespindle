@@ -11,6 +11,8 @@ import { applyEdits, paceScenes } from '../src/modules/revisions/rewrite.js';
 import { compileProject, LAYOUTS } from '../src/compiler/compile.js';
 import { estimatedTimeline } from '../src/server/studio.js';
 import { validatePlan, type Plan } from '../src/contracts/plan.js';
+import { lyricsPlan } from '../src/pipeline/lyrics.js';
+import { parseCaptionText } from '../src/pipeline/caption-reel.js';
 
 const SEARCH = `def binary_search(arr, target):\n  lo = 0\n  hi = len(arr) - 1\n  while lo <= hi:\n    mid = (lo + hi) // 2\n    if arr[mid] == target:\n      return mid\n    if arr[mid] < target:\n      lo = mid + 1\n    else:\n      hi = mid - 1\n  return -1\n`;
 const SCRIPT = 'Every autumn, green leaves turn yellow. The green comes from chlorophyll. When days get shorter, the tree stops making it. The green fades and hidden colours show. So the colour was there all along.';
@@ -77,6 +79,45 @@ test('every format compiles to its own canvas, and Hindi plans declare their lan
   const html = compiled(hindi);
   assert.match(html, /<html lang="hi"/);
   assert.match(html, /धरती/);
+});
+
+test('story plans perform on a 3D stage instead of a still', async () => {
+  const script = 'Meera walks to the river. She waves at the paper boat. She turns and holds it close. The boat sails away. Meera talks to the water. Then she walks home.';
+  const result = await planProject({ topic: 'Paper boat', language: 'en', format: '9x16', targetMs: 45000, mode: 'story', voiceId: 'test:tone', brief: { exactScript: script }, cast: [{ id: 'a'.repeat(24), name: 'Meera', description: 'A girl' }, { id: 'b'.repeat(24), name: 'Boat', description: 'A boat' }] });
+  assert.equal(result.plan.mode, 'story');
+  assert.ok(result.plan.scenes.every((scene) => scene.layers.some((layer) => layer.component === 'stage.perform@1')));
+  assert.equal(result.plan.scenes[0].layers[0].props.action, 'walk');
+  assert.equal(result.plan.scenes[0].layers[0].props.rigs, 2);
+  const html = compiled(result.plan);
+  assert.match(html, /three\.module\.js/);
+  assert.match(html, /id="stage"/);
+  assert.doesNotMatch(html, /class="still"/);
+});
+
+test('lyric films place each line on its sung time over a dark stage', () => {
+  const plan = lyricsPlan({
+    title: 'Spindle',
+    lrc: '[00:01.00] Paper boat\n[00:03.50] Sail away now',
+    songAssetId: 'a'.repeat(24),
+    language: 'en',
+    format: '9x16',
+  });
+  const html = compiled(plan);
+  assert.match(html, /class="lyric-line"/);
+  assert.match(html, /#120d18/);
+  assert.doesNotMatch(html, /class="kword/);
+});
+
+test('caption text keeps SRT times and spaces plain lines evenly', () => {
+  const srt = parseCaptionText('1\n00:00:01,200 --> 00:00:02,400\nHello boat', 5000);
+  assert.equal(srt.timing, 'file');
+  assert.equal(srt.cues[0].startMs, 1200);
+  assert.equal(srt.cues[0].text, 'Hello boat');
+  const plain = parseCaptionText('One line\nTwo lines', 4000);
+  assert.equal(plain.timing, 'even');
+  assert.equal(plain.cues.length, 2);
+  assert.equal(plain.cues[0].startMs, 0);
+  assert.ok(plain.cues[1].startMs > plain.cues[0].endMs - 80);
 });
 
 test('audio films draw words from the timeline and skip the caption band', async () => {

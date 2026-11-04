@@ -1,18 +1,19 @@
 # SceneSpindle — project status
 
-**Updated 2026-11-04 (night). Deployed on Azure Container Apps. No full product release yet; see open gates.**
+**Updated 2026-11-05. Story and Cartoon perform on a free 3D stage. Studio screens cover cast, series, lyrics, tokens and reel captions.**
 
 ## Current verified position
 
-- Live at https://scenespindle.blackforest-f0b810b6.centralindia.azurecontainerapps.io with web and worker apps, private Azure Blob storage and Atlas database `scenespindle`.
-- Modes that render end to end: Explainer, Code Lab (trace-driven), Audio (kinetic type), Montage (beat cuts). Formats 9:16, 16:9, 1:1. Languages English, Hindi, Hinglish.
+- Live at https://scenespindle.blackforest-f0b810b6.centralindia.azurecontainerapps.io with web and worker apps, private Azure Blob storage and Atlas database `scenespindle`. This date's UI and stage work is on branch `studio-motion` until it is merged and redeployed.
+- Modes that render end to end: Explainer, Code Lab (trace-driven), Audio (kinetic type), Montage (beat cuts), Story and Cartoon (seekable Three.js stage: head, mouth and body from the narration), Lyrics (sung lines on a dark stage). Formats 9:16, 16:9, 1:1. Languages English, Hindi, Hinglish.
+- Studio screens: cast picker, series bible and episodes, lyric song plus LRC, API tokens, and caption-a-reel (SRT or LRC times, or evenly spaced lines, creator-chosen band). Paid image sheets and face-avoiding vision captions stay off.
 - Brief-driven planning with verbatim exact scripts, scene-scoped copilot, QA-gated current film, versions, downloads, share links, invites, resets, rate limits, soft delete with restore and retention sweep, usage ledger.
-- Verification: 36 unit tests, typecheck, lint, two browser journeys (`npm run e2e`), live Gemini/ElevenLabs/Sarvam renders with frame-sheet review, a real render inside the production worker, live Blob driver round trip, external security checks on production. Details: HANDOFF.md section 5.
+- Verification this step: 39 unit tests, typecheck, lint, local Story, Cartoon and Lyrics renders with frame review, and both browser journeys (`node test/integration/browser.mjs` and `modes.mjs`) including a Story render, the lyrics screen and an API token. Earlier: live provider renders, production worker, Blob round trip. Details: HANDOFF.md section 5.
 - Not verified: signed-in browser session on production, Resend delivery.
 
 ## Open release gates
 
-Story, Cartoon, series, 3D, paired agents, OTIO, cutouts, publishing, brief research, persistent voice cache. See HANDOFF.md section 7.
+Paired agents, OTIO, cutouts, publishing, brief research, persistent voice cache, vision-based caption placement, paid stills and video-model clips. See HANDOFF.md section 7.
 
 ## Historical status (retained verbatim from the previous log)
 

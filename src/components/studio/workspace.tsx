@@ -4,14 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { validatePlan } from "../../contracts/plan";
 import { BriefPanel } from "./brief-panel";
+import { CastPanel } from "./cast-panel";
 import { FilmPanel, SharePanel, type VideoItem } from "./film-panel";
+import { LyricsPanel } from "./lyrics-panel";
 import { MontagePanel } from "./montage-panel";
 import { StudioBar } from "./studio-bar";
 import { runBrowserTrace } from "../../trace/browser-client";
 
 type Idea = { topic?: string; audience?: string; notes?: string };
 type Line = { id: string; text: string; spoken?: string };
-type Scene = { id: string; purpose: string; lines: Line[]; layers: { component: string }[] };
+type Scene = { id: string; purpose: string; lines: Line[]; layers: { component: string; props?: { action?: string } }[] };
 type Plan = { title?: string; scenes: Scene[]; language?: string; format?: string; mode?: string };
 type Settings = { format: string; language: string; targetMs: number };
 type Angle = { title: string; hook: string; takeaway: string };
@@ -85,6 +87,8 @@ export function Workspace() {
   const [voices, setVoices] = useState<Voice[]>([]);
   const [voiceId, setVoiceId] = useState("");
   const [settings, setSettings] = useState<Settings>({ format: "9x16", language: "en", targetMs: 45000 });
+  const [castIds, setCastIds] = useState<string[]>([]);
+  const [lrc, setLrc] = useState("");
   const [job, setJob] = useState<JobView | null>(null);
   const [busy, setBusy] = useState(false);
   const polling = useRef("");
@@ -113,6 +117,8 @@ export function Workspace() {
     setBadge(body.project.badge);
     setVoiceId(body.project.voiceId);
     setSettings({ format: body.project.format, language: body.project.language, targetMs: body.project.targetMs });
+    setCastIds(body.project.castIds || []);
+    setLrc(body.project.lyrics?.lrc || "");
     setIdea(body.draft?.idea || {});
     setRevision(body.draft?.revision || 1);
     setPlan(body.draft?.plan ?? null);
@@ -456,7 +462,7 @@ export function Workspace() {
             <>
               <div className="surface panel">
                 <div>
-                  <p className="kicker">{({ code_lab: "Code Lab", audio: "Audio", montage: "Montage" } as Record<string, string>)[mode] ?? "Explainer"}</p>
+                  <p className="kicker">{({ code_lab: "Code Lab", audio: "Audio", montage: "Montage", story: "Story", cartoon: "Cartoon", lyrics: "Lyrics" } as Record<string, string>)[mode] ?? "Explainer"}</p>
                   <h2>What is this film about?</h2>
                 </div>
                 <label className="stack-label">Topic
@@ -489,8 +495,8 @@ export function Workspace() {
                 {plan?.language && plan.language !== settings.language ? <p className="notice warn">The storyboard is in {plan.language === "hi" ? "Hindi" : plan.language === "hinglish" ? "Hinglish" : "English"}. Plan it again to switch language.</p> : null}
                 <div className="row-actions">
                   <button className="btn ghost" type="button" onClick={() => void saveIdea()}>Save</button>
-                  <button className="btn ghost" type="button" disabled={busy} onClick={() => void brainstorm()}>Brainstorm</button>
-                  <button className="btn" type="button" disabled={busy} onClick={() => void planStory()}>Plan storyboard</button>
+                  {mode !== "lyrics" && mode !== "montage" ? <button className="btn ghost" type="button" disabled={busy} onClick={() => void brainstorm()}>Brainstorm</button> : null}
+                  {mode !== "lyrics" && mode !== "montage" ? <button className="btn" type="button" disabled={busy} onClick={() => void planStory()}>Plan storyboard</button> : null}
                 </div>
                 {angles.length ? (
                   <div className="cards" aria-label="Angles">
@@ -505,7 +511,10 @@ export function Workspace() {
               </div>
               {mode === "montage" ? (
                 <MontagePanel projectId={params.id} disabled={jobActive} onQueued={(jobId) => { setJob({ id: jobId, output: "mp4", state: "queued", stages: [] }); void follow(jobId, "mp4"); }} />
+              ) : mode === "lyrics" ? (
+                <LyricsPanel projectId={params.id} revision={revision} initialLrc={lrc} onBuilt={async () => { await load(); setStep("storyboard"); }} />
               ) : <BriefPanel projectId={params.id} suggestedRequest={idea.topic || ""} audience={idea.audience} />}
+              {mode === "story" || mode === "cartoon" ? <CastPanel projectId={params.id} selected={castIds} onChange={setCastIds} /> : null}
               {mode === "montage" && job ? (
                 <div className="surface panel progress" aria-live="polite">
                   <p className="kicker">Montage · {job.state}</p>
@@ -559,7 +568,7 @@ export function Workspace() {
                         <input type="checkbox" aria-label={`Ask the copilot about ${scene.id}`} checked={focusScenes.includes(scene.id)} onChange={(event) => setFocusScenes((current) => event.target.checked ? [...current, scene.id] : current.filter((id) => id !== scene.id))} />
                         <strong style={{ fontWeight: 500 }}>{scene.id.toUpperCase()} · {scene.purpose}</strong>
                       </label>
-                      <span>{scene.layers.map((layer) => layer.component.replace(/@\d+$/, "")).join(", ")}</span>
+                      <span>{scene.layers.map((layer) => layer.props?.action ? `${layer.component.replace(/@\d+$/, "")} · ${layer.props.action}` : layer.component.replace(/@\d+$/, "")).join(", ")}</span>
                     </div>
                     {scene.lines.map((line) => (
                       <textarea key={line.id} className="field" aria-label={`Narration for ${scene.id} ${line.id}`} value={line.text} onChange={(event) => editLine(scene.id, line.id, event.target.value)} />

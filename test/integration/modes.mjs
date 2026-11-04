@@ -77,8 +77,7 @@ try {
 
   // Catalog only offers what renders.
   const catalog = await page.evaluate(async () => (await fetch('/api/catalog')).json());
-  assert.deepEqual(catalog.modes.filter(mode => mode.available).map(mode => mode.id).sort(), ['audio', 'code_lab', 'explainer', 'montage']);
-  assert.equal(await page.evaluate(async () => (await fetch('/api/projects', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mode: 'cartoon', topic: 'x' }) })).status), 422);
+  assert.deepEqual(catalog.modes.filter(mode => mode.available).map(mode => mode.id).sort(), ['audio', 'cartoon', 'code_lab', 'explainer', 'lyrics', 'montage', 'story']);
 
   // Audio film from an approved exact script, planned offline, rendered with the test voice.
   const audioId = await createProject(page, 'audio', 'Why leaves change colour');
@@ -164,6 +163,31 @@ try {
   });
   assert.equal(upload, 415, 'Uploads are checked by content, not the declared type');
 
+  // Story performs on the 3D stage. Offline planning needs an exact script.
+  const storyId = await createProject(page, 'story', 'Paper boat');
+  await expect(page.getByRole('heading', { name: 'Who performs' })).toBeVisible();
+  await page.getByRole('textbox', { name: 'Exact script, if you have one' }).fill('Meera walks to the river. She waves at the boat. She turns toward home.');
+  await page.getByRole('button', { name: 'Refine brief' }).click();
+  await page.getByRole('button', { name: /Story led/ }).click();
+  await page.getByRole('button', { name: 'Approve brief' }).click();
+  await page.getByRole('button', { name: 'Plan storyboard' }).click();
+  await expect(page.getByText('Storyboard ready', { exact: true })).toBeVisible({ timeout: 30_000 });
+  const storyDraft = await page.evaluate(async id => (await fetch('/api/projects/' + id + '/draft')).json(), storyId);
+  assert.ok(storyDraft.plan.scenes.every(scene => scene.layers.some(layer => layer.component === 'stage.perform@1')));
+  await page.getByLabel('Narrator').selectOption('test:tone');
+  await page.getByRole('button', { name: 'Approve and render film' }).click();
+  await expect(page.getByText('Film ready', { exact: true }).first()).toBeVisible({ timeout: 300_000 });
+
+  const lyricsId = await createProject(page, 'lyrics', 'Spin the spindle');
+  await expect(page.getByLabel('Timed lyrics')).toBeVisible();
+  assert.equal(lyricsId.length, 24);
+
+  await page.goto(origin + '/studio/settings');
+  await page.getByLabel('Token name').fill('e2e');
+  await page.getByRole('button', { name: 'Create token' }).click();
+  const minted = await page.getByLabel('New token').inputValue();
+  assert.match(minted, /^ss_/);
+
   // Delete and restore from the projects page.
   await page.goto(origin + '/studio');
   page.once('dialog', dialog => dialog.accept());
@@ -182,7 +206,7 @@ try {
   }
 
   assert.deepEqual(errors, []);
-  console.log('PASS: audio, code lab, montage, settings, scene-scoped copilot, restore, isolation');
+  console.log('PASS: audio, code lab, montage, story stage, lyrics, tokens, restore, isolation');
 } finally {
   await browser?.close();
   await mongoose.disconnect();

@@ -34,7 +34,6 @@ export function lyricsPlan(opts: { title: string; lrc: string; songAssetId: stri
       lines: group.map((line, n) => ({ id: `l${n + 1}`, text: line.text.slice(0, 320), atMs: line.startMs, untilMs: Math.min(line.endMs, opts.songMs ?? line.endMs) })),
       background: { kind: "style" },
       layers: [
-        ...(index === 0 ? [{ id: "kicker", component: "text.kicker@1" as const, props: { text: opts.title.slice(0, 32) }, slot: "top" as const }] : []),
         { id: "words", component: "kinetic.words@1", props: {}, slot: "hero" },
         { id: "pulse", component: "audio.pulse@1", props: {}, slot: "bottom" },
       ],

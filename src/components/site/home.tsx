@@ -6,12 +6,14 @@ import { Brand } from "../brand";
 import { films, type Film } from "./films";
 
 const modes = [
-  ["Explainer", "A topic becomes five scenes, a narrator and captions on the words. Rendered in the studio today.", "In the studio"],
-  ["Code Lab", "Your Python runs in your browser. The trace, not the model, decides what the film shows.", "In the studio"],
-  ["Story", "Illustrated beats, a recurring cast and camera moves. Ek lattu was made by hand with the same engine.", "Planned"],
-  ["Launch", "Real product media with procedural motion. Any idea was made by hand with the same engine.", "Planned"],
-  ["Montage", "Beat-driven cuts of your own clips, with music that follows measured beats.", "Planned"],
-  ["Series", "Episodes that keep their cast, places and continuity notes between films.", "Planned"],
+  { title: "Explainer", copy: "A topic becomes scenes, a narrator and captions on the words.", state: "In the studio", src: "/films/moon.mp4", poster: "/films/moon.jpg" },
+  { title: "Code Lab", copy: "Your Python runs in your browser. The trace decides what the film shows.", state: "In the studio", src: "/films/code-lab.mp4", poster: "/films/code-lab.jpg" },
+  { title: "Story", copy: "A cast performs the beats. The head, mouth and body move with the voice.", state: "In the studio", src: "/films/story-new.mp4", poster: "/films/story-new.jpg" },
+  { title: "Cartoon", copy: "The same stage, brighter, with a recurring cast you pick.", state: "In the studio", src: "/films/cartoon-new.mp4", poster: "/films/cartoon-new.jpg" },
+  { title: "Audio", copy: "Your script, read aloud, one word at a time on the measured voice.", state: "In the studio", src: "/films/method.mp4", poster: "/films/method.jpg" },
+  { title: "Lyrics", copy: "Your song, with each line on screen when it is sung.", state: "In the studio", src: "/films/lyrics.mp4", poster: "/films/lyrics.jpg" },
+  { title: "Montage", copy: "Your clips, cut on the beats of your music.", state: "In the studio", src: "/films/guests.mp4", poster: "/films/guests.jpg" },
+  { title: "Series", copy: "Episodes that keep their cast, places and rules.", state: "In the studio", src: "/films/wedding.mp4", poster: "/films/wedding.jpg" },
 ];
 
 const steps = [
@@ -108,8 +110,8 @@ export function HomePage() {
           <div className="phone">
             <video
               ref={heroRef}
-              src="/films/story-new.mp4"
-              poster="/films/story-new.jpg"
+              src="/films/moon.mp4"
+              poster="/films/moon.jpg"
               muted
               loop
               playsInline
@@ -117,8 +119,8 @@ export function HomePage() {
             />
           </div>
           <figcaption>
-            <strong>Meera and the paper boat</strong>
-            <span>Story · one reference drawing, six consistent scenes</span>
+            <strong>Why it stays up</strong>
+            <span>Explainer · the picture moves with the voice</span>
           </figcaption>
         </figure>
       </section>
@@ -173,15 +175,16 @@ export function HomePage() {
       <section id="modes" className="block">
         <div className="block-head">
           <p className="kicker">What it makes</p>
-          <h2>One pipeline. Two kinds of film today.</h2>
-          <p>Explainer and Code Lab render in the studio now. The rest are on the plan and stay switched off until they work.</p>
+          <h2>One pipeline. Every mode you can open in the studio.</h2>
+          <p>Each tile plays a different film. Story and Cartoon perform on a 3D stage. Lyrics sit on the sung line.</p>
         </div>
         <div className="bento">
-          {modes.map(([title, copy, film]) => (
-            <article key={title} className="tile">
-              <h3>{title}</h3>
-              <p>{copy}</p>
-              <span className="badge" data-tone={film === "In the studio" ? "ready" : "draft"}>{film}</span>
+          {modes.map((mode) => (
+            <article key={mode.title} className="tile">
+              <video src={mode.src} poster={mode.poster} muted loop playsInline preload="metadata" autoPlay />
+              <h3>{mode.title}</h3>
+              <p>{mode.copy}</p>
+              <span className="badge" data-tone="ready">{mode.state}</span>
             </article>
           ))}
         </div>

@@ -19,7 +19,39 @@ export function hashPlan(plan: unknown): string {
   return createHash("sha256").update(JSON.stringify(plan)).digest("hex");
 }
 
+/** Lyric previews use the times in the lyric file, not an even guess across the film. */
+function lyricTimeline(plan: Plan): Timeline {
+  const lines: Timeline["lines"] = [];
+  for (const scene of plan.scenes) {
+    for (const line of scene.lines) {
+      const startMs = line.atMs ?? 0;
+      const durationMs = Math.max(400, (line.untilMs ?? startMs + 2000) - startMs);
+      const words = line.text.split(/\s+/).filter(Boolean);
+      const slice = durationMs / Math.max(words.length, 1);
+      lines.push({
+        sceneId: scene.id,
+        lineId: line.id,
+        text: line.text,
+        audioFile: "data:,",
+        startMs,
+        durationMs,
+        words: words.map((text, index) => ({ text, startMs: Math.round(index * slice), endMs: Math.round((index + 1) * slice) })),
+      });
+    }
+  }
+  const durationMs = Math.max(15000, ...lines.map((line) => line.startMs + line.durationMs), 0) + 400;
+  const scenes = plan.scenes.map((scene, index) => {
+    const own = lines.filter((line) => line.sceneId === scene.id);
+    const startMs = index === 0 ? 0 : own[0]?.startMs ?? 0;
+    const next = plan.scenes[index + 1];
+    const nextStart = next ? lines.find((line) => line.sceneId === next.id)?.startMs ?? durationMs : durationMs;
+    return { id: scene.id, startMs, durationMs: Math.max(200, nextStart - startMs) };
+  });
+  return { durationMs, scenes, lines };
+}
+
 export function estimatedTimeline(plan: Plan): Timeline {
+  if (plan.mode === "lyrics" && plan.scenes.some((scene) => scene.lines.some((line) => line.atMs !== undefined))) return lyricTimeline(plan);
   let cursor = 320;
   const scenes: Timeline["scenes"] = [];
   const lines: Timeline["lines"] = [];

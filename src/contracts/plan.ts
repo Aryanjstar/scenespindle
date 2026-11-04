@@ -62,6 +62,7 @@ const layerSchema = z.object({
     "kinetic.words@1",
     "audio.pulse@1",
     "image.still@1",
+    "stage.perform@1",
   ]),
   props: z.record(z.string(), z.unknown()).default({}),
   slot: z.enum(["top", "title", "center", "bottom", "hero", "full"]),
@@ -224,6 +225,18 @@ export function validatePlan(input: unknown): { plan: Plan | null; issues: PlanI
           issues.push({ path: `scenes.${s}.layers.${i}.props`, message: "Trace layers need integer from <= to (0 to 200)" });
         }
       }
+      if (layer.component === "stage.perform@1") {
+        const { action, look, rigs } = layer.props as { action?: unknown; look?: unknown; rigs?: unknown };
+        if (action !== "talk" && action !== "walk" && action !== "turn" && action !== "wave" && action !== "hold") {
+          issues.push({ path: `scenes.${s}.layers.${i}.props.action`, message: "Stage action must be talk, walk, turn, wave or hold" });
+        }
+        if (look !== "storybook" && look !== "cartoon") {
+          issues.push({ path: `scenes.${s}.layers.${i}.props.look`, message: "Stage look must be storybook or cartoon" });
+        }
+        if (rigs !== 1 && rigs !== 2) {
+          issues.push({ path: `scenes.${s}.layers.${i}.props.rigs`, message: "A stage has one or two performers" });
+        }
+      }
       if (layer.component === "image.still@1") {
         const { prompt, assetId, characterIds } = layer.props as { prompt?: unknown; assetId?: unknown; characterIds?: unknown };
         if (typeof prompt !== "string" || prompt.trim().length < 8 || prompt.length > 600) issues.push({ path: `scenes.${s}.layers.${i}.props.prompt`, message: "A still needs a picture description of 8 to 600 characters" });
@@ -265,6 +278,9 @@ export function validatePlan(input: unknown): { plan: Plan | null; issues: PlanI
 
   if (plan.mode !== "audio" && plan.mode !== "lyrics" && plan.scenes.some((scene) => scene.layers.some((layer) => layer.component === "kinetic.words@1"))) {
     issues.push({ path: "mode", message: "Kinetic word layers need an Audio or Lyrics plan" });
+  }
+  if (!ILLUSTRATED.has(plan.mode) && plan.scenes.some((scene) => scene.layers.some((layer) => layer.component === "stage.perform@1"))) {
+    issues.push({ path: "mode", message: "A performed stage needs a Story or Cartoon plan" });
   }
   // Scene-count rules per mode: short explainers stay 4 to 6 scenes; stories use 6 to 15 beats.
   const [minScenes, maxScenes] = ILLUSTRATED.has(plan.mode) ? [3, 15] : plan.mode === "lyrics" ? [1, 15] : [4, 6];
