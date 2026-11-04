@@ -4,7 +4,7 @@
 
 ## Current verified position
 
-- Live at https://scenespindle.blackforest-f0b810b6.centralindia.azurecontainerapps.io with web and worker apps, private Azure Blob storage and Atlas database `scenespindle`. This date's UI and stage work is on branch `studio-motion` until it is merged and redeployed.
+- Live at https://scenespindle.blackforest-f0b810b6.centralindia.azurecontainerapps.io with web and worker apps, private Azure Blob storage and Atlas database `scenespindle`. The public page shows eight new films rendered by the current studio. Older showreel files are no longer linked.
 - Modes that render end to end: Explainer, Code Lab (trace-driven), Audio (kinetic type), Montage (beat cuts), Story and Cartoon (seekable Three.js stage: head, mouth and body from the narration), Lyrics (sung lines on a dark stage). Formats 9:16, 16:9, 1:1. Languages English, Hindi, Hinglish.
 - Studio screens: cast picker, series bible and episodes, lyric song plus LRC, API tokens, and caption-a-reel (SRT or LRC times, or evenly spaced lines, creator-chosen band). Paid image sheets and face-avoiding vision captions stay off.
 - Brief-driven planning with verbatim exact scripts, scene-scoped copilot, QA-gated current film, versions, downloads, share links, invites, resets, rate limits, soft delete with restore and retention sweep, usage ledger.

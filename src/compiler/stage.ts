@@ -52,14 +52,17 @@ renderer.setPixelRatio(1);
 renderer.setSize(data.w, data.h, false);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(32, data.w / data.h, 0.1, 40);
-camera.position.set(0, 1.2, 7.6);
-camera.lookAt(0, 0.95, 0);
+const camera = new THREE.PerspectiveCamera(30, data.w / data.h, 0.1, 40);
+const portrait = data.h > data.w;
+const camZ = portrait ? 10.2 : 8.6;
+const lookY = portrait ? 1.15 : 1.05;
+camera.position.set(0, lookY + 0.35, camZ);
+camera.lookAt(0, lookY, 0);
 scene.add(new THREE.HemisphereLight(0xfff4e4, 0x2a2118, 1.35));
 const key = new THREE.DirectionalLight(0xfff7ea, 1.8);
 key.position.set(2.2, 4.2, 3.4);
 scene.add(key);
-const ground = new THREE.Mesh(new THREE.CircleGeometry(3.2, 48), new THREE.MeshStandardMaterial({ color: 0x3d2b1f, roughness: 0.9 }));
+const ground = new THREE.Mesh(new THREE.CircleGeometry(8, 48), new THREE.MeshStandardMaterial({ color: 0x3d2b1f, roughness: 0.9 }));
 ground.rotation.x = -Math.PI / 2;
 scene.add(ground);
 const PALETTE = {
@@ -123,7 +126,8 @@ function pose(actor, action, local, span, open, x) {
   actor.legR.rotation.set(0, 0, 0);
   actor.mouth.scale.y = 0.18 + open * 1.15;
   if (action === "walk") {
-    actor.group.position.x = x + (u * 2 - 1) * 0.42;
+    const travel = Math.abs(x) > 0.2 ? 0.16 : 0.28;
+    actor.group.position.x = x + (u * 2 - 1) * travel;
     actor.legL.rotation.x = Math.sin(local * 8) * 0.65;
     actor.legR.rotation.x = Math.sin(local * 8 + Math.PI) * 0.65;
     actor.armL.rotation.x = Math.sin(local * 8 + Math.PI) * 0.4;
@@ -131,7 +135,7 @@ function pose(actor, action, local, span, open, x) {
     actor.head.rotation.y = Math.sin(local * 2) * 0.22;
     actor.head.rotation.x = Math.sin(local * 4) * 0.05;
   } else if (action === "turn") {
-    actor.group.rotation.y = -0.85 + u * 1.7;
+    actor.group.rotation.y = -0.2 + u * 0.85;
     actor.head.rotation.y = Math.sin(local * 2.4) * 0.4;
     actor.head.rotation.x = 0.04;
   } else if (action === "wave") {
@@ -168,11 +172,11 @@ function renderAt(time) {
   const local = Math.max(0, t - shot.start);
   const open = openAt(t);
   pal.group.visible = shot.rigs === 2;
-  pose(lead, shot.action, local, span, open, shot.rigs === 2 ? -0.72 : 0);
-  if (shot.rigs === 2) pose(pal, shot.action === "walk" ? "talk" : shot.action, local, span, open * 0.85, 0.78);
-  camera.position.z = 7.6 - Math.sin(t * 0.35) * 0.18;
-  camera.position.x = Math.sin(t * 0.2) * 0.12;
-  camera.lookAt(0, 0.95, 0);
+  pose(lead, shot.action, local, span, open, shot.rigs === 2 ? -0.46 : 0);
+  if (shot.rigs === 2) pose(pal, shot.action === "walk" ? "talk" : shot.action, local, span, open * 0.85, 0.46);
+  camera.position.z = camZ - Math.sin(t * 0.35) * 0.1;
+  camera.position.x = Math.sin(t * 0.2) * 0.08;
+  camera.lookAt(0, lookY, 0);
   renderer.render(scene, camera);
 }
 window.__stage = renderAt;

@@ -423,16 +423,20 @@ function css(L: Layout): string {
 
 const ILLUSTRATED_MODES = new Set(["story", "cartoon"]);
 
-/** Over pictures, words need their own contrast: white type with a thick ink outline, no boxes. */
+/** Over pictures, words need their own contrast: white type with a thick ink outline, no boxes. The title sits in the top band and captions sit below the feet. */
 function illustratedCss(L: Layout): string {
   const o = (w: number) => [[-w, 0], [w, 0], [0, -w], [0, w], [-w, -w], [w, w], [-w, w], [w, -w]].map(([x, y]) => `${x}px ${y}px 0 ${ink.ink}`).join(", ");
+  const portrait = L.h > L.w;
+  const capTop = Math.round(L.h * (portrait ? 0.86 : 0.84));
+  const kickerTop = portrait ? 64 : 36;
   return `
-  .cap { top: ${Math.round(L.h * (L.h > L.w ? 0.78 : 0.8))}px; }
-  .cap p { color: #ffffff; text-shadow: ${o(4)}, 0 6px 18px rgba(0,0,0,.35); }
+  .slot-top { top: ${kickerTop}px; left: 56px; right: 56px; }
+  .cap { top: ${capTop}px; left: 56px; width: ${L.w - 112}px; }
+  .cap p { color: #ffffff; text-shadow: ${o(4)}, 0 6px 18px rgba(0,0,0,.35); font-size: ${Math.round((portrait ? 46 : 40) * L.type)}px; }
   .word { opacity: 0.78; }
   .word.on, .cap p .word[style*="opacity: 1"] { color: #ffd166; }
-  .kicker { display: inline-block; padding: 6px 18px 10px; border-radius: 14px; background: ${ink.moon}; color: ${ink.ink}; border: 4px solid ${ink.ink}; transform: rotate(-2deg); box-shadow: 6px 6px 0 ${ink.ink}; }
-  .still-shade { height: 34%; background: linear-gradient(to top, rgba(20,16,28,.55), rgba(20,16,28,0)); }
+  .kicker { display: inline-block; padding: 4px 14px 8px; border-radius: 12px; background: ${ink.moon}; color: ${ink.ink}; border: 3px solid ${ink.ink}; font-size: ${portrait ? 34 : 28}px; transform: rotate(-2deg); box-shadow: 4px 4px 0 ${ink.ink}; }
+  .still-shade { height: 22%; background: linear-gradient(to top, rgba(20,16,28,.45), rgba(20,16,28,0)); }
 `;
 }
 
@@ -443,7 +447,8 @@ function lyricsCss(L: Layout): string {
     radial-gradient(ellipse at 50% 42%, rgba(255, 95, 162, .28), transparent 42%),
     radial-gradient(ellipse at 50% 80%, rgba(61, 227, 245, .16), transparent 46%),
     #120d18; }
-  .slot-hero.lyric { top: ${Math.round(L.h * 0.34)}px; height: auto; display: grid; place-items: center; }
+  .slot-hero.lyric { top: ${Math.round(L.h * 0.36)}px; left: 64px; right: 64px; height: auto; display: grid; place-items: center; }
+  .slot-bottom { top: ${Math.round(L.h * 0.78)}px; }
   .lyric-line { margin: 0; grid-area: 1 / 1; text-align: center; max-width: 92%; }
   .lyric-word { display: inline-block; margin: 0 0.14em; font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: ${Math.round(72 * L.type)}px; line-height: 1.15; color: #fff8ee; text-shadow: -3px 0 0 #120d18, 3px 0 0 #120d18, 0 -3px 0 #120d18, 0 3px 0 #120d18; }
   .pulse i { background: #ff5fa2; }

@@ -5,16 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import { Brand } from "../brand";
 import { films, type Film } from "./films";
 
-const modes = [
-  { title: "Explainer", copy: "A topic becomes scenes, a narrator and captions on the words.", state: "In the studio", src: "/films/moon.mp4", poster: "/films/moon.jpg" },
-  { title: "Code Lab", copy: "Your Python runs in your browser. The trace decides what the film shows.", state: "In the studio", src: "/films/code-lab.mp4", poster: "/films/code-lab.jpg" },
-  { title: "Story", copy: "A cast performs the beats. The head, mouth and body move with the voice.", state: "In the studio", src: "/films/story-new.mp4", poster: "/films/story-new.jpg" },
-  { title: "Cartoon", copy: "The same stage, brighter, with a recurring cast you pick.", state: "In the studio", src: "/films/cartoon-new.mp4", poster: "/films/cartoon-new.jpg" },
-  { title: "Audio", copy: "Your script, read aloud, one word at a time on the measured voice.", state: "In the studio", src: "/films/method.mp4", poster: "/films/method.jpg" },
-  { title: "Lyrics", copy: "Your song, with each line on screen when it is sung.", state: "In the studio", src: "/films/lyrics.mp4", poster: "/films/lyrics.jpg" },
-  { title: "Montage", copy: "Your clips, cut on the beats of your music.", state: "In the studio", src: "/films/guests.mp4", poster: "/films/guests.jpg" },
-  { title: "Series", copy: "Episodes that keep their cast, places and rules.", state: "In the studio", src: "/films/wedding.mp4", poster: "/films/wedding.jpg" },
-];
+const modes = films.map((film) => ({
+  title: film.kind,
+  copy: film.detail,
+  state: "In the studio",
+  src: film.src,
+  poster: film.poster,
+}));
 
 const steps = [
   ["01", "Idea", "A topic, who it is for, and what must be in the film."],
@@ -34,11 +31,12 @@ const stack = [
 
 export function HomePage() {
   const [open, setOpen] = useState(false);
-  const [activeId, setActiveId] = useState(films[0].id);
+  const [activeId, setActiveId] = useState(films[1].id);
   const [sound, setSound] = useState(false);
   const stageRef = useRef<HTMLVideoElement>(null);
   const heroRef = useRef<HTMLVideoElement>(null);
-  const active = films.find((film) => film.id === activeId) ?? films[0];
+  const hero = films[0];
+  const active = films.find((film) => film.id === activeId) ?? hero;
 
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -110,8 +108,8 @@ export function HomePage() {
           <div className="phone">
             <video
               ref={heroRef}
-              src="/films/moon.mp4"
-              poster="/films/moon.jpg"
+              src={hero.src}
+              poster={hero.poster}
               muted
               loop
               playsInline
@@ -119,8 +117,8 @@ export function HomePage() {
             />
           </div>
           <figcaption>
-            <strong>Why it stays up</strong>
-            <span>Explainer · the picture moves with the voice</span>
+            <strong>{hero.title}</strong>
+            <span>{hero.kind} · {hero.length} · the whole frame, head to feet</span>
           </figcaption>
         </figure>
       </section>
@@ -129,8 +127,8 @@ export function HomePage() {
         <div className="sprockets" aria-hidden="true" />
         <div className="block-head">
           <p className="kicker">Rendered here</p>
-          <h2>Films this studio has already made.</h2>
-          <p>Five films. Each one states a problem, then the way through it. The voice says the words on the screen.</p>
+          <h2>Eight new films, one for every mode.</h2>
+          <p>Each one was rendered by this studio. The old showreel is not on this page. Open a tile to hear it.</p>
         </div>
         <div className="stage">
           <div className="phone phone-lg">
