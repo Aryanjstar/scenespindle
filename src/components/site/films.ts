@@ -11,6 +11,26 @@ export type Film = {
 
 export const films: Film[] = [
   {
+    id: "meera",
+    title: "Meera and the paper boat",
+    kind: "Story",
+    length: "54s",
+    audio: true,
+    src: "/films/story-new.mp4",
+    poster: "/films/story-new.jpg",
+    detail: "Made in the studio from one reference drawing: Meera stays the same girl in every scene, the stills are drawn to the beats, and the narrator reads them.",
+  },
+  {
+    id: "tikku",
+    title: "Tikku crosses the road",
+    kind: "Cartoon, Hinglish",
+    length: "42s",
+    audio: true,
+    src: "/films/cartoon-new.mp4",
+    poster: "/films/cartoon-new.jpg",
+    detail: "An original tiffin-box robot, described in one sentence, drawn consistently across a Mumbai street and narrated in Hinglish.",
+  },
+  {
     id: "find",
     title: "Find 21",
     kind: "Code Lab",

@@ -1,0 +1,19 @@
+# Single machine deployment: web + worker share one volume for films and the voice cache.
+# Usage: cp .env.example .env.production, fill it in, then: docker compose up -d --build
+services:
+  web:
+    build: .
+    env_file: .env.production
+    ports: ["3000:3000"]
+    volumes: ["media:/data"]
+    restart: unless-stopped
+  worker:
+    build: .
+    env_file: .env.production
+    command: ["npm", "run", "worker:prod"]
+    volumes: ["media:/data"]
+    restart: unless-stopped
+    # Renders run Chrome; give the worker room.
+    shm_size: "1gb"
+volumes:
+  media: {}

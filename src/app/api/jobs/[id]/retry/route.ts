@@ -21,7 +21,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       if (!project) { found = false; return; }
       if (await Job.exists({ projectId: job.projectId, activeSlot: true, state: { $in: ["queued", "running", "waiting_quota"] } }).session(session)) throw new Conflict();
       const updated = await Job.updateOne({ _id: job._id, ownerId: auth.user!._id, state: job.state }, {
-        $set: { state: "queued", activeSlot: true, attempts: 0, runAfter: new Date(), stages: [{ name: "preview", state: "queued" }] },
+        $set: { state: "queued", activeSlot: true, attempts: 0, runAfter: new Date(), stages: (job.input?.output === "mp4" ? ["voice", "timeline", "frames", "mix", "qa"] : job.input?.output === "montage" ? ["beats", "cuts", "mix", "qa"] : ["preview"]).map((name: string) => ({ name, state: "queued" })) },
         $unset: { error: 1, finishedAt: 1, leaseToken: 1, leaseExpiresAt: 1, result: 1 },
       }, { session });
       if (!updated.modifiedCount) throw new Conflict();

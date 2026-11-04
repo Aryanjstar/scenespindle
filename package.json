@@ -1,7 +1,7 @@
 {
-  "name": "ai_video_gen",
-  "version": "1.0.0",
-  "description": "**Any idea, at play.** An AI video studio that turns an idea, your notes, or a piece of code into a finished short video: narration, word-timed captions, motion, scenery, characters, and music.",
+  "name": "scenespindle",
+  "version": "0.2.0",
+  "description": "SceneSpindle: an invite-only studio that turns a topic, script or code into a narrated, captioned short film.",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,13 +14,20 @@
     "make-video": "tsx scripts/make-video.ts",
     "create-owner": "tsx scripts/create-owner.ts",
     "studio": "node --import tsx scripts/studio.ts",
-    "e2e": "npm run build && node test/integration/browser.mjs",
-    "worker": "node --env-file-if-exists=.env.local --import tsx worker/index.ts"
+    "e2e": "npm run build && node test/integration/browser.mjs && node test/integration/modes.mjs",
+    "worker": "node --env-file-if-exists=.env.local --import tsx worker/index.ts",
+    "lint": "eslint .",
+    "check": "npm test && npm run typecheck && npm run lint",
+    "start:prod": "next start -H 0.0.0.0 -p ${PORT:-3000}",
+    "worker:prod": "node --import tsx worker/index.ts",
+    "e2e:modes": "node test/integration/modes.mjs",
+    "mcp": "tsx scripts/mcp.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@fontsource/anek-devanagari": "5.3.0",
     "@fontsource/bricolage-grotesque": "^5.3.0",
     "@fontsource/caveat": "^5.3.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
@@ -28,6 +35,7 @@
     "@higgsfield/client": "^0.2.6",
     "bcryptjs": "^3.0.3",
     "gsap": "^3.15.0",
+    "hyperframes": "0.8.176",
     "mongoose": "^8.24.5",
     "next": "^16.4.2",
     "react": "^19.3.1",
@@ -43,6 +51,9 @@
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.4.2",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "6.0.3"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

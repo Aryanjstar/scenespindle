@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 1,
+  "mode": "code_lab",
+  "title": "How binary search finds",
+  "logline": "What binary_search does, step by step.",
+  "language": "en",
+  "format": "9x16",
+  "targetMs": 45000,
+  "styleId": "chalk-and-chai@1",
+  "voiceId": "elevenlabs:alice",
+  "scenes": [
+    {
+      "id": "s1",
+      "purpose": "hook",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "Watch how binary search efficiently tracks down the number 33 inside a sorted list of numbers."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "kicker",
+          "component": "text.kicker@1",
+          "props": {
+            "text": "Code Lab"
+          },
+          "slot": "top"
+        },
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "Finding 33"
+          },
+          "slot": "title"
+        }
+      ],
+      "events": [],
+      "holdMs": 240
+    },
+    {
+      "id": "s2",
+      "purpose": "setup",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "We call binary search on the list, setting the target to 33 and low index to zero."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "Starting the Search"
+          },
+          "slot": "title"
+        },
+        {
+          "id": "code",
+          "component": "code.listing@1",
+          "props": {},
+          "slot": "center"
+        }
+      ],
+      "events": [],
+      "holdMs": 240
+    },
+    {
+      "id": "s3",
+      "purpose": "explain",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "The high index is set to seven, and the middle index is evaluated at three."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "Checking the Middle"
+          },
+          "slot": "title"
+        },
+        {
+          "id": "trace",
+          "component": "trace.array@1",
+          "props": {
+            "from": 0,
+            "to": 2
+          },
+          "slot": "center"
+        }
+      ],
+      "events": [],
+      "holdMs": 240
+    },
+    {
+      "id": "s4",
+      "purpose": "example",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "The low index moves to four, and the new middle index is calculated as five."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "Narrowing the Range"
+          },
+          "slot": "title"
+        },
+        {
+          "id": "trace",
+          "component": "trace.array@1",
+          "props": {
+            "from": 3,
+            "to": 5
+          },
+          "slot": "center"
+        }
+      ],
+      "events": [],
+      "holdMs": 240
+    },
+    {
+      "id": "s5",
+      "purpose": "recap",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "The search successfully matches the target at index five and returns the final result."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "slam",
+          "component": "text.slam@1",
+          "props": {
+            "text": "5"
+          },
+          "slot": "hero"
+        },
+        {
+          "id": "note",
+          "component": "text.handwritten@1",
+          "props": {
+            "text": "from the real run"
+          },
+          "slot": "bottom"
+        }
+      ],
+      "events": [],
+      "holdMs": 700
+    }
+  ]
+}

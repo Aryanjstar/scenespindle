@@ -1,0 +1,15 @@
+---
+description: Use when touching the planner, compiler, components, Code Lab tracing, providers, or assets. Model output is data; code runs only in the browser; every asset has a licence.
+globs: src/compiler/**,src/catalog/**,src/contracts/**,src/server/providers/**,worker/**,library/**
+alwaysApply: false
+---
+
+# AI, rendering, and licence safety
+
+- Model output is validated with `validatePlan` (ARCHITECTURE §6.1) and compiled by trusted templates. Never eval it, never put it in innerHTML, attributes, CSS, URLs, or paths. Escape all text.
+- Visual facts come from traces, measured audio, or creator data. The model never writes data-structure values or timestamps.
+- User code runs only in the browser worker (Pyodide / QuickJS) with step, time, depth, and size caps. The server only validates trace JSON.
+- Providers only through adapters and the quota router. Record usage. Voices never fall back silently. Projects with `keepPrivate` never reach providers that train on free-tier input.
+- Every file in `library/` has a `manifest.json` row with licence and credit. Banned sources: unDraw, DrawKit, Blush, Storyset, Freesound API, MusicGen weights, edge-tts, Coqui XTTS.
+- No copyrighted characters, real-person likeness, or voice cloning.
+- Renders are deterministic: local fonts and libraries, seeded randomness, no network at render time.

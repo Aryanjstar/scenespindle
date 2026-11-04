@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1080, height=1920" />
+  <title>Story</title>
+  <script src="assets/gsap.min.js"></script>
+  <style>
+    @font-face { font-family: "Bricolage Grotesque"; src: url("assets/fonts/bricolage.woff2") format("woff2"); font-weight: 800; font-display: block; }
+    @font-face { font-family: Kalam; src: url("assets/fonts/kalam-deva.woff2") format("woff2"); font-weight: 700; font-display: block; unicode-range: U+0900-097F; }
+    @font-face { font-family: Caveat; src: url("assets/fonts/caveat.woff2") format("woff2"); font-weight: 700; font-display: block; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #F3E2C8; }
+    #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: #F3E2C8; color: #2A2238; font-family: "Bricolage Grotesque", sans-serif; }
+    .clip { position: absolute; inset: 0; }
+    .sky { position: absolute; left: 0; right: 0; top: 0; height: 720px; background: #243056; }
+    .moon { position: absolute; left: 720px; top: 180px; width: 140px; height: 140px; border-radius: 50%; background: #F6E7C1; }
+    .ground { position: absolute; left: 0; right: 0; top: 980px; height: 940px; background: #E7C99A; border-radius: 80px 80px 0 0; }
+    .kicker { position: absolute; left: 100px; top: 300px; margin: 0; font-family: Kalam, sans-serif; font-size: 72px; color: #F6E7C1; }
+    .lattu { position: absolute; left: 330px; top: 620px; width: 420px; height: 480px; transform-origin: 50% 70%; }
+    .line { position: absolute; left: 90px; right: 120px; top: 1180px; margin: 0; font-size: 78px; font-weight: 800; letter-spacing: -0.04em; line-height: .95; }
+    .hand { position: absolute; left: 100px; top: 1360px; margin: 0; font-family: Caveat, cursive; font-size: 72px; color: #8A4B12; }
+    .sticker { position: absolute; left: 100px; top: 280px; background: #2A2238; color: #F3E2C8; border-radius: 18px; padding: 10px 22px; font-size: 28px; }
+  </style>
+</head>
+<body>
+  <div id="root" data-composition-id="main" data-start="0" data-duration="15" data-width="1080" data-height="1920">
+    <div class="sky" id="sky"></div>
+    <div class="moon" id="moon"></div>
+    <div class="ground"></div>
+    <section id="s1" class="clip" data-start="0" data-duration="5" data-track-index="1">
+      <p id="k1" class="kicker">एक लट्टू</p>
+      <div id="top1" class="lattu">
+        <svg viewBox="0 0 200 240" width="420" height="480">
+          <ellipse cx="100" cy="210" rx="50" ry="8" fill="#2A2238" opacity="0.15"/>
+          <path d="M100 30 L150 160 L50 160 Z" fill="#0E7C72"/>
+          <ellipse cx="100" cy="160" rx="52" ry="18" fill="#E2A23A"/>
+          <circle cx="86" cy="100" r="6" fill="#2A2238"/><circle cx="114" cy="100" r="6" fill="#2A2238"/>
+          <path d="M100 178 C 140 200 150 190 160 220" fill="none" stroke="#2A2238" stroke-width="4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <p id="fell" class="line">It should fall.</p>
+    </section>
+    <section id="s2" class="clip" data-start="5" data-duration="5" data-track-index="1">
+      <p id="st" class="sticker">spin</p>
+      <div id="top2" class="lattu">
+        <svg viewBox="0 0 200 240" width="420" height="480">
+          <path d="M100 30 L150 160 L50 160 Z" fill="#0E7C72"/>
+          <ellipse cx="100" cy="160" rx="52" ry="18" fill="#E2A23A"/>
+          <circle cx="86" cy="100" r="6" fill="#2A2238"/><circle cx="114" cy="100" r="6" fill="#2A2238"/>
+        </svg>
+      </div>
+      <p id="spun" class="line">Spin, and it walks.</p>
+    </section>
+    <section id="s3" class="clip" data-start="10" data-duration="5" data-track-index="1">
+      <h1 id="same" class="line" style="top:1080px;font-size:96px">Same trick.</h1>
+      <p id="endhand" class="hand">the moon never lands</p>
+    </section>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#moon", { y: 20 }, { y: -10, duration: 15, ease: "none" }, 0);
+    tl.fromTo("#k1", { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.3);
+    tl.fromTo("#top1", { rotation: 0, y: -30, opacity: 0 }, { rotation: 18, y: 0, opacity: 1, duration: 0.7, ease: "power3.out", immediateRender: false }, 0.5);
+    tl.fromTo("#fell", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, ease: "power3.out", immediateRender: false }, 1.5);
+    tl.fromTo("#st", { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(1.7)", immediateRender: false }, 5.2);
+    tl.fromTo("#top2", { opacity: 0 }, { opacity: 1, duration: 0.2, immediateRender: false }, 5.2);
+    for (let n = 0; n < 8; n++) {
+      const at = 5.5 + n * 0.4;
+      tl.fromTo("#top2", { scaleX: n % 2 ? 0.78 : 1, rotation: n % 2 ? 6 : -6 }, { scaleX: n % 2 ? 1 : 0.78, rotation: n % 2 ? -6 : 6, duration: 0.2, ease: "power2.inOut", immediateRender: false }, at);
+    }
+    tl.fromTo("#spun", { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, ease: "power3.out", immediateRender: false }, 6.2);
+    tl.to("#moon", { scale: 1.8, x: -180, y: 80, duration: 0.8, ease: "power3.out" }, 10.2);
+    tl.fromTo("#same", { scale: 1.2, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: "power4.out", immediateRender: false }, 10.8);
+    tl.fromTo("#endhand", { y: 12, opacity: 0, rotation: -6 }, { y: 0, opacity: 1, rotation: -3, duration: 0.4, ease: "power3.out", immediateRender: false }, 11.5);
+    window.__timelines["main"] = tl;
+  </script>
+</body>
+</html>

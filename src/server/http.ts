@@ -14,6 +14,9 @@ export function apiError(
 }
 
 export function originOk(request: Request): boolean {
+  // Token-authenticated API clients are not exposed to cross-site request forgery:
+  // browsers cannot attach this header cross-origin, and such requests never use cookies.
+  if (/^Bearer\s+ss_/.test(request.headers.get("authorization") ?? "")) return true;
   const origin = request.headers.get("origin");
   if (!origin) return false;
   const expected = process.env.APP_ORIGIN || "http://localhost:3000";

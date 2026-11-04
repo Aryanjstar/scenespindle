@@ -5,6 +5,7 @@ import { authed, json } from "../../../server/guard";
 import { apiError } from "../../../server/http";
 import { hashToken } from "../../../server/session";
 import { appEnv } from "../../../config/app";
+import { sendMail } from "../../../server/mail";
 
 function isOwner(email: string) { return Boolean(appEnv().ownerEmail) && email === appEnv().ownerEmail; }
 export async function GET() {
@@ -23,5 +24,8 @@ export async function POST(request: Request) {
   if (await User.exists({ email: parsed.data.email })) return apiError(409, "CONFLICT", "ACCOUNT_EXISTS", "That account already exists.");
   const token = randomBytes(32).toString("base64url");
   const invite = await Invite.create({ email: parsed.data.email, tokenHash: hashToken(token), createdBy: auth.user!._id, expiresAt: new Date(Date.now() + 7 * 86400000) });
-  return json({ id: String(invite._id), email: invite.email, expiresAt: invite.expiresAt, url: `${appEnv().origin}/join#${token}`, delivery: "copy_link" }, 201);
+  const url = `${appEnv().origin}/join#${token}`;
+  const delivery = await sendMail(invite.email, "Your SceneSpindle invitation", `You are invited to the SceneSpindle studio. This link works once and expires in seven days:\n\n${url}`);
+  // The owner always gets the link too, so a mail failure never strands an invite.
+  return json({ id: String(invite._id), email: invite.email, expiresAt: invite.expiresAt, url, delivery: delivery === "sent" ? "email" : delivery === "failed" ? "email_failed" : "copy_link" }, 201);
 }

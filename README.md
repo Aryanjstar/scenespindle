@@ -1,46 +1,55 @@
 # SceneSpindle
 
-**AI Video Production Studio.** An invite-only studio for turning scripts, ideas, code and media into reviewed films, using structured plans and trusted renderers.
+**An invite-only studio for short films.** Bring a topic, a script or a piece of code. SceneSpindle plans the scenes, a narrator reads them, and code draws every frame to the measured voice. You get a narrated, captioned MP4 with subtitles, a poster and a share link.
 
-For a fresh account or machine, start with [HANDOFF.txt](HANDOFF.txt).
+New machine or new agent: start with [HANDOFF.md](HANDOFF.md). Current state: [PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 
-The product combines the existing web app with Reel Studio's editing workflows. The target includes 2D/3D films and recurring episodes; those capabilities are being delivered in slices. **The current web render flow is preview-only, not a complete hosted MP4 pipeline.** See [project status](docs/PROJECT_STATUS.md) and [implementation plan](docs/IMPLEMENTATION_PLAN.md).
+## What works today
 
-## Start locally
+- Explainer and Code Lab films, 9:16, English.
+- Idea, brief, AI-planned or imported storyboard, line edits, copilot revisions you keep or discard.
+- Approve, then a worker renders: narration (ElevenLabs, Sarvam), timing from measured audio, HyperFrames frames, FFmpeg mix at -14 LUFS, captions, SRT/VTT, poster, frame sheet and automatic QA. Only a film that passes QA becomes current.
+- Private streaming, versions, downloads, share links with optional download, revoke.
+- Invites, password reset, rate limits, per-creator isolation, soft delete.
 
-Use Node 22 LTS and npm. Python 3 and FFmpeg are needed for media/trace tests; MongoDB must be a replica set for transactional editing (Atlas works). From a fresh checkout:
+Other modes, formats and languages show in the studio as unavailable until they render.
+
+## Run it
+
+Node 22+, FFmpeg, a MongoDB replica set (Atlas works) and Chrome for the browser test.
 
 ```sh
 npm ci
-npm test
-npm run typecheck
+npm run check            # unit tests, typecheck, lint
+cp .env.example .env.local   # fill in Mongo, pepper, owner email, keys
+npm run create-owner     # prints where the owner password file is
+npm run dev              # web on :3000
+npm run worker           # renders films; run in a second terminal
+npm run e2e              # full two-creator browser journey with its own database
 ```
 
-Create `.env.local` from `.env.example` only if it does not already exist. Supply your own Mongo URI/database and auth configuration, then run `npm run dev` and, in another terminal, `npm run worker` to process preview jobs. Do not overwrite existing credentials. `npm run studio -- doctor` checks the local Node version and media executables without printing credentials; it does not connect to MongoDB or providers.
+## CLI
 
-Run `npm run e2e` with Chrome and `mongod` installed to build the app and exercise the studio as two creators at desktop and 390 px. The suite starts a disposable replica set and a production server on loopback ports 27932 and 3221.
-
-## Use any AI assistant or IDE
-
-Read [AGENTS.md](AGENTS.md) and [the editing workflow](docs/AGENT_WORKFLOW.md). No Claude, Cursor, Codex or other assistant subscription is required to run the repository.
+Machine-readable JSON, nonzero exit on failure, no credentials printed.
 
 ```sh
-npm run studio -- capabilities
-npm run studio -- schema
-npm run studio -- validate-plan path/to/plan.json
-npm run studio -- captions path/to/words.json --max-words 3
+npm run --silent studio -- doctor
+npm run --silent studio -- capabilities
+npm run --silent studio -- schema
+npm run --silent studio -- validate-plan examples/plans/why-ice-floats.json
+npm run --silent studio -- captions words.json --max-words 3
+SCENESPINDLE_TEST_VOICE=1 npm run --silent studio -- render examples/plans/why-ice-floats.json --voice test:tone --out out/smoke
+npm run --silent studio -- render examples/plans/why-ice-floats.json --voice elevenlabs:alice --out out/ice
 ```
 
-These commands run locally. Schema export, validation and caption grouping emit JSON. Invalid inputs produce a nonzero exit status. Capabilities reflect the implemented v1 explainer contract, not the whole roadmap. Caption grouping consumes measured word times; it does not create timestamps from a prompt.
+`render` writes `film.mp4`, `thumb.jpg`, `sheet.jpg`, `captions.srt`, `captions.vtt` and `qa.json`.
 
-The project Brief panel and offline CLI can now refine and approve a basic brief. For a machine-readable CLI response, use npm run --silent studio -- brief refine --input brief.json. The JSON file needs project (projectId, mode, format, language, targetMs) and input (rawRequest, optional audience, exactScript, directionId). The web workflow stores an owner-scoped version. Research, series briefs and the production planning gate are still upcoming; see [status](docs/PROJECT_STATUS.md).
+## Deploy
 
-## Architecture and contribution
+`docker compose up -d --build` runs the web app and the worker on one machine with a shared volume. See [HANDOFF.md](HANDOFF.md) section 4 for Atlas, HTTPS, keys and what is not yet possible on Vercel.
 
-Next.js/TypeScript, MongoDB, provider adapters, HyperFrames and FFmpeg. Planned heavy Blender rendering runs on a paired PC or Azure worker. Private media stays local unless explicitly opted into hosted processing. Third-party paid services remain disabled without configured authorization; Azure sponsorship balance is not yet verified.
+## Architecture and rules
 
-Source of truth: [PRD](docs/PRD.md), [system design](docs/ARCHITECTURE.md), [database design](docs/DATABASE.md), [API](docs/API.md). Also read [design](docs/DESIGN.md), [research review](docs/REFERENCE_REVIEW_2026-11-02.md), and [delivery plan](docs/IMPLEMENTATION_PLAN.md). Historical specifications are retained under docs/history/.
+Next.js 16, TypeScript, MongoDB (jobs are the queue), HyperFrames + GSAP + FFmpeg, provider adapters with a usage ledger. Model output is data, never code: plans name registered components and every string is escaped by the compiler. Sources of truth: [PRD](docs/PRD.md), [system design](docs/ARCHITECTURE.md), [database](docs/DATABASE.md), [API](docs/API.md); also [design](docs/DESIGN.md) and [AGENTS.md](AGENTS.md).
 
-Inspired by [NamasteVideo.ai](https://github.com/akshaymarch7/namaste-video-ai); reused third-party code/assets must retain their own license notices. Screenshots and reference links are inspiration, not redistribution permission. Never commit credentials, personal media, generated large artifacts or local environments.
-
-Planning references: [Brief Builder](docs/BRIEFING_WORKFLOW.md) and [on-demand toolbox](docs/toolbox/README.md). Implementation is in progress; the brief workflow is partial and the preview worker does not require plugins or models.
+Inspired by [NamasteVideo.ai](https://github.com/akshaymarch7/namaste-video-ai). UI craft follows [unslop](https://github.com/heydamir/unslop) by Damir Sokolovsky (CC BY 4.0). Never commit credentials, personal media or generated films.

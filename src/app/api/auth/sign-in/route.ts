@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { connectDb, User } from "../../../../server/db";
 import { apiError, originOk } from "../../../../server/http";
 import { checkPassword, openSession } from "../../../../server/session";
+import { limit } from "../../../../server/rate-limit";
+
+// A real cost-12 hash, so unknown emails take as long as wrong passwords.
+const DUMMY = "$2b$12$CwTycUXWue0Thq9StjUM0uJ8.dFHaNm8iHOKmY9rWfEfwQnGx7wNO";
 
 export async function POST(request: Request) {
   if (!originOk(request)) return apiError(403, "FORBIDDEN", "ORIGIN", "This request came from the wrong site.");
@@ -11,9 +15,11 @@ export async function POST(request: Request) {
   if (!email || !password) return apiError(400, "VALIDATION", "UNKNOWN_FIELD", "Email and password are required.");
   try {
     await connectDb();
+    if (!(await limit(request, "sign-in", 10, 15 * 60_000, email))) {
+      return apiError(429, "RATE_LIMITED", "RATE_LIMITED", "Too many sign-in attempts. Try again in 15 minutes.");
+    }
     const user = await User.findOne({ email }).maxTimeMS(8_000);
-    const hash = user?.passwordHash || "$2a$12$C6UzMDM.H6dfI/f/IKcEe.1P0n0c0c0c0c0c0c0c0c0c0c0c0c0c0";
-    const ok = user ? await checkPassword(password, user.passwordHash) : await checkPassword(password, hash).catch(() => false);
+    const ok = await checkPassword(password, user?.passwordHash || DUMMY).catch(() => false);
     if (!user || !ok) {
       return apiError(401, "UNAUTHENTICATED", "INVALID_CREDENTIALS", "That email or password is not right.");
     }

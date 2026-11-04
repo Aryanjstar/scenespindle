@@ -40,6 +40,19 @@ spikes/**/.hyperframes/
 .cursor/mcp.json
 .vercel
 .env*
+!.env.example
 
 # User-approved sound references are versioned with the on-demand toolbox
 !docs/toolbox/local-imports/sfx-pack/**/*.wav
+
+# Production env for docker compose, local QA output, render work
+.env.production
+.data/
+examples/**/out/
+
+# Generated demo media is small and rights-free
+!examples/media/*.mp4
+!examples/media/*.mp3
+
+# Older nested copy of the app. The live tree is the product.
+scenespindle-brief-builder/

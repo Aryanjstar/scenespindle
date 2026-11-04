@@ -37,15 +37,18 @@ export default function SignInPage() {
 
   return (
     <main className="auth">
-      <form onSubmit={submit} className="glass">
+      <form onSubmit={submit} className="surface">
         <Brand />
         <h1>Sign in</h1>
-        <p className="muted" style={{ margin: 0 }}>Invite-only. Use the owner account created for this studio.</p>
-        <input className="field" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email" required />
-        <input className="field" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" required />
-        {error ? <p className="error">{error}</p> : null}
-        <button className="btn" type="submit" disabled={pending}>{pending ? "Checking…" : "Enter the studio"}</button>
-        <Link href="/" className="fine">Back to the films</Link>
+        <p className="muted" style={{ margin: 0 }}>The studio is invite-only. Use the account from your invitation.</p>
+        <input className="field" type="email" autoComplete="email" aria-label="Email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email" required />
+        <input className="field" type="password" autoComplete="current-password" aria-label="Password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" required />
+        {error ? <p className="error" role="alert">{error}</p> : null}
+        <button className="btn lg" type="submit" disabled={pending} style={{ width: "100%" }}>{pending ? "Checking" : "Enter the studio"}</button>
+        <div className="row-actions" style={{ justifyContent: "space-between" }}>
+          <Link href="/reset" className="fine">Forgot your password?</Link>
+          <Link href="/" className="fine">Back to the films</Link>
+        </div>
       </form>
     </main>
   );

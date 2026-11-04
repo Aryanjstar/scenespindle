@@ -1,6 +1,6 @@
 # Assistant-independent editing workflow
 
-**Partial implementation:** the offline `doctor`, `capabilities`, `schema`, `validate-plan`, `captions`, and basic `brief refine`/`brief answer` commands are available. Rendering and the remaining workflow are not implemented by this CLI.
+**Partial implementation:** `doctor`, `capabilities`, `schema`, `validate-plan`, `captions`, basic `brief refine`/`brief answer`, and `render` are available. `render <plan.json> --voice <id> [--out dir]` runs the same pipeline as the worker (narration, frames, mix, captions, QA) without a database; `--voice test:tone` with `SCENESPINDLE_TEST_VOICE=1` needs no keys.
 
 Use this guide with Codex, Claude Code, Cursor, Copilot, another coding assistant, or a terminal. The project commands are the interface; chat history and private skill installations are not dependencies.
 
@@ -11,7 +11,7 @@ Use this guide with Codex, Claude Code, Cursor, Copilot, another coding assistan
 5. Review scene stills and an animatic, then freeze the plan/assets/settings. Render only through a supported pipeline. Review frames and audio before handing off an export.
 6. Apply feedback narrowly; preserve versions. Record evidence and limitations in PROJECT_STATUS.md, and reusable discoveries in RESEARCH.md.
 
-CLI validation, caption grouping and basic brief refinement work offline without credentials. `npm run --silent studio -- brief refine --input brief.json` returns a machine-readable first draft. End-to-end hosted rendering, full schema v2, remote agents, editable export and matting are upcoming slices. Do not describe them as implemented.
+CLI validation, caption grouping and basic brief refinement work offline without credentials. `npm run --silent studio -- brief refine --input brief.json` returns a machine-readable first draft. Hosted split rendering (blob storage), full schema v2, remote agents, editable export and matting are upcoming slices. Do not describe them as implemented.
 
 ## Portability rules
 

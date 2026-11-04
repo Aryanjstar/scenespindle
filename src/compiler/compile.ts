@@ -1,7 +1,8 @@
 import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Plan } from "../contracts/plan";
+import type { Format, Plan } from "../contracts/plan";
+import type { TraceState } from "../trace/states";
 import { chalkAndChai as ink } from "../catalog/style";
 import { assertSafeId, escapeHtml } from "./escape";
 
@@ -30,6 +31,54 @@ type Tween = {
   at: number;
   duration: number;
   ease: string;
+};
+
+export type Layout = {
+  w: number;
+  h: number;
+  resolution: "portrait" | "landscape" | "square";
+  slots: Record<"top" | "title" | "hero" | "center" | "bottom", { left: number; right: number; top: number; height?: number }>;
+  cap: { left: number; width: number; top: number; size: number; chars: number };
+  type: number;
+};
+
+export const LAYOUTS: Record<Format, Layout> = {
+  "9x16": {
+    w: 1080, h: 1920, resolution: "portrait",
+    slots: {
+      top: { left: 100, right: 140, top: 280 },
+      title: { left: 100, right: 140, top: 370 },
+      hero: { left: 80, right: 140, top: 640 },
+      center: { left: 80, right: 140, top: 540, height: 760 },
+      bottom: { left: 100, right: 140, top: 1220 },
+    },
+    cap: { left: 80, width: 920, top: 1360, size: 58, chars: 22 },
+    type: 1,
+  },
+  "1x1": {
+    w: 1080, h: 1080, resolution: "square",
+    slots: {
+      top: { left: 90, right: 90, top: 80 },
+      title: { left: 90, right: 90, top: 150 },
+      hero: { left: 80, right: 90, top: 290 },
+      center: { left: 80, right: 90, top: 300, height: 430 },
+      bottom: { left: 90, right: 90, top: 690 },
+      },
+    cap: { left: 60, width: 960, top: 820, size: 50, chars: 30 },
+    type: 0.78,
+  },
+  "16x9": {
+    w: 1920, h: 1080, resolution: "landscape",
+    slots: {
+      top: { left: 120, right: 1020, top: 150 },
+      title: { left: 120, right: 1020, top: 230 },
+      hero: { left: 120, right: 1020, top: 430 },
+      center: { left: 1000, right: 120, top: 150, height: 620 },
+      bottom: { left: 120, right: 1020, top: 650 },
+    },
+    cap: { left: 160, width: 1600, top: 860, size: 54, chars: 40 },
+    type: 0.9,
+  },
 };
 
 const EASES = new Set(["power2.out", "power3.out", "power2.inOut", "none", "back.out"]);
@@ -61,11 +110,12 @@ function lattuSvg(): string {
   </svg>`;
 }
 
-function layerHtml(plan: Plan, sceneIndex: number, startSec: number, durationSec: number): { html: string; tweens: Tween[] } {
+function layerHtml(plan: Plan, sceneIndex: number, startSec: number, durationSec: number, layout: Layout, trace?: CompileTrace, timed: TimedLine[] = [], images: Record<string, string> = {}): { html: string; tweens: Tween[] } {
   const scene = plan.scenes[sceneIndex];
   if (!scene) return { html: "", tweens: [] };
   const tweens: Tween[] = [];
   const chunks: string[] = [];
+  const words = plan.language === "hi" ? { earth: "धरती", moon: "चाँद", pull: "खिंचाव", sideways: "आगे की चाल" } : { earth: "Earth", moon: "Moon", pull: "pull", sideways: "sideways" };
   for (const layer of scene.layers) {
     const id = assertSafeId(`${scene.id}-${layer.id}`);
     const at = startSec + 0.12;
@@ -74,7 +124,7 @@ function layerHtml(plan: Plan, sceneIndex: number, startSec: number, durationSec
       tweens.push(tween({ target: id, from: { y: 18, opacity: 0 }, to: { y: 0, opacity: 1 }, at, duration: 0.45, ease: "power3.out" }));
     } else if (layer.component === "text.title@1") {
       const slot = layer.slot === "hero" ? "slot-hero" : "slot-title";
-      const size = String(layer.props.text).length > 22 ? 68 : 92;
+      const size = Math.round((String(layer.props.text).length > 22 ? 68 : 92) * layout.type);
       chunks.push(`<div class="${slot}"><h1 id="${id}" class="title" style="font-size:${size}px">${escapeHtml(String(layer.props.text))}</h1><div id="${id}-line" class="underline"></div></div>`);
       tweens.push(tween({ target: id, from: { y: 28, opacity: 0 }, to: { y: 0, opacity: 1 }, at: at + 0.05, duration: 0.55, ease: "power3.out" }));
       tweens.push(tween({ target: `${id}-line`, from: { scaleX: 0 }, to: { scaleX: 1 }, at: at + 0.28, duration: 0.4, ease: "power2.out" }));
@@ -100,9 +150,9 @@ function layerHtml(plan: Plan, sceneIndex: number, startSec: number, durationSec
       const showSide = layer.props.showSideways === true;
       chunks.push(`<div class="slot-center"><div class="orbit">
         <div class="ring"></div>
-        <div id="${id}-earth" class="earth"><span>Earth</span></div>
-        <div id="${id}-arm" class="arm">${showSide ? `<i id="${id}-side" class="side">sideways</i>` : ""}<div id="${id}-moon" class="moon"><span>Moon</span></div></div>
-        ${showPull ? `<b id="${id}-pull" class="pull">pull</b>` : ""}
+        <div id="${id}-earth" class="earth"><span>${words.earth}</span></div>
+        <div id="${id}-arm" class="arm">${showSide ? `<i id="${id}-side" class="side">${words.sideways}</i>` : ""}<div id="${id}-moon" class="moon"><span>${words.moon}</span></div></div>
+        ${showPull ? `<b id="${id}-pull" class="pull">${words.pull}</b>` : ""}
       </div></div>`);
       tweens.push(tween({ target: `${id}-earth`, from: { scale: 0.7, opacity: 0 }, to: { scale: 1, opacity: 1 }, at, duration: 0.45, ease: "back.out" }));
       const sweep = showSide ? 150 : 24;
@@ -128,18 +178,95 @@ function layerHtml(plan: Plan, sceneIndex: number, startSec: number, durationSec
       items.forEach((_, n) => {
         tweens.push(tween({ target: `${id}-${n}`, from: { y: 20, opacity: 0 }, to: { y: 0, opacity: 1 }, at: at + n * 0.28, duration: 0.4, ease: "power3.out" }));
       });
+    } else if ((layer.component === "trace.array@1" || layer.component === "trace.stack@1") && trace?.states.length) {
+      const from = Math.min(Number(layer.props.from) || 0, trace.states.length - 1);
+      const to = Math.min(Math.max(Number(layer.props.to) || 0, from), trace.states.length - 1);
+      const shown = trace.states.slice(from, to + 1);
+      const span = Math.max(0.6, durationSec - 0.5);
+      const each = span / shown.length;
+      const frames = shown.map((state, k) => {
+        const fid = assertSafeId(`${id}-k${k}`);
+        const at0 = startSec + 0.2 + k * each;
+        tweens.push(tween({ target: fid, from: { opacity: 0, y: 10 }, to: { opacity: 1, y: 0 }, at: at0, duration: 0.18, ease: "power2.out" }));
+        if (k < shown.length - 1) tweens.push(tween({ target: fid, from: { opacity: 1 }, to: { opacity: 0 }, at: at0 + each - 0.04, duration: 0.12, ease: "none" }));
+        return `<div id="${fid}" class="trace-frame" style="opacity:0">${layer.component === "trace.array@1" ? arrayState(state) : stackState(state)}</div>`;
+      });
+      chunks.push(`<div class="slot-center"><div class="trace">${frames.join("")}</div></div>`);
+    } else if (layer.component === "image.still@1") {
+      // The plan holds only an asset id; trusted code resolved it to a copied file name.
+      const assetId = typeof layer.props.assetId === "string" ? layer.props.assetId : "";
+      const file = assetId ? images[assetId] : undefined;
+      const inner = file
+        ? `<img id="${id}" class="still" src="${file}" alt="" />`
+        : `<div id="${id}" class="still still-missing"><span>${escapeHtml(String(layer.props.prompt ?? "").slice(0, 140))}</span></div>`;
+      chunks.push(`<div class="slot-full">${inner}<div class="still-shade"></div></div>`);
+      const drift = sceneIndex % 2 === 0 ? -24 : 24;
+      tweens.push(tween({ target: id, from: { scale: 1.02, x: 0, opacity: 0 }, to: { scale: 1.02, x: 0, opacity: 1 }, at: startSec, duration: 0.35, ease: "power2.out" }));
+      tweens.push(tween({ target: id, from: { scale: 1.02, x: 0 }, to: { scale: 1.12, x: drift }, at: startSec + 0.35, duration: Math.max(0.5, durationSec - 0.35), ease: "none" }));
+    } else if (layer.component === "kinetic.words@1") {
+      // One word at a time, on the measured word times. Long words get the accent.
+      const words = timed.flatMap((line) => line.words.map((word) => ({ ...word, startMs: line.startMs + word.startMs, endMs: line.startMs + word.endMs })));
+      const spans = words.map((word, n) => {
+        const wid = assertSafeId(`${id}-w${n}`);
+        const at0 = word.startMs / 1000;
+        const until = (words[n + 1]?.startMs ?? word.endMs + 400) / 1000;
+        const strong = word.text.replace(/[^\p{L}\p{N}]/gu, "").length >= 7;
+        tweens.push(tween({ target: wid, from: { opacity: 0, scale: 0.86, y: 18 }, to: { opacity: 1, scale: 1, y: 0 }, at: at0, duration: 0.14, ease: "power3.out" }));
+        tweens.push(tween({ target: wid, from: { opacity: 1 }, to: { opacity: 0 }, at: Math.max(at0 + 0.12, until - 0.02), duration: 0.06, ease: "none" }));
+        return `<span id="${wid}" class="kword${strong ? " strong" : ""}" style="opacity:0">${escapeHtml(word.text.replace(/[,;:]$/, ""))}</span>`;
+      }).join("");
+      chunks.push(`<div class="slot-hero kinetic">${spans}</div>`);
+    } else if (layer.component === "audio.pulse@1") {
+      const bars = Array.from({ length: 24 }, (_, n) => `<i id="${assertSafeId(`${id}-b${n}`)}" style="height:${18 + ((n * 37) % 50)}px"></i>`).join("");
+      chunks.push(`<div class="slot-bottom pulse">${bars}</div>`);
+      const onsets = timed.flatMap((line) => line.words.map((word) => (line.startMs + word.startMs) / 1000));
+      onsets.forEach((t, k) => {
+        const bar = assertSafeId(`${id}-b${(k * 7) % 24}`);
+        tweens.push(tween({ target: bar, from: { scaleY: 1 }, to: { scaleY: 2.6 }, at: t, duration: 0.08, ease: "power2.out" }));
+        tweens.push(tween({ target: bar, from: { scaleY: 2.6 }, to: { scaleY: 1 }, at: t + 0.1, duration: 0.22, ease: "power2.out" }));
+      });
+    } else if (layer.component === "code.listing@1" && trace?.code) {
+      const highlight = Number(layer.props.highlight) || 0;
+      const lines = trace.code.split("\n").slice(0, 16).map((text, n) => `<li class="${n + 1 === highlight ? "hl" : ""}"><b>${n + 1}</b><span>${escapeHtml(text.replaceAll("\t", "  ")) || "&nbsp;"}</span></li>`).join("");
+      chunks.push(`<div class="slot-center"><ol id="${id}" class="code">${lines}</ol></div>`);
+      tweens.push(tween({ target: id, from: { y: 24, opacity: 0 }, to: { y: 0, opacity: 1 }, at, duration: 0.45, ease: "power3.out" }));
     }
   }
   return { html: chunks.join("\n"), tweens };
 }
 
-function linesOf(words: TimedWord[]): TimedWord[][] {
+export type CompileTrace = { states: TraceState[]; code?: string };
+
+function arrayState(state: TraceState): string {
+  if (!state.array) return stackState(state);
+  const pointerAt = new Map<number, string[]>();
+  for (const [name, index] of state.pointers) pointerAt.set(index, [...(pointerAt.get(index) ?? []), name]);
+  const lo = state.pointers.find(([name]) => /^(lo|low|left|l|start)$/.test(name))?.[1];
+  const hi = state.pointers.find(([name]) => /^(hi|high|right|r|end)$/.test(name))?.[1];
+  const focus = state.pointers.find(([name]) => /^(mid|i|pivot|p)$/.test(name))?.[1];
+  const cells = state.array.map((value, index) => {
+    const out = (lo !== undefined && index < lo) || (hi !== undefined && index > hi);
+    const cls = ["cell", out ? "out" : "", index === focus ? "focus" : ""].filter(Boolean).join(" ");
+    const names = pointerAt.get(index)?.join(" ") ?? "";
+    return `<div class="${cls}"><span>${escapeHtml(String(value))}</span><i>${index}</i><em>${escapeHtml(names)}</em></div>`;
+  }).join("");
+  const vars = state.scalars.filter(([name]) => name !== state.arrayName).map(([name, value]) => `<span><b>${escapeHtml(name)}</b> ${escapeHtml(String(value))}</span>`).join("");
+  return `<div class="cells">${cells}</div><div class="vars">${vars}</div>`;
+}
+
+function stackState(state: TraceState): string {
+  const frames = state.stack.map((label, n) => `<li class="${n === state.stack.length - 1 ? "top" : ""}">${escapeHtml(label)}</li>`).join("");
+  const vars = state.scalars.map(([name, value]) => `<span><b>${escapeHtml(name)}</b> ${escapeHtml(String(value))}</span>`).join("");
+  return `<ol class="stack">${frames}</ol><div class="vars">${vars}</div>`;
+}
+
+function linesOf(words: TimedWord[], chars = 22): TimedWord[][] {
   const lines: TimedWord[][] = [];
   let line: TimedWord[] = [];
   let width = 0;
   for (const word of words) {
     const add = (width === 0 ? 0 : 1) + word.text.length;
-    if (width > 0 && width + add > 26) {
+    if (width > 0 && width + add > chars) {
       lines.push(line);
       line = [];
       width = 0;
@@ -148,11 +275,23 @@ function linesOf(words: TimedWord[]): TimedWord[][] {
     width += (width === 0 ? 0 : 1) + word.text.length;
   }
   if (line.length) lines.push(line);
+  // Never leave one short word alone on the last caption row; borrow from the row above.
+  if (lines.length > 1 && lines[lines.length - 1].length === 1) {
+    const prev = lines[lines.length - 2];
+    if (prev.length > 2) lines[lines.length - 1].unshift(prev.pop()!);
+  }
+  // A lone last row on its own page reads as an orphan; fold it into the previous page when it fits.
+  if (lines.length % 2 === 1 && lines.length > 1) {
+    const last = lines[lines.length - 1];
+    const prev = lines[lines.length - 2];
+    const width = [...prev, ...last].reduce((sum, word) => sum + word.text.length + 1, 0);
+    if (width <= chars + 8) { lines.splice(lines.length - 2, 2, [...prev, ...last]); }
+  }
   return lines;
 }
 
-function captionPages(line: TimedLine): { html: string; tweens: Tween[] } {
-  const lines = linesOf(line.words);
+function captionPages(line: TimedLine, chars: number): { html: string; tweens: Tween[] } {
+  const lines = linesOf(line.words, chars);
   const pages: TimedWord[][][] = [];
   for (let i = 0; i < lines.length; i += 2) pages.push(lines.slice(i, i + 2));
 
@@ -170,8 +309,8 @@ function captionPages(line: TimedLine): { html: string; tweens: Tween[] } {
         const id = assertSafeId(`cap-${line.sceneId}-${line.lineId}-p${p}w${n}`);
         const at = (line.startMs + word.startMs) / 1000;
         const dur = Math.max(0.16, (word.endMs - word.startMs) / 1000);
-        tweens.push(tween({ target: id, from: { opacity: 0.4 }, to: { opacity: 1 }, at, duration: 0.06, ease: "power2.out" }));
-        tweens.push(tween({ target: id, from: { opacity: 1 }, to: { opacity: 0.4 }, at: at + Math.max(0.08, dur - 0.06), duration: 0.06, ease: "power2.out" }));
+        tweens.push(tween({ target: id, from: { opacity: 0.62 }, to: { opacity: 1 }, at, duration: 0.06, ease: "power2.out" }));
+        tweens.push(tween({ target: id, from: { opacity: 1 }, to: { opacity: 0.62 }, at: at + Math.max(0.08, dur - 0.06), duration: 0.06, ease: "power2.out" }));
         return `<span id="${id}" class="word">${escapeHtml(word.text)} </span>`;
       }).join("");
       return `<p class="cap-line">${spans}</p>`;
@@ -182,9 +321,11 @@ function captionPages(line: TimedLine): { html: string; tweens: Tween[] } {
   return { html: html.join("\n"), tweens };
 }
 
-const CSS = `
+function css(L: Layout): string {
+  const slot = (name: keyof Layout["slots"]) => { const v = L.slots[name]; return `left: ${v.left}px; right: ${v.right}px; top: ${v.top}px;${v.height ? ` height: ${v.height}px;` : ""}`; };
+  return `
   * { box-sizing: border-box; }
-  html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: ${ink.paper}; }
+  html, body { margin: 0; width: ${L.w}px; height: ${L.h}px; overflow: hidden; background: ${ink.paper}; }
   #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: ${ink.paper}; }
   .wash { position: absolute; inset: 0; background:
     radial-gradient(ellipse at 18% 8%, rgba(242,159,5,.28), transparent 46%),
@@ -192,15 +333,15 @@ const CSS = `
   }
   .clip { position: absolute; }
   .scene { inset: 0; }
-  .slot-top { position: absolute; left: 100px; right: 140px; top: 280px; }
-  .slot-title { position: absolute; left: 100px; right: 140px; top: 370px; }
-  .slot-hero { position: absolute; left: 80px; right: 140px; top: 640px; }
-  .slot-center { position: absolute; left: 80px; right: 140px; top: 540px; height: 760px; }
-  .slot-bottom { position: absolute; left: 100px; right: 140px; top: 1220px; }
+  .slot-top { position: absolute; ${slot("top")} }
+  .slot-title { position: absolute; ${slot("title")} }
+  .slot-hero { position: absolute; ${slot("hero")} }
+  .slot-center { position: absolute; ${slot("center")} }
+  .slot-bottom { position: absolute; ${slot("bottom")} }
   .kicker { margin: 0; font-family: Kalam, sans-serif; font-size: 58px; color: ${ink.teal}; }
   .title { margin: 0; font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; line-height: 0.96; color: ${ink.ink}; letter-spacing: -0.03em; }
   .underline { width: 180px; height: 10px; margin-top: 18px; border-radius: 99px; background: ${ink.moon}; transform-origin: 0 50%; }
-  .slam { margin: 0; font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: 168px; letter-spacing: -0.04em; color: ${ink.ink}; line-height: 0.9; }
+  .slam { margin: 0; font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: ${Math.round(168 * L.type)}px; letter-spacing: -0.04em; color: ${ink.ink}; line-height: 0.9; }
   .note { margin: 0; font-family: Caveat, cursive; font-size: 72px; color: ${ink.saffron}; }
   .lattu { width: 460px; height: 540px; margin: 20px auto 0; transform-origin: 50% 62%; }
   .lattu svg { width: 100%; height: 100%; }
@@ -222,47 +363,110 @@ const CSS = `
   .bullets li { display: flex; gap: 22px; align-items: baseline; }
   .bullets em { font-style: normal; font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: 48px; color: ${ink.teal}; }
   .bullets span { font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: 48px; color: ${ink.ink}; }
-  .cap { left: 90px; width: 860px; top: 1420px; text-align: center; }
-  .cap p { margin: 0; font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: 40px; line-height: 1.28; color: ${ink.ink}; text-shadow: -3px 0 0 ${ink.paper}, 3px 0 0 ${ink.paper}, 0 -3px 0 ${ink.paper}, 0 3px 0 ${ink.paper}; }
-  .word { display: inline; }
+  .cap { left: ${L.cap.left}px; width: ${L.cap.width}px; top: ${L.cap.top}px; text-align: center; }
+  .cap p { margin: 0; font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: ${L.cap.size}px; line-height: 1.2; color: ${ink.ink}; text-shadow: -3px 0 0 ${ink.paper}, 3px 0 0 ${ink.paper}, 0 -3px 0 ${ink.paper}, 0 3px 0 ${ink.paper}; }
+  .word { display: inline; opacity: 0.62; }
   .word.on { color: ${ink.teal}; }
+  .slot-full { position: absolute; inset: 0; overflow: hidden; background: ${ink.ink}; }
+  .still { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform-origin: 50% 45%; }
+  .still-missing { display: grid; place-items: center; padding: 120px; background: repeating-linear-gradient(45deg, #efe6d4 0 24px, #f6efe2 24px 48px); }
+  .still-missing span { font-family: "Bricolage Grotesque", sans-serif; font-size: ${Math.round(40 * L.type)}px; color: ${ink.ink}; text-align: center; opacity: .7; }
+  .still-shade { position: absolute; left: 0; right: 0; bottom: 0; height: 38%; background: linear-gradient(to top, rgba(251,244,232,.92), rgba(251,244,232,0)); }
+  .kinetic { position: absolute; display: grid; place-items: center; height: ${Math.round(L.h * 0.3)}px; }
+  .kword { grid-area: 1 / 1; font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: ${Math.round(150 * L.type)}px; line-height: 1; letter-spacing: -0.03em; color: ${ink.ink}; text-align: center; }
+  .kword.strong { color: ${ink.saffron}; }
+  .pulse { display: flex; gap: 10px; align-items: center; justify-content: center; height: 140px; }
+  .pulse i { display: block; width: 14px; border-radius: 7px; background: ${ink.teal}; opacity: .7; transform-origin: 50% 50%; }
+  .trace { position: relative; width: 100%; height: 100%; }
+  .trace-frame { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 36px; }
+  .cells { display: flex; flex-wrap: nowrap; gap: 10px; justify-content: center; }
+  .cell { position: relative; flex: 1 1 0; min-width: 0; max-width: 112px; height: 120px; border-radius: 18px; background: #fff; border: 4px solid ${ink.ink}; display: grid; place-items: center; }
+  .cell span { font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: 40px; color: ${ink.ink}; }
+  .cell i { position: absolute; top: -34px; font-style: normal; font-family: Mono, monospace; font-size: 22px; color: ${ink.ink}; opacity: .55; }
+  .cell em { position: absolute; bottom: -46px; font-style: normal; font-family: Caveat, cursive; font-size: 38px; color: ${ink.saffron}; white-space: nowrap; }
+  .cell.out { opacity: .28; }
+  .cell.focus { background: ${ink.moon}; }
+  .vars { display: flex; flex-wrap: wrap; gap: 14px 28px; justify-content: center; margin-top: 24px; font-family: Mono, monospace; font-size: 34px; color: ${ink.ink}; }
+  .vars b { color: ${ink.teal}; font-weight: 500; }
+  .stack { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column-reverse; gap: 12px; align-items: center; }
+  .stack li { min-width: 60%; padding: 18px 26px; border-radius: 16px; border: 3px solid ${ink.ink}; background: #fff; font-family: Mono, monospace; font-size: 32px; color: ${ink.ink}; text-align: center; }
+  .stack li.top { background: ${ink.moon}; }
+  .code, .vars, .stack li, .cell i { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+  .code { list-style: none; margin: 0; padding: 28px 24px; border-radius: 24px; background: ${ink.ink}; color: ${ink.paper}; font-family: Mono, monospace; font-size: ${Math.round(30 * L.type)}px; line-height: 1.45; }
+  .code li { display: flex; gap: 22px; white-space: pre; }
+  .code b { width: 34px; text-align: right; opacity: .4; font-weight: 400; }
+  .code li.hl { background: rgba(242,159,5,.28); border-radius: 8px; }
 `;
+}
+
+const ILLUSTRATED_MODES = new Set(["story", "cartoon"]);
+
+/** Over pictures, words need their own contrast: white type with a thick ink outline, no boxes. */
+function illustratedCss(L: Layout): string {
+  const o = (w: number) => [[-w, 0], [w, 0], [0, -w], [0, w], [-w, -w], [w, w], [-w, w], [w, -w]].map(([x, y]) => `${x}px ${y}px 0 ${ink.ink}`).join(", ");
+  return `
+  .cap { top: ${Math.round(L.h * (L.h > L.w ? 0.78 : 0.8))}px; }
+  .cap p { color: #ffffff; text-shadow: ${o(4)}, 0 6px 18px rgba(0,0,0,.35); }
+  .word { opacity: 0.78; }
+  .word.on, .cap p .word[style*="opacity: 1"] { color: #ffd166; }
+  .kicker { display: inline-block; padding: 6px 18px 10px; border-radius: 14px; background: ${ink.moon}; color: ${ink.ink}; border: 4px solid ${ink.ink}; transform: rotate(-2deg); box-shadow: 6px 6px 0 ${ink.ink}; }
+  .still-shade { height: 34%; background: linear-gradient(to top, rgba(20,16,28,.55), rgba(20,16,28,0)); }
+`;
+}
 
 function fontFace(): string {
   return `
+    @font-face { font-family: "Bricolage Grotesque"; src: url("assets/fonts/anek-deva.woff2") format("woff2"); font-weight: 700; font-display: block; unicode-range: U+0900-097F, U+1CD0-1CFF, U+200C-200D, U+A8E0-A8FF; }
     @font-face { font-family: "Bricolage Grotesque"; src: url("assets/fonts/bricolage.woff2") format("woff2"); font-weight: 700; font-display: block; }
+    @font-face { font-family: Caveat; src: url("assets/fonts/kalam-deva.woff2") format("woff2"); font-weight: 600; font-display: block; unicode-range: U+0900-097F; }
+    @font-face { font-family: Mono; src: url("assets/fonts/mono.woff2") format("woff2"); font-weight: 500; font-display: block; }
     @font-face { font-family: Kalam; src: url("assets/fonts/kalam-deva.woff2") format("woff2"); font-weight: 400; font-display: block; unicode-range: U+0900-097F; }
     @font-face { font-family: Kalam; src: url("assets/fonts/kalam-latin.woff2") format("woff2"); font-weight: 400; font-display: block; }
     @font-face { font-family: Caveat; src: url("assets/fonts/caveat.woff2") format("woff2"); font-weight: 600; font-display: block; }
   `;
 }
 
-export function compileProject(opts: { plan: Plan; timeline: Timeline; outDir: string }): void {
+export function compileProject(opts: { plan: Plan; timeline: Timeline; outDir: string; trace?: CompileTrace; images?: Record<string, string>; audioTrack?: string }): void {
   const dir = opts.outDir;
+  const layout = LAYOUTS[opts.plan.format] ?? LAYOUTS["9x16"];
   mkdirSync(resolve(dir, "assets/fonts"), { recursive: true });
   copyFileSync(resolve(ROOT, "node_modules/gsap/dist/gsap.min.js"), resolve(dir, "assets/gsap.min.js"));
   copyFileSync(resolve(ROOT, "node_modules/@fontsource/bricolage-grotesque/files/bricolage-grotesque-latin-700-normal.woff2"), resolve(dir, "assets/fonts/bricolage.woff2"));
   copyFileSync(resolve(ROOT, "node_modules/@fontsource/kalam/files/kalam-devanagari-700-normal.woff2"), resolve(dir, "assets/fonts/kalam-deva.woff2"));
   copyFileSync(resolve(ROOT, "node_modules/@fontsource/kalam/files/kalam-latin-700-normal.woff2"), resolve(dir, "assets/fonts/kalam-latin.woff2"));
   copyFileSync(resolve(ROOT, "node_modules/@fontsource/caveat/files/caveat-latin-600-normal.woff2"), resolve(dir, "assets/fonts/caveat.woff2"));
+  copyFileSync(resolve(ROOT, "node_modules/@fontsource/anek-devanagari/files/anek-devanagari-devanagari-700-normal.woff2"), resolve(dir, "assets/fonts/anek-deva.woff2"));
+  copyFileSync(resolve(ROOT, "node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff2"), resolve(dir, "assets/fonts/mono.woff2"));
 
+  // Copy resolved stills in under fixed names; ids are validated hex, never paths from a plan.
+  const images: Record<string, string> = {};
+  for (const [assetId, source] of Object.entries(opts.images ?? {})) {
+    if (!/^[a-f0-9]{24}$/.test(assetId)) continue;
+    // Previews served by the studio point at the owner-checked asset route instead of copying.
+    if (source === `/api/assets/${assetId}/file`) { images[assetId] = source; continue; }
+    const name = `assets/img-${assetId}.png`;
+    copyFileSync(source, resolve(dir, name));
+    images[assetId] = name;
+  }
   const tweens: Tween[] = [];
   const scenes = opts.plan.scenes.map((scene) => {
     const slot = opts.timeline.scenes.find((item) => item.id === scene.id);
     const start = slot?.startMs ?? 0;
     const duration = slot?.durationMs ?? 1000;
-    const rendered = layerHtml(opts.plan, opts.plan.scenes.indexOf(scene), start / 1000, duration / 1000);
+    const rendered = layerHtml(opts.plan, opts.plan.scenes.indexOf(scene), start / 1000, duration / 1000, layout, opts.trace, opts.timeline.lines.filter((line) => line.sceneId === scene.id), images);
     tweens.push(...rendered.tweens);
     return `<section id="${assertSafeId(`scene-${scene.id}`)}" class="clip scene" data-start="${(start / 1000).toFixed(3)}" data-duration="${(duration / 1000).toFixed(3)}" data-track-index="1">${rendered.html}</section>`;
   });
 
-  const captions = opts.timeline.lines.map((line) => {
-    const page = captionPages(line);
+  // Audio films show the words themselves, so they skip the caption band.
+  const captions = (opts.plan.mode === "audio" ? [] : opts.timeline.lines).map((line) => {
+    const page = captionPages(line, layout.cap.chars);
     tweens.push(...page.tweens);
     return page.html;
   });
 
-  const audios = opts.timeline.lines.map((line) => {
+  // A song (lyric videos) is one continuous track; narration is one clip per line.
+  const audios = opts.audioTrack ? [`<audio id="song" src="${opts.audioTrack}" data-start="0" data-duration="${(opts.timeline.durationMs / 1000).toFixed(3)}" data-track-index="4" data-volume="1"></audio>`] : opts.timeline.lines.map((line) => {
     const id = assertSafeId(`vo-${line.sceneId}-${line.lineId}`);
     return `<audio id="${id}" src="${line.audioFile}" data-start="${(line.startMs / 1000).toFixed(3)}" data-duration="${(line.durationMs / 1000).toFixed(3)}" data-track-index="4" data-volume="1"></audio>`;
   });
@@ -270,22 +474,26 @@ export function compileProject(opts: { plan: Plan; timeline: Timeline; outDir: s
   const duration = (opts.timeline.durationMs / 1000).toFixed(3);
   const script = `const tweens = ${JSON.stringify(tweens)};
 const tl = gsap.timeline({ paused: true });
+const seen = new Set();
 for (const tw of tweens) {
-  tl.fromTo("#" + tw.target, tw.from, Object.assign({}, tw.to, { duration: tw.duration, ease: tw.ease === "back.out" ? "back.out(1.4)" : tw.ease }), tw.at);
+  // Only an element's first tween sets its starting state; later ones must not jump ahead.
+  const first = !seen.has(tw.target);
+  seen.add(tw.target);
+  tl.fromTo("#" + tw.target, tw.from, Object.assign({}, tw.to, { duration: tw.duration, ease: tw.ease === "back.out" ? "back.out(1.4)" : tw.ease, immediateRender: first }), tw.at);
 }
 window.__timelines["main"] = tl;`;
 
   const html = `<!doctype html>
-<html lang="en" data-resolution="portrait">
+<html lang="${opts.plan.language === "hi" ? "hi" : "en"}" data-resolution="${layout.resolution}">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=1080, height=1920" />
+  <meta name="viewport" content="width=${layout.w}, height=${layout.h}" />
   <title>${escapeHtml(opts.plan.title)}</title>
   <script src="assets/gsap.min.js"></script>
-  <style>${fontFace()}${CSS}</style>
+  <style>${fontFace()}${css(layout)}${ILLUSTRATED_MODES.has(opts.plan.mode) ? illustratedCss(layout) : ""}</style>
 </head>
 <body>
-  <div id="root" data-composition-id="main" data-start="0" data-duration="${duration}" data-width="1080" data-height="1920">
+  <div id="root" data-composition-id="main" data-start="0" data-duration="${duration}" data-width="${layout.w}" data-height="${layout.h}">
     <div class="wash"></div>
     ${scenes.join("\n")}
     ${captions.join("\n")}
@@ -303,7 +511,7 @@ window.__timelines["main"] = tl;`;
     media: { autoProxy: true },
   }, null, 2));
   writeFileSync(resolve(dir, "package.json"), JSON.stringify({
-    name: "leela-render",
+    name: "scenespindle-render",
     private: true,
     type: "module",
     scripts: {

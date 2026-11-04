@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "mode": "explainer",
+  "title": "चाँद क्यों नहीं गिरता",
+  "logline": "चाँद हर पल गिरता है, पर आगे भी बढ़ता है।",
+  "language": "hi",
+  "format": "9x16",
+  "targetMs": 30000,
+  "styleId": "chalk-and-chai@1",
+  "voiceId": "sarvam:priya",
+  "scenes": [
+    {
+      "id": "s1",
+      "purpose": "hook",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "क्या आपने सोचा है कि चाँद धरती पर क्यों नहीं गिरता?"
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "kicker",
+          "component": "text.kicker@1",
+          "props": {
+            "text": "एक सवाल"
+          },
+          "slot": "top"
+        },
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "चाँद क्यों नहीं गिरता"
+          },
+          "slot": "title"
+        }
+      ],
+      "events": [],
+      "holdMs": 180
+    },
+    {
+      "id": "s2",
+      "purpose": "setup",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "धरती चाँद को अपनी ओर खींचती है, ठीक वैसे जैसे किसी गेंद को।"
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "खिंचाव"
+          },
+          "slot": "title"
+        },
+        {
+          "id": "visual",
+          "component": "diagram.orbit@1",
+          "props": {
+            "showPull": true,
+            "showSideways": false
+          },
+          "slot": "center"
+        }
+      ],
+      "events": [],
+      "holdMs": 180
+    },
+    {
+      "id": "s3",
+      "purpose": "explain",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "पर चाँद बहुत तेज़ी से बगल की ओर भी चलता रहता है।"
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "बगल की चाल"
+          },
+          "slot": "title"
+        },
+        {
+          "id": "visual",
+          "component": "diagram.orbit@1",
+          "props": {
+            "showPull": true,
+            "showSideways": true
+          },
+          "slot": "center"
+        }
+      ],
+      "events": [],
+      "holdMs": 180
+    },
+    {
+      "id": "s4",
+      "purpose": "example",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "इसलिए वह गिरता तो है, पर हर बार धरती से चूक जाता है।"
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "गिरना और चूकना"
+          },
+          "slot": "title"
+        },
+        {
+          "id": "visual",
+          "component": "text.bullets@1",
+          "props": {
+            "items": [
+              "खिंचाव नीचे",
+              "चाल आगे",
+              "नतीजा घेरा"
+            ]
+          },
+          "slot": "center"
+        }
+      ],
+      "events": [],
+      "holdMs": 180
+    },
+    {
+      "id": "s5",
+      "purpose": "recap",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "यही गिरते रहने का खेल चाँद को घेरे में रखता है।"
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "slam",
+          "component": "text.slam@1",
+          "props": {
+            "text": "कक्षा"
+          },
+          "slot": "hero"
+        },
+        {
+          "id": "note",
+          "component": "text.handwritten@1",
+          "props": {
+            "text": "गिरो, पर चूको!"
+          },
+          "slot": "bottom"
+        }
+      ],
+      "events": [],
+      "holdMs": 700
+    }
+  ]
+}

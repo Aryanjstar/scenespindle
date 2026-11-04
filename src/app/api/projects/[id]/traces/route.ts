@@ -11,7 +11,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   if (!project) return apiError(404, "NOT_FOUND", "NOT_FOUND", "That project is not here.");
   const raw = await request.text();
   if (raw.length > 3_000_000) return apiError(413, "VALIDATION", "PAYLOAD_TOO_LARGE", "That trace is too big.");
-  const body = JSON.parse(raw) as { language?: string; code?: string; entry?: string; input?: unknown; tracerVersion?: string; steps?: { line?: number; event?: string; stack?: unknown[] }[] };
+  let body: { language?: string; code?: string; entry?: string; input?: unknown; returned?: unknown; tracerVersion?: string; steps?: { line?: number; event?: string; stack?: unknown[] }[] };
+  try { body = JSON.parse(raw); } catch { return apiError(400, "VALIDATION", "INVALID_BODY", "Send the trace as JSON."); }
   const steps = body.steps;
   if (!Array.isArray(steps) || steps.length === 0 || steps.length > 2000) {
     return apiError(422, "VALIDATION", "TRACE_INVALID", "A trace needs 1 to 2,000 steps.");
@@ -27,10 +28,13 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     ownerId: auth.user!._id,
     projectId: project._id,
     language: body.language || "python",
-    entry: body.entry || "main",
+    entry: typeof body.entry === "string" && /^[A-Za-z_][A-Za-z0-9_]{0,40}$/.test(body.entry) ? body.entry : "main",
     input: body.input ?? [],
     summary,
     tracerVersion: body.tracerVersion || "leela-trace@1",
+    // Stored as text for the code listing scene. The server never runs it.
+    code: typeof body.code === "string" ? body.code.slice(0, 8000) : undefined,
+    returned: typeof body.returned === "number" || typeof body.returned === "string" || body.returned === null ? body.returned : undefined,
     steps,
   });
   const draft = await Draft.findOne({ projectId: project._id, ownerId: auth.user!._id });

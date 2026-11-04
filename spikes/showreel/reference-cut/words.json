@@ -1,0 +1,316 @@
+{
+  "voice": "Alice - Clear, Engaging Educator",
+  "text": "What if the model never touched the pixels. You write the idea. Leela writes a plan. Only names of parts we already trust. A voice speaks, and every word gets a time. The compiler builds the film from those times. Not a guess. A trace of the sentence. You approve it. Then it renders. The same frame, every time you ask. Leela.",
+  "words": [
+    {
+      "text": "What",
+      "startMs": 0,
+      "endMs": 221
+    },
+    {
+      "text": "if",
+      "startMs": 267,
+      "endMs": 348
+    },
+    {
+      "text": "the",
+      "startMs": 406,
+      "endMs": 476
+    },
+    {
+      "text": "model",
+      "startMs": 534,
+      "endMs": 836
+    },
+    {
+      "text": "never",
+      "startMs": 917,
+      "endMs": 1149
+    },
+    {
+      "text": "touched",
+      "startMs": 1219,
+      "endMs": 1556
+    },
+    {
+      "text": "the",
+      "startMs": 1591,
+      "endMs": 1660
+    },
+    {
+      "text": "pixels.",
+      "startMs": 1707,
+      "endMs": 2438
+    },
+    {
+      "text": "You",
+      "startMs": 2821,
+      "endMs": 3007
+    },
+    {
+      "text": "write",
+      "startMs": 3077,
+      "endMs": 3367
+    },
+    {
+      "text": "the",
+      "startMs": 3402,
+      "endMs": 3495
+    },
+    {
+      "text": "idea.",
+      "startMs": 3576,
+      "endMs": 4226
+    },
+    {
+      "text": "Leela",
+      "startMs": 4551,
+      "endMs": 4865
+    },
+    {
+      "text": "writes",
+      "startMs": 4923,
+      "endMs": 5224
+    },
+    {
+      "text": "a",
+      "startMs": 5271,
+      "endMs": 5306
+    },
+    {
+      "text": "plan.",
+      "startMs": 5375,
+      "endMs": 5933
+    },
+    {
+      "text": "Only",
+      "startMs": 6258,
+      "endMs": 6560
+    },
+    {
+      "text": "names",
+      "startMs": 6653,
+      "endMs": 6989
+    },
+    {
+      "text": "of",
+      "startMs": 7047,
+      "endMs": 7129
+    },
+    {
+      "text": "parts",
+      "startMs": 7210,
+      "endMs": 7628
+    },
+    {
+      "text": "we",
+      "startMs": 7697,
+      "endMs": 7825
+    },
+    {
+      "text": "already",
+      "startMs": 7883,
+      "endMs": 8278
+    },
+    {
+      "text": "trust.",
+      "startMs": 8348,
+      "endMs": 8975
+    },
+    {
+      "text": "A",
+      "startMs": 9485,
+      "endMs": 9567
+    },
+    {
+      "text": "voice",
+      "startMs": 9648,
+      "endMs": 9927
+    },
+    {
+      "text": "speaks,",
+      "startMs": 9950,
+      "endMs": 10507
+    },
+    {
+      "text": "and",
+      "startMs": 10681,
+      "endMs": 10855
+    },
+    {
+      "text": "every",
+      "startMs": 10937,
+      "endMs": 11180
+    },
+    {
+      "text": "word",
+      "startMs": 11238,
+      "endMs": 11529
+    },
+    {
+      "text": "gets",
+      "startMs": 11598,
+      "endMs": 11831
+    },
+    {
+      "text": "a",
+      "startMs": 11877,
+      "endMs": 11912
+    },
+    {
+      "text": "time.",
+      "startMs": 11981,
+      "endMs": 12492
+    },
+    {
+      "text": "The",
+      "startMs": 12875,
+      "endMs": 12980
+    },
+    {
+      "text": "compiler",
+      "startMs": 13026,
+      "endMs": 13560
+    },
+    {
+      "text": "builds",
+      "startMs": 13630,
+      "endMs": 13944
+    },
+    {
+      "text": "the",
+      "startMs": 14002,
+      "endMs": 14083
+    },
+    {
+      "text": "film",
+      "startMs": 14153,
+      "endMs": 14408
+    },
+    {
+      "text": "from",
+      "startMs": 14478,
+      "endMs": 14617
+    },
+    {
+      "text": "those",
+      "startMs": 14675,
+      "endMs": 14896
+    },
+    {
+      "text": "times.",
+      "startMs": 14942,
+      "endMs": 15546
+    },
+    {
+      "text": "Not",
+      "startMs": 15755,
+      "endMs": 15940
+    },
+    {
+      "text": "a",
+      "startMs": 15987,
+      "endMs": 16010
+    },
+    {
+      "text": "guess.",
+      "startMs": 16068,
+      "endMs": 16649
+    },
+    {
+      "text": "A",
+      "startMs": 16927,
+      "endMs": 17020
+    },
+    {
+      "text": "trace",
+      "startMs": 17113,
+      "endMs": 17449
+    },
+    {
+      "text": "of",
+      "startMs": 17473,
+      "endMs": 17531
+    },
+    {
+      "text": "the",
+      "startMs": 17589,
+      "endMs": 17658
+    },
+    {
+      "text": "sentence.",
+      "startMs": 17716,
+      "endMs": 18436
+    },
+    {
+      "text": "You",
+      "startMs": 18761,
+      "endMs": 18947
+    },
+    {
+      "text": "approve",
+      "startMs": 19063,
+      "endMs": 19539
+    },
+    {
+      "text": "it.",
+      "startMs": 19597,
+      "endMs": 19911
+    },
+    {
+      "text": "Then",
+      "startMs": 20004,
+      "endMs": 20282
+    },
+    {
+      "text": "it",
+      "startMs": 20398,
+      "endMs": 20573
+    },
+    {
+      "text": "renders.",
+      "startMs": 20665,
+      "endMs": 21339
+    },
+    {
+      "text": "The",
+      "startMs": 21664,
+      "endMs": 21792
+    },
+    {
+      "text": "same",
+      "startMs": 21850,
+      "endMs": 22082
+    },
+    {
+      "text": "frame,",
+      "startMs": 22128,
+      "endMs": 22581
+    },
+    {
+      "text": "every",
+      "startMs": 22651,
+      "endMs": 22895
+    },
+    {
+      "text": "time",
+      "startMs": 22953,
+      "endMs": 23162
+    },
+    {
+      "text": "you",
+      "startMs": 23196,
+      "endMs": 23278
+    },
+    {
+      "text": "ask.",
+      "startMs": 23394,
+      "endMs": 23893
+    },
+    {
+      "text": "Leela.",
+      "startMs": 24009,
+      "endMs": 24706
+    }
+  ]
+}

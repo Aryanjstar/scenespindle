@@ -1,0 +1,833 @@
+{
+  "entry": "fib",
+  "input": [
+    4
+  ],
+  "code": "def fib(n):\n  if n <= 1:\n    return n\n  return fib(n - 1) + fib(n - 2)\n",
+  "returned": 3,
+  "summary": {
+    "callCount": 9,
+    "maxDepth": 4,
+    "variables": [
+      "n"
+    ]
+  },
+  "steps": [
+    {
+      "line": 2,
+      "event": "call",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        }
+      ]
+    },
+    {
+      "line": 2,
+      "event": "line",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        }
+      ]
+    },
+    {
+      "line": 4,
+      "event": "line",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        }
+      ]
+    },
+    {
+      "line": 4,
+      "event": "call",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        }
+      ]
+    },
+    {
+      "line": 2,
+      "event": "line",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        }
+      ]
+    },
+    {
+      "line": 4,
+      "event": "line",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        }
+      ]
+    },
+    {
+      "line": 4,
+      "event": "call",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        }
+      ]
+    },
+    {
+      "line": 2,
+      "event": "line",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        }
+      ]
+    },
+    {
+      "line": 4,
+      "event": "line",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        }
+      ]
+    },
+    {
+      "line": 4,
+      "event": "call",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 1
+          }
+        }
+      ]
+    },
+    {
+      "line": 2,
+      "event": "line",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 1
+          }
+        }
+      ]
+    },
+    {
+      "line": 3,
+      "event": "line",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 1
+          }
+        }
+      ]
+    },
+    {
+      "line": 3,
+      "event": "return",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 1
+          }
+        }
+      ]
+    },
+    {
+      "line": 4,
+      "event": "call",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 0
+          }
+        }
+      ]
+    },
+    {
+      "line": 2,
+      "event": "line",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 0
+          }
+        }
+      ]
+    },
+    {
+      "line": 3,
+      "event": "line",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 0
+          }
+        }
+      ]
+    },
+    {
+      "line": 3,
+      "event": "return",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 0
+          }
+        }
+      ]
+    },
+    {
+      "line": 4,
+      "event": "return",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        }
+      ]
+    },
+    {
+      "line": 4,
+      "event": "call",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 1
+          }
+        }
+      ]
+    },
+    {
+      "line": 2,
+      "event": "line",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 1
+          }
+        }
+      ]
+    },
+    {
+      "line": 3,
+      "event": "line",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 1
+          }
+        }
+      ]
+    },
+    {
+      "line": 3,
+      "event": "return",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 1
+          }
+        }
+      ]
+    },
+    {
+      "line": 4,
+      "event": "return",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 3
+          }
+        }
+      ]
+    },
+    {
+      "line": 4,
+      "event": "call",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        }
+      ]
+    },
+    {
+      "line": 2,
+      "event": "line",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        }
+      ]
+    },
+    {
+      "line": 4,
+      "event": "line",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        }
+      ]
+    },
+    {
+      "line": 4,
+      "event": "call",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 1
+          }
+        }
+      ]
+    },
+    {
+      "line": 2,
+      "event": "line",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 1
+          }
+        }
+      ]
+    },
+    {
+      "line": 3,
+      "event": "line",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 1
+          }
+        }
+      ]
+    },
+    {
+      "line": 3,
+      "event": "return",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 1
+          }
+        }
+      ]
+    },
+    {
+      "line": 4,
+      "event": "call",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 0
+          }
+        }
+      ]
+    },
+    {
+      "line": 2,
+      "event": "line",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 0
+          }
+        }
+      ]
+    },
+    {
+      "line": 3,
+      "event": "line",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 0
+          }
+        }
+      ]
+    },
+    {
+      "line": 3,
+      "event": "return",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 0
+          }
+        }
+      ]
+    },
+    {
+      "line": 4,
+      "event": "return",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        },
+        {
+          "name": "fib",
+          "locals": {
+            "n": 2
+          }
+        }
+      ]
+    },
+    {
+      "line": 4,
+      "event": "return",
+      "stack": [
+        {
+          "name": "fib",
+          "locals": {
+            "n": 4
+          }
+        }
+      ]
+    }
+  ]
+}

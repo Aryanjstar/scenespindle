@@ -1,0 +1,13 @@
+---
+description: Use when writing product code, changing behaviour, choosing a provider, or comparing a reference repo. The PRD, architecture, database, and API docs are the source of truth.
+alwaysApply: false
+---
+
+# Source of truth
+
+`docs/PRD.md`, `docs/ARCHITECTURE.md`, `docs/DATABASE.md`, and `docs/API.md` decide the product, the system, storage, and HTTP. `docs/PRODUCT.md` is the page map and layer order. `docs/DESIGN.md` decides UI and video styles.
+
+- If code, a screen, or a reference repo (NamasteVideo, OpenMontage, Reel Studio) disagrees with them, follow the docs and say so.
+- Change those four files only when the human explicitly asks. When a provider or store changes, update ARCHITECTURE, DATABASE, and API in the same change, with the reason (Wedding Home rule).
+- A reference repo shows shape. Do not copy its objects, routes, or code. NamasteVideo has no licence; OpenMontage is AGPL.
+- Check `docs/RESEARCH.md` before picking a tool; re-verify any row older than a month before relying on it.

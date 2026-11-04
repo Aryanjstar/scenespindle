@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Brand } from "../../../components/brand";
+import { StudioBar } from "../../../components/studio/studio-bar";
 
 type Item = { id: string; name: string; kind?: string; licence?: string; style?: string; description?: string };
 
@@ -18,7 +17,12 @@ export default function LibraryPage() {
     if (characterResponse.ok) setCharacters((await characterResponse.json()).items || []);
   }
 
-  useEffect(() => { void reload(); }, []);
+  useEffect(() => {
+    Promise.all([fetch("/api/library/assets"), fetch("/api/characters")]).then(async ([assetResponse, characterResponse]) => {
+      if (assetResponse.ok) setAssets((await assetResponse.json()).items || []);
+      if (characterResponse.ok) setCharacters((await characterResponse.json()).items || []);
+    });
+  }, []);
 
   async function createCharacter(event: React.FormEvent) {
     event.preventDefault();
@@ -50,32 +54,41 @@ export default function LibraryPage() {
 
   return (
     <main className="app">
-      <header className="site-bar">
-        <Brand href="/studio" />
-        <Link href="/studio">Projects</Link>
-      </header>
-      <section className="glass panel">
-        <p className="kicker">Characters</p>
-        <form onSubmit={createCharacter} className="row-actions">
-          <input className="field" value={name} onChange={(event) => setName(event.target.value)} placeholder="Original name" />
-          <button className="btn" type="submit">Add</button>
-        </form>
-        {error ? <p className="error">{error}</p> : null}
-        <div className="cards">
-          {characters.map((character) => (
-            <article key={character.id} className="clay card"><strong>{character.name}</strong><span className="fine">{character.style}</span></article>
-          ))}
+      <StudioBar />
+      <div className="page-head">
+        <div>
+          <p className="kicker">Library</p>
+          <h1>Characters and assets</h1>
         </div>
-      </section>
-      <section className="glass panel">
-        <p className="kicker">Assets</p>
-        <input type="file" accept="image/*,audio/*,video/*" onChange={(event) => void upload(event)} />
-        <ul>
-          {assets.map((asset) => (
-            <li key={asset.id}>{asset.name} · {asset.kind} · {asset.licence}</li>
+      </div>
+      {error ? <p className="notice bad" role="alert">{error}</p> : null}
+      <div className="split">
+        <section className="surface panel" aria-label="Characters">
+          <div>
+            <h2>Characters</h2>
+            <p className="fine">Original characters only. Protected names are refused. Characters are not drawn in films yet.</p>
+          </div>
+          <form onSubmit={createCharacter} className="copy-row">
+            <input className="field" value={name} onChange={(event) => setName(event.target.value)} placeholder="Original name" aria-label="Character name" />
+            <button className="btn" type="submit" disabled={name.trim().length < 2}>Add</button>
+          </form>
+          {characters.length === 0 ? <p className="fine">No characters yet.</p> : characters.map((character) => (
+            <div key={character.id} className="list-row"><span>{character.name}</span><span className="badge">{character.style}</span></div>
           ))}
-        </ul>
-      </section>
+        </section>
+        <section className="surface panel" aria-label="Assets">
+          <div>
+            <h2>Assets</h2>
+            <p className="fine">Images, audio or video up to 8 MB. Stored privately with the rights you claim. Not used by the renderer yet.</p>
+          </div>
+          <label className="fine">Upload a file
+            <input type="file" accept="image/png,image/jpeg,image/webp,audio/mpeg,audio/wav,video/mp4" onChange={(event) => void upload(event)} />
+          </label>
+          {assets.map((asset) => (
+            <div key={asset.id} className="list-row"><span>{asset.name}</span><span className="fine mono">{asset.kind} · {asset.licence}</span></div>
+          ))}
+        </section>
+      </div>
     </main>
   );
 }

@@ -6,18 +6,19 @@ import { Brand } from "../brand";
 import { films, type Film } from "./films";
 
 const modes = [
-  ["Code Lab", "A sorted list, one number, and why the middle is enough.", "Find 21"],
-  ["Explainer", "A top should fall. The spin is the reason it does not.", "Why it stays up"],
-  ["Story", "A lattu, a courtyard, and the moon that never lands.", "Ek lattu"],
-  ["Launch", "An idea stuck in your head, and the three ways out.", "Any idea"],
-  ["A house", "Ten family chats become one board and one guest link.", "One house"],
+  ["Explainer", "A topic becomes five scenes, a narrator and captions on the words. Rendered in the studio today.", "In the studio"],
+  ["Code Lab", "Your Python runs in your browser. The trace, not the model, decides what the film shows.", "In the studio"],
+  ["Story", "Illustrated beats, a recurring cast and camera moves. Ek lattu was made by hand with the same engine.", "Planned"],
+  ["Launch", "Real product media with procedural motion. Any idea was made by hand with the same engine.", "Planned"],
+  ["Montage", "Beat-driven cuts of your own clips, with music that follows measured beats.", "Planned"],
+  ["Series", "Episodes that keep their cast, places and continuity notes between films.", "Planned"],
 ];
 
 const steps = [
   ["01", "Idea", "A topic, who it is for, and what must be in the film."],
   ["02", "Plan", "The model picks named scenes from a catalog. It never writes the HTML."],
   ["03", "Voice", "Speech is recorded and measured. Captions sit on the words."],
-  ["04", "Render", "HyperFrames draws the frames. The file you get is an MP4."],
+  ["04", "Render", "HyperFrames draws the frames. FFmpeg mixes to -14 LUFS. Checks run before it is yours."],
 ];
 
 const stack = [
@@ -25,7 +26,7 @@ const stack = [
   ["Records", "MongoDB. Your projects stay on your account."],
   ["Picture", "HyperFrames and GSAP. FFmpeg writes the MP4."],
   ["Plan", "Gemini, behind an adapter. The plan is data."],
-  ["Voice", "ElevenLabs speaks the line that is on screen. A voice never swaps in silence."],
+  ["Voice", "ElevenLabs or Sarvam, behind an adapter with a monthly allowance. A voice never swaps in silence."],
   ["Trace", "Code Lab reads an execution trace. The model does not invent the steps."],
 ];
 
@@ -82,7 +83,7 @@ export function HomePage() {
           <a href="#stack" onClick={() => setOpen(false)}>Stack</a>
         </nav>
         <div className="site-bar-end">
-          <Link className="btn" href="/sign-in">Start creating</Link>
+          <Link className="btn sm" href="/sign-in">Sign in</Link>
           <button className="menu" type="button" aria-expanded={open} aria-label={open ? "Close menu" : "Open menu"} onClick={() => setOpen((value) => !value)}>
             <span />
             <span />
@@ -92,23 +93,23 @@ export function HomePage() {
 
       <section className="hero">
         <div className="hero-copy">
-          <p className="hindi" lang="hi">लीला</p>
-          <h1>Any idea, <em>at play.</em></h1>
+          <p className="hindi" lang="hi">दृश्य, एक धागे में</p>
+          <h1>Scenes, spun from <em>a single idea.</em></h1>
           <p className="lede">
-            A studio for short films. You bring a topic, some notes, or a piece of code. Leela plans the scenes, a voice reads them, and the picture is drawn by code.
+            An invite-only studio for short films. Bring a topic, a script or a piece of code. SceneSpindle plans the scenes, a narrator reads them, and code draws every frame to the measured voice.
           </p>
           <div className="hero-actions">
-            <Link className="btn" href="/sign-in">Start creating</Link>
-            <a className="btn ghost" href="#films">Watch the films</a>
+            <Link className="btn accent lg" href="/sign-in">Open the studio</Link>
+            <a className="btn ghost lg" href="#films">Watch the films</a>
           </div>
-          <p className="fine">The phone is Find 21. It starts muted. Turn the sound on.</p>
+          <p className="fine">Made in this studio. It starts muted; open it below for sound.</p>
         </div>
         <figure className="hero-phone">
           <div className="phone">
             <video
               ref={heroRef}
-              src="/films/code-lab.mp4"
-              poster="/films/find-poster.jpg"
+              src="/films/story-new.mp4"
+              poster="/films/story-new.jpg"
               muted
               loop
               playsInline
@@ -116,13 +117,14 @@ export function HomePage() {
             />
           </div>
           <figcaption>
-            <strong>Find 21</strong>
-            <span>Code Lab · the voice matches the line</span>
+            <strong>Meera and the paper boat</strong>
+            <span>Story · one reference drawing, six consistent scenes</span>
           </figcaption>
         </figure>
       </section>
 
       <section id="films" className="block">
+        <div className="sprockets" aria-hidden="true" />
         <div className="block-head">
           <p className="kicker">Rendered here</p>
           <h2>Films this studio has already made.</h2>
@@ -171,14 +173,15 @@ export function HomePage() {
       <section id="modes" className="block">
         <div className="block-head">
           <p className="kicker">What it makes</p>
-          <h2>One pipeline. Different kinds of film.</h2>
+          <h2>One pipeline. Two kinds of film today.</h2>
+          <p>Explainer and Code Lab render in the studio now. The rest are on the plan and stay switched off until they work.</p>
         </div>
         <div className="bento">
           {modes.map(([title, copy, film]) => (
             <article key={title} className="tile">
               <h3>{title}</h3>
               <p>{copy}</p>
-              {film ? <a href="#films">{film}</a> : <span className="fine">In the plan</span>}
+              <span className="badge" data-tone={film === "In the studio" ? "ready" : "draft"}>{film}</span>
             </article>
           ))}
         </div>
@@ -217,7 +220,7 @@ export function HomePage() {
 
       <footer className="site-foot">
         <Brand />
-        <p>Leela, लीला. Any idea, at play.</p>
+        <p className="fine">SceneSpindle. Built on what Leela and Reel Studio taught us.</p>
         <div className="marks">
           <a className="mark" href="https://aryanjaiswal.in" aria-label="Aryan Jaiswal, portfolio">
             <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" strokeWidth="1.6"/><path fill="currentColor" d="M16 7.5 22.2 24h-2.5l-1.4-4h-4.6l-1.4 4H9.8L16 7.5zm0 6.2-1.5 4.2h3L16 13.7z"/></svg>

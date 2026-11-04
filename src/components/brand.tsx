@@ -1,24 +1,34 @@
 import Link from "next/link";
 
-export function Lattu({ className = "" }: { className?: string }) {
+/** A spindle: one reel, four coloured spokes, turning slowly. */
+export function Mark({ className = "" }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 64 64" aria-hidden="true">
-      <path d="M32 6 L50 40 H14 Z" fill="#f3f3f3" />
-      <path d="M32 6 L50 40 H32 Z" fill="#c8c8c8" />
-      <ellipse cx="32" cy="40" rx="18" ry="6" fill="#8e8e8e" />
-      <ellipse cx="32" cy="39" rx="10" ry="3" fill="#f7f7f7" />
-      <circle cx="26" cy="26" r="1.7" fill="#111" />
-      <circle cx="36" cy="26" r="1.7" fill="#111" />
-      <path d="M34 42 C40 50 28 56 24 60" fill="none" stroke="#f3f3f3" strokeWidth="2" strokeLinecap="round" />
+    <svg className={className} viewBox="0 0 32 32" aria-hidden="true">
+      <circle cx="16" cy="16" r="14.5" fill="#fffdf8" stroke="#1d1a24" strokeWidth="1.8" />
+      <g className="spin">
+        <circle cx="16" cy="8.6" r="3.3" fill="#ffb020" stroke="#1d1a24" strokeWidth="1.4" />
+        <circle cx="23.4" cy="16" r="3.3" fill="#ff4f8b" stroke="#1d1a24" strokeWidth="1.4" />
+        <circle cx="16" cy="23.4" r="3.3" fill="#00a99a" stroke="#1d1a24" strokeWidth="1.4" />
+        <circle cx="8.6" cy="16" r="3.3" fill="#4b6bfb" stroke="#1d1a24" strokeWidth="1.4" />
+      </g>
+      <circle cx="16" cy="16" r="2" fill="#1d1a24" />
     </svg>
   );
+}
+
+export function Lattu({ className = "" }: { className?: string }) {
+  return <Mark className={className} />;
 }
 
 export function Brand({ href = "/" }: { href?: string }) {
   return (
     <Link href={href} className="brand">
-      <Lattu className="brand-mark" />
-      <span>Leela</span>
+      <Mark className="brand-mark" />
+      <span>SceneSpindle</span>
     </Link>
   );
 }
+
+export const MODE_LABEL: Record<string, string> = {
+  explainer: "Explainer", code_lab: "Code Lab", audio: "Audio", story: "Story", cartoon: "Cartoon", lyrics: "Lyrics", montage: "Montage",
+};

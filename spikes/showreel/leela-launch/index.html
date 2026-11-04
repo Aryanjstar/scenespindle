@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1080, height=1920" />
+  <title>Leela launch</title>
+  <script src="assets/gsap.min.js"></script>
+  <style>
+    @font-face { font-family: "Bricolage Grotesque"; src: url("assets/fonts/bricolage.woff2") format("woff2"); font-weight: 800; font-display: block; }
+    @font-face { font-family: Caveat; src: url("assets/fonts/caveat.woff2") format("woff2"); font-weight: 700; font-display: block; }
+    @font-face { font-family: Kalam; src: url("assets/fonts/kalam-deva.woff2") format("woff2"); font-weight: 700; font-display: block; unicode-range: U+0900-097F; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #141028; }
+    #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: #141028; color: #F6F1FF; font-family: "Bricolage Grotesque", sans-serif; }
+    .clip { position: absolute; inset: 0; }
+    .glow { position: absolute; width: 820px; height: 820px; border-radius: 50%; background: radial-gradient(circle, rgba(255,79,154,.28), transparent 68%); left: -180px; top: -120px; }
+    .glow2 { position: absolute; width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(255,176,32,.16), transparent 70%); right: -200px; bottom: 80px; }
+    .ghost { position: absolute; left: -40px; top: 980px; width: 520px; height: 520px; border-radius: 50%; border: 40px solid rgba(246,241,255,.05); }
+    .rule { position: absolute; left: 100px; top: 250px; width: 760px; height: 4px; border-radius: 4px; background: #FF4F9A; transform-origin: 0 50%; }
+    .any { position: absolute; left: 100px; top: 420px; margin: 0; font-size: 168px; line-height: .9; font-weight: 800; letter-spacing: -0.05em; }
+    .idea { position: absolute; left: 100px; top: 620px; margin: 0; font-size: 168px; line-height: .9; font-weight: 800; letter-spacing: -0.05em; color: #FF4F9A; }
+    .play { position: absolute; left: 108px; top: 860px; margin: 0; font-family: Caveat, cursive; font-size: 92px; color: #FFB020; }
+    .kicker { position: absolute; left: 100px; top: 300px; margin: 0; font-family: Kalam, sans-serif; font-size: 54px; color: #FF4F9A; }
+    .row { position: absolute; left: 100px; width: 820px; height: 150px; border-radius: 28px; background: #1E1838; display: flex; align-items: center; padding: 0 36px; gap: 22px; }
+    .row b { font-size: 54px; letter-spacing: -0.03em; }
+    .row i { width: 18px; height: 18px; border-radius: 50%; background: #FF4F9A; display: block; }
+    .r1 { top: 460px; } .r2 { top: 650px; } .r3 { top: 840px; }
+    .r2 i { background: #19C3B3; } .r3 i { background: #FFB020; }
+    .cursor { position: absolute; left: 78px; top: 448px; width: 8px; height: 174px; border-radius: 8px; background: #FF4F9A; }
+    .line { position: absolute; left: 90px; right: 120px; top: 760px; margin: 0; font-size: 92px; line-height: .95; font-weight: 800; letter-spacing: -0.04em; }
+    .phone { position: absolute; left: 300px; top: 380px; width: 480px; height: 860px; border-radius: 48px; background: #0D0A1A; border: 3px solid rgba(246,241,255,.2); overflow: hidden; }
+    .card { position: absolute; left: 36px; right: 36px; height: 140px; border-radius: 22px; background: #241C40; }
+    .c1 { top: 160px; } .c2 { top: 330px; } .c3 { top: 500px; }
+    .card span { position: absolute; left: 24px; bottom: 22px; font-size: 28px; }
+    .brand { position: absolute; left: 100px; top: 700px; margin: 0; font-size: 180px; line-height: .85; font-weight: 800; letter-spacing: -0.06em; }
+    .hindi { position: absolute; left: 110px; top: 920px; margin: 0; font-family: Kalam, sans-serif; font-size: 84px; color: #FFB020; }
+  </style>
+</head>
+<body>
+  <div id="root" data-composition-id="main" data-start="0" data-duration="16" data-width="1080" data-height="1920">
+    <div class="glow" id="glow"></div>
+    <div class="glow2" id="glow2"></div>
+    <div class="ghost" id="ghost"></div>
+    <div class="rule" id="rule"></div>
+
+    <section id="s1" class="clip" data-start="0" data-duration="3.3" data-track-index="1">
+      <h1 id="any" class="any">Any</h1>
+      <h1 id="idea" class="idea">idea.</h1>
+      <p id="play" class="play">at play</p>
+    </section>
+
+    <section id="s2" class="clip" data-start="3.3" data-duration="4.2" data-track-index="1">
+      <p id="modes" class="kicker">तीन रास्ते</p>
+      <div id="row1" class="row r1"><i></i><b>Explainer</b></div>
+      <div id="row2" class="row r2"><i></i><b>Code Lab</b></div>
+      <div id="row3" class="row r3"><i></i><b>Story</b></div>
+      <div id="cursor" class="cursor"></div>
+    </section>
+
+    <section id="s3a" class="clip" data-start="7.5" data-duration="1.35" data-track-index="1">
+      <p id="l1" class="line">The AI plans.</p>
+    </section>
+    <section id="s3b" class="clip" data-start="8.85" data-duration="1.25" data-track-index="1">
+      <p id="l2" class="line">You approve.</p>
+    </section>
+    <section id="s3c" class="clip" data-start="10.1" data-duration="1.6" data-track-index="1">
+      <p id="l3" class="line">Code renders.</p>
+    </section>
+
+    <section id="s4" class="clip" data-start="11.7" data-duration="2.1" data-track-index="1">
+      <div id="phone" class="phone">
+        <div id="card1" class="card c1"><span>Hook</span></div>
+        <div id="card2" class="card c2"><span>Orbit</span></div>
+        <div id="card3" class="card c3"><span>End card</span></div>
+      </div>
+    </section>
+    <section id="s5" class="clip" data-start="13.8" data-duration="2.2" data-track-index="1">
+      <h1 id="brand" class="brand">Leela</h1>
+      <p id="hindi" class="hindi">लीला</p>
+    </section>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#glow", { scale: 0.85 }, { scale: 1.08, duration: 16, ease: "none" }, 0);
+    tl.fromTo("#glow2", { y: 40 }, { y: -30, duration: 16, ease: "none" }, 0);
+    tl.fromTo("#ghost", { y: 40 }, { y: -20, duration: 16, ease: "none" }, 0);
+    tl.fromTo("#rule", { scaleX: 0 }, { scaleX: 1, duration: 15.4, ease: "none" }, 0.3);
+
+    tl.fromTo("#any", { scale: 1.35, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 0.25);
+    tl.fromTo("#idea", { x: 90, opacity: 0 }, { x: 0, opacity: 1, duration: 0.4, ease: "power3.out", immediateRender: false }, 0.85);
+    tl.fromTo("#play", { y: 24, opacity: 0, rotation: -6 }, { y: 0, opacity: 1, rotation: -3, duration: 0.45, ease: "power3.out", immediateRender: false }, 1.55);
+
+    tl.fromTo("#modes", { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, ease: "power3.out", immediateRender: false }, 3.45);
+    tl.fromTo("#row1", { x: -60, opacity: 0 }, { x: 0, opacity: 1, duration: 0.4, ease: "power3.out", immediateRender: false }, 3.7);
+    tl.fromTo("#row2", { x: 70, opacity: 0 }, { x: 0, opacity: 1, duration: 0.4, ease: "power3.out", immediateRender: false }, 4.25);
+    tl.fromTo("#row3", { x: -50, opacity: 0 }, { x: 0, opacity: 1, duration: 0.4, ease: "power3.out", immediateRender: false }, 4.8);
+    tl.fromTo("#cursor", { y: 0, opacity: 0 }, { y: 0, opacity: 1, duration: 0.15, ease: "none", immediateRender: false }, 5.4);
+    tl.to("#cursor", { y: 190, duration: 0.35, ease: "power2.inOut" }, 5.7);
+    tl.to("#cursor", { y: 380, duration: 0.35, ease: "power2.inOut" }, 6.3);
+
+    tl.fromTo("#l1", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.28, ease: "power4.out", immediateRender: false }, 7.7);
+    tl.fromTo("#l2", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.28, ease: "power4.out", immediateRender: false }, 8.95);
+    tl.fromTo("#l3", { scale: 1.2, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.34, ease: "power4.out", immediateRender: false }, 10.2);
+
+    tl.fromTo("#phone", { y: 80, opacity: 0, scale: 0.92 }, { y: 0, opacity: 1, scale: 1, duration: 0.45, ease: "power3.out", immediateRender: false }, 11.9);
+    tl.fromTo("#card1", { x: 40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.3, ease: "power3.out", immediateRender: false }, 12.4);
+    tl.fromTo("#card2", { x: 40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.3, ease: "power3.out", immediateRender: false }, 12.7);
+    tl.fromTo("#card3", { x: 40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.3, ease: "power3.out", immediateRender: false }, 13.0);
+    tl.fromTo("#brand", { scale: 1.25, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.38, ease: "power4.out", immediateRender: false }, 14.0);
+    tl.fromTo("#hindi", { y: 18, opacity: 0, rotation: -8 }, { y: 0, opacity: 1, rotation: -4, duration: 0.4, ease: "power3.out", immediateRender: false }, 14.6);
+    window.__timelines["main"] = tl;
+  </script>
+</body>
+</html>

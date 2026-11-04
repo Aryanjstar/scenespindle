@@ -1,18 +1,42 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { validatePlan } from "../../contracts/plan";
-import { Brand } from "../brand";
 import { BriefPanel } from "./brief-panel";
+import { FilmPanel, SharePanel, type VideoItem } from "./film-panel";
+import { MontagePanel } from "./montage-panel";
+import { StudioBar } from "./studio-bar";
 import { runBrowserTrace } from "../../trace/browser-client";
 
 type Idea = { topic?: string; audience?: string; notes?: string };
-type Scene = { id: string; purpose: string; lines: { id: string; text: string }[]; layers: { component: string }[] };
-type Plan = { title?: string; scenes: Scene[]; planHash?: string };
+type Line = { id: string; text: string; spoken?: string };
+type Scene = { id: string; purpose: string; lines: Line[]; layers: { component: string }[] };
+type Plan = { title?: string; scenes: Scene[]; language?: string; format?: string; mode?: string };
+type Settings = { format: string; language: string; targetMs: number };
 type Angle = { title: string; hook: string; takeaway: string };
 type Note = { id: string; role: string; text: string; candidate?: { summary?: string; status?: string } };
+type Voice = { id: string; label: string; available: boolean; reason?: string; timing: string; commercial: boolean; note: string; languages?: string[] };
+type JobView = { id: string; output: "mp4" | "preview"; state: string; stages: { name: string; state: string }[]; error?: { message?: string } };
+type Step = "idea" | "storyboard" | "film" | "share";
+
+const STEPS: { id: Step; label: string }[] = [
+  { id: "idea", label: "Idea" },
+  { id: "storyboard", label: "Storyboard" },
+  { id: "film", label: "Film" },
+  { id: "share", label: "Share" },
+];
+
+const STAGE_LABEL: Record<string, string> = {
+  voice: "Recording narration",
+  timeline: "Timing scenes to the voice",
+  frames: "Drawing frames",
+  mix: "Mixing sound, captions and poster",
+  qa: "Checking the file",
+  preview: "Building the preview",
+  beats: "Finding the beats",
+  cuts: "Cutting clips to the beat",
+};
 
 const SEARCH = `def binary_search(arr, target):
   lo = 0
@@ -37,66 +61,86 @@ const FIB = `def fib(n):
 export function Workspace() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const [step, setStep] = useState<"idea" | "storyboard" | "video" | "share">("idea");
+  const [step, setStep] = useState<Step>("idea");
   const [mode, setMode] = useState("");
+  const [badge, setBadge] = useState("draft");
   const [title, setTitle] = useState("");
   const [idea, setIdea] = useState<Idea>({});
   const [revision, setRevision] = useState(1);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [planHash, setPlanHash] = useState("");
+  const [issues, setIssues] = useState<{ path: string; message: string }[]>([]);
   const [angles, setAngles] = useState<Angle[]>([]);
-  const [videoId, setVideoId] = useState("");
-  const [warnings, setWarnings] = useState<string[]>([]);
-  const [shareUrl, setShareUrl] = useState("");
+  const [videos, setVideos] = useState<VideoItem[]>([]);
+  const [selectedVideo, setSelectedVideo] = useState("");
   const [notes, setNotes] = useState<Note[]>([]);
   const [copilot, setCopilot] = useState("");
+  const [focusScenes, setFocusScenes] = useState<string[]>([]);
   const [code, setCode] = useState(SEARCH);
   const [entry, setEntry] = useState("binary_search");
   const [traceError, setTraceError] = useState("");
   const [traceSummary, setTraceSummary] = useState("");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
-  const [previewJobId, setPreviewJobId] = useState("");
-  const [previewPending, setPreviewPending] = useState(false);
-  const [mouth, setMouth] = useState(0);
+  const [voices, setVoices] = useState<Voice[]>([]);
+  const [voiceId, setVoiceId] = useState("");
+  const [settings, setSettings] = useState<Settings>({ format: "9x16", language: "en", targetMs: 45000 });
+  const [job, setJob] = useState<JobView | null>(null);
+  const [busy, setBusy] = useState(false);
+  const polling = useRef("");
 
-  async function load() {
+  const loadVideos = useCallback(async () => {
+    const response = await fetch(`/api/projects/${params.id}/videos`);
+    if (!response.ok) return [] as VideoItem[];
+    const body = await response.json();
+    setVideos(body.items || []);
+    return (body.items || []) as VideoItem[];
+  }, [params.id]);
+
+  const load = useCallback(async () => {
     const response = await fetch(`/api/projects/${params.id}`);
     if (response.status === 401) {
       router.replace("/sign-in");
-      return;
+      return null;
     }
     const body = await response.json();
     if (!response.ok) {
       setError(body?.error?.message || "Could not open that project.");
-      return;
+      return null;
     }
     setMode(body.project.mode);
     setTitle(body.project.title);
+    setBadge(body.project.badge);
+    setVoiceId(body.project.voiceId);
+    setSettings({ format: body.project.format, language: body.project.language, targetMs: body.project.targetMs });
     setIdea(body.draft?.idea || {});
     setRevision(body.draft?.revision || 1);
-    setPlan(body.draft?.planValid ? body.draft.plan : null);
-    setPlanHash(body.draft?.planHash || "");
-    if (body.video?.id) {
-      setVideoId(body.video.id);
-      setWarnings(body.video.warnings || []);
-    }
-  }
+    setPlan(body.draft?.plan ?? null);
+    setPlanHash(body.draft?.planValid ? body.draft.planHash || "" : "");
+    setIssues(body.draft?.planValid ? [] : body.draft?.issues || []);
+    if (body.video?.id) setSelectedVideo((current) => current || body.video.id);
+    return body;
+  }, [params.id, router]);
 
   useEffect(() => {
-    void load();
+    void (async () => {
+      const body = await load();
+      await loadVideos();
+      if (body?.activeJob?.id) void follow(body.activeJob.id, body.activeJob.output);
+    })();
     fetch(`/api/projects/${params.id}/messages`).then(async (response) => {
       if (!response.ok) return;
       const body = await response.json();
       setNotes(body.items || []);
     });
+    fetch("/api/catalog").then(async (response) => {
+      if (!response.ok) return;
+      const body = await response.json();
+      setVoices(body.voices || []);
+    });
+    // follow is stable for this page; load/loadVideos change only with the project id.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
-
-  useEffect(() => {
-    if (mode !== "cartoon") return;
-    const timer = setInterval(() => setMouth((value) => (value + 1) % 3), 180);
-    return () => clearInterval(timer);
-  }, [mode]);
 
   async function renameProject(event: React.FormEvent) {
     event.preventDefault();
@@ -113,6 +157,40 @@ export function Workspace() {
     }
     setTitle(body.project.title);
     setStatus("Project renamed");
+  }
+
+  async function chooseVoice(id: string) {
+    setError("");
+    const response = await fetch(`/api/projects/${params.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ voiceId: id }),
+    });
+    const body = await response.json();
+    if (!response.ok) {
+      setError(body?.error?.message || "Could not change the narrator.");
+      return;
+    }
+    setVoiceId(body.project.voiceId);
+    setSettings({ format: body.project.format, language: body.project.language, targetMs: body.project.targetMs });
+    setStatus("Narrator saved");
+  }
+
+  async function changeSettings(next: Partial<Settings>) {
+    setError("");
+    const response = await fetch(`/api/projects/${params.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(next),
+    });
+    const body = await response.json();
+    if (!response.ok) {
+      setError(body?.error?.message || "Could not change the settings.");
+      return;
+    }
+    setSettings({ format: body.project.format, language: body.project.language, targetMs: body.project.targetMs });
+    if (body.draftRevision) await load();
+    setStatus("Settings saved");
   }
 
   async function saveIdea() {
@@ -136,21 +214,28 @@ export function Workspace() {
   async function brainstorm() {
     setError("");
     if (!(await saveIdea())) return;
+    setBusy(true);
+    setStatus("Thinking of angles");
     const response = await fetch(`/api/projects/${params.id}/brainstorm`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
     const body = await response.json();
+    setBusy(false);
     if (!response.ok) {
       setError(body?.error?.message || "Could not brainstorm.");
+      setStatus("");
       return;
     }
     setAngles(body.result?.angles || []);
+    setStatus("Angles ready");
   }
 
   async function planStory() {
     setError("");
-    setStatus("Planning");
     if (!(await saveIdea())) return;
+    setBusy(true);
+    setStatus("Planning the storyboard");
     const response = await fetch(`/api/projects/${params.id}/plan`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
     const body = await response.json();
+    setBusy(false);
     if (!response.ok) {
       setError(body?.error?.message || "Could not plan.");
       setStatus("");
@@ -170,7 +255,7 @@ export function Workspace() {
       const response = await fetch(`/api/projects/${params.id}/traces`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ language: "python", code, entry, input, tracerVersion: "leela-trace@1", steps: traced.steps, summary: traced.summary }),
+        body: JSON.stringify({ language: "python", code, entry, input, returned: traced.returned, tracerVersion: "leela-trace@1", steps: traced.steps, summary: traced.summary }),
       });
       const body = await response.json();
       if (!response.ok) setTraceError(body?.error?.message || "Could not save the trace.");
@@ -179,12 +264,12 @@ export function Workspace() {
     }
   }
 
-  function editLine(sceneId: string, text: string) {
+  function editLine(sceneId: string, lineId: string, text: string) {
     if (!plan) return;
     setPlanHash("");
     setPlan({
       ...plan,
-      scenes: plan.scenes.map((scene) => scene.id === sceneId ? { ...scene, lines: scene.lines.map((line, index) => index === 0 ? { ...line, text } : line) } : scene),
+      scenes: plan.scenes.map((scene) => scene.id === sceneId ? { ...scene, lines: scene.lines.map((line) => line.id === lineId ? { ...line, text } : line) } : scene),
     });
   }
 
@@ -198,7 +283,7 @@ export function Workspace() {
     try {
       const checked = validatePlan(JSON.parse(await file.text()));
       if (!checked.plan) {
-        setError(checked.issues.slice(0, 3).map(issue => issue.path + " " + issue.message).join(". "));
+        setError(checked.issues.slice(0, 3).map((issue) => issue.path + " " + issue.message).join(". "));
         return;
       }
       setPlan(checked.plan);
@@ -210,6 +295,7 @@ export function Workspace() {
   }
 
   async function savePlan() {
+    setError("");
     const response = await fetch(`/api/projects/${params.id}/draft`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -221,232 +307,336 @@ export function Workspace() {
       return;
     }
     setRevision(body.revision);
-    setPlanHash(body.planHash || "");
+    setPlanHash(body.planValid ? body.planHash || "" : "");
+    setIssues(body.planValid ? [] : body.issues || []);
     setStatus(body.planValid ? "Storyboard saved" : "Saved, but the storyboard is not valid yet");
   }
 
-  async function approve() {
+  async function follow(jobId: string, output: "mp4" | "preview") {
+    if (polling.current === jobId) return;
+    polling.current = jobId;
+    setBusy(true);
+    setStatus(output === "mp4" ? "Rendering the film" : "Preparing preview");
+    // Poll the real job state. There is no invented progress.
+    for (let attempt = 0; attempt < 1800 && polling.current === jobId; attempt++) {
+      const response = await fetch(`/api/jobs/${jobId}`);
+      const body = await response.json().catch(() => null);
+      if (!response.ok || !body) {
+        setError(body?.error?.message || "Lost track of the job. Reload the page.");
+        break;
+      }
+      setJob({ id: jobId, output, state: body.state, stages: body.stages || [], error: body.error });
+      if (body.state === "succeeded") {
+        const list = await loadVideos();
+        await load();
+        const made = body.result?.videoId ? String(body.result.videoId) : list[0]?.id;
+        if (made) setSelectedVideo(made);
+        setStep("film");
+        const passed = body.result?.qaPassed !== false;
+        setStatus(output === "mp4" ? (passed ? "Film ready" : "Render finished but did not pass QA") : "Preview ready");
+        setJob(null);
+        break;
+      }
+      if (body.state === "failed" || body.state === "cancelled") {
+        setStatus(body.state === "cancelled" ? (output === "mp4" ? "Render cancelled" : "Preview cancelled") : "");
+        if (body.state === "failed") setError(body.error?.message || "The job failed.");
+        await load();
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, attempt < 10 ? 700 : 1500));
+    }
+    if (polling.current === jobId) polling.current = "";
+    setBusy(false);
+  }
+
+  async function approve(output: "mp4" | "preview") {
     setError("");
-    setStatus("Preparing preview");
+    setStatus(output === "mp4" ? "Approving the storyboard" : "Preparing preview");
     const response = await fetch(`/api/projects/${params.id}/approve`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ draftRevision: revision, planHash }),
+      body: JSON.stringify({ draftRevision: revision, planHash, output }),
     });
     const body = await response.json();
     if (!response.ok) {
-      setError(body?.error?.message || "Could not render.");
+      setError(body?.error?.message || "Could not approve.");
       setStatus("");
+      if (body?.error?.details?.activeJobId) void follow(body.error.details.activeJobId, output);
       return;
     }
-    setPreviewJobId(body.jobId);
-    await waitForPreview(body.jobId, body.videoId);
+    setJob({ id: body.jobId, output, state: "queued", stages: [] });
+    await follow(body.jobId, output);
   }
 
-  async function waitForPreview(jobId: string, existingVideo?: string) {
-    setPreviewPending(true);
-    let video = existingVideo;
-    for (let attempt = 0; !video && attempt < 120; attempt++) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const jobResponse = await fetch(`/api/jobs/${jobId}`);
-      const job = await jobResponse.json();
-      if (!jobResponse.ok || job.state === "failed" || job.state === "cancelled") {
-        setError(job.state === "cancelled" ? "Preview cancelled." : job?.error?.message || "Could not prepare the preview.");
-        setStatus("");
-        setPreviewPending(false);
-        return;
-      }
-      video = job.result?.videoId;
-    }
-    if (!video) {
-      setError("The preview is still queued. Check that the worker is running, then try again.");
-      setStatus("");
-      setPreviewPending(false);
-      return;
-    }
-    setPreviewPending(false);
-    setPreviewJobId("");
-    setVideoId(video);
-    await load();
-    setStep("video");
-    setStatus("Preview ready");
-  }
-
-  async function changePreviewJob(action: "cancel" | "retry") {
-    const response = await fetch(`/api/jobs/${previewJobId}/${action}`, { method: "POST" });
-    const body = await response.json();
-    if (!response.ok) { setError(body?.error?.message || "Could not update the preview job."); return; }
-    if (action === "retry") {
-      setError("");
-      setStatus("Preparing preview");
-      await waitForPreview(previewJobId);
-    }
-  }
-
-  async function share() {
-    const response = await fetch(`/api/videos/${videoId}/share`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+  async function changeJob(action: "cancel" | "retry") {
+    if (!job) return;
+    const current = job;
+    const response = await fetch(`/api/jobs/${current.id}/${action}`, { method: "POST" });
     const body = await response.json();
     if (!response.ok) {
-      setError(body?.error?.message || "Could not share.");
+      setError(body?.error?.message || "Could not update the job.");
       return;
     }
-    setShareUrl(body.url);
+    if (action === "cancel") {
+      polling.current = "";
+      setJob({ ...current, state: "cancelled" });
+      setStatus(current.output === "mp4" ? "Render cancelled" : "Preview cancelled");
+      setBusy(false);
+      return;
+    }
+    setError("");
+    await follow(current.id, current.output);
   }
 
-  async function ask() {
-    const response = await fetch(`/api/projects/${params.id}/messages`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ text: copilot }),
-    });
-    const body = await response.json();
-    if (!response.ok) {
-      setError(body?.error?.message || "The copilot could not answer.");
-      return;
-    }
-    setCopilot("");
+  async function refreshNotes() {
     const list = await fetch(`/api/projects/${params.id}/messages`);
     const notesBody = await list.json();
     setNotes(notesBody.items || []);
   }
 
-  async function keep(id: string) {
-    const response = await fetch(`/api/messages/${id}/keep`, {
+  async function ask() {
+    setError("");
+    setBusy(true);
+    const response = await fetch(`/api/projects/${params.id}/messages`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ expectedRevision: revision }),
+      body: JSON.stringify({ text: copilot, sceneIds: focusScenes }),
     });
     const body = await response.json();
+    setBusy(false);
     if (!response.ok) {
-      setError(body?.error?.message || "Could not keep that.");
+      setError(body?.error?.message || "The copilot could not answer.");
+      return;
+    }
+    setCopilot("");
+    await refreshNotes();
+  }
+
+  async function decide(id: string, action: "keep" | "discard") {
+    const response = await fetch(`/api/messages/${id}/${action}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(action === "keep" ? { expectedRevision: revision } : {}),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setError(body?.error?.message || `Could not ${action} that.`);
       return;
     }
     await load();
+    await refreshNotes();
+    setStatus(action === "keep" ? "Change kept" : "Change discarded");
   }
+
+  const selected = videos.find((item) => item.id === selectedVideo) ?? videos[0];
+  const voice = voices.find((item) => item.id === voiceId);
+  const jobActive = Boolean(job && ["queued", "running", "waiting_quota"].includes(job.state));
 
   return (
     <main className="app studio">
-      <header className="site-bar">
-        <Brand href="/studio" />
-        <nav className="site-nav">
-          {(["idea", "storyboard", "video", "share"] as const).map((name) => (
-            <button key={name} className={step === name ? "chip is-on" : "chip"} type="button" onClick={() => setStep(name)}>{name}</button>
+      <StudioBar status={status} />
+      <div className="ws-head">
+        <form className="ws-title" onSubmit={renameProject}>
+          <input className="field" value={title} maxLength={120} required onChange={(event) => setTitle(event.target.value)} aria-label="Title" />
+          <button className="btn ghost sm" type="submit" disabled={!title.trim()}>Rename</button>
+          <span className="badge" data-tone={badge}>{badge}</span>
+        </form>
+        <nav className="steps-nav" aria-label="Project steps">
+          {STEPS.map((item, index) => (
+            <button key={item.id} className={step === item.id ? "is-on" : ""} type="button" aria-label={item.label} aria-current={step === item.id ? "step" : undefined} onClick={() => setStep(item.id)}>
+              <span className="n" aria-hidden="true">{index + 1}</span>{item.label}
+            </button>
           ))}
         </nav>
-        <span className="fine">{status}</span>
-      </header>
-      {error ? <p className="error">{error}</p> : null}
+      </div>
+      {error ? <p className="notice bad" role="alert" style={{ marginTop: 12 }}>{error}</p> : null}
       <div className="studio-grid">
         <section>
           {step === "idea" ? (
-            <div className="glass panel">
-              <p className="kicker">{mode || "project"}</p>
-              <form className="row-actions" onSubmit={renameProject}>
-                <input className="field" value={title} maxLength={120} required onChange={(event) => setTitle(event.target.value)} aria-label="Title" />
-                <button className="btn ghost" type="submit" disabled={!title.trim()}>Rename</button>
-              </form>
-              <textarea className="field" value={idea.topic || ""} onChange={(event) => setIdea({ ...idea, topic: event.target.value })} placeholder="Topic" />
-              <input className="field" value={idea.audience || ""} onChange={(event) => setIdea({ ...idea, audience: event.target.value })} placeholder="Audience" />
-              <div className="row-actions">
-                <button className="btn ghost" type="button" onClick={() => void saveIdea()}>Save</button>
-                <button className="btn ghost" type="button" onClick={() => void brainstorm()}>Brainstorm</button>
-                <button className="btn" type="button" onClick={() => void planStory()}>Plan storyboard</button>
+            <>
+              <div className="surface panel">
+                <div>
+                  <p className="kicker">{({ code_lab: "Code Lab", audio: "Audio", montage: "Montage" } as Record<string, string>)[mode] ?? "Explainer"}</p>
+                  <h2>What is this film about?</h2>
+                </div>
+                <label className="stack-label">Topic
+                  <textarea className="field" value={idea.topic || ""} onChange={(event) => setIdea({ ...idea, topic: event.target.value })} placeholder="Topic" />
+                </label>
+                <label className="stack-label">Who is it for
+                  <input className="field" value={idea.audience || ""} onChange={(event) => setIdea({ ...idea, audience: event.target.value })} placeholder="Audience" />
+                </label>
+                <div className="split" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+                  <label className="stack-label">Format
+                    <select className="field" aria-label="Format" value={settings.format} onChange={(event) => void changeSettings({ format: event.target.value })}>
+                      <option value="9x16">Vertical 9:16</option>
+                      <option value="16x9">Landscape 16:9</option>
+                      <option value="1x1">Square 1:1</option>
+                    </select>
+                  </label>
+                  <label className="stack-label">Language
+                    <select className="field" aria-label="Language" value={settings.language} onChange={(event) => void changeSettings({ language: event.target.value })}>
+                      <option value="en">English</option>
+                      <option value="hi">Hindi</option>
+                      <option value="hinglish">Hinglish</option>
+                    </select>
+                  </label>
+                  <label className="stack-label">Length
+                    <select className="field" aria-label="Length" value={settings.targetMs} onChange={(event) => void changeSettings({ targetMs: Number(event.target.value) })}>
+                      {[15000, 30000, 45000, 60000, 90000, 120000, 180000].map((ms) => <option key={ms} value={ms}>{ms < 60000 ? `${ms / 1000} seconds` : `${ms / 60000} min`}</option>)}
+                    </select>
+                  </label>
+                </div>
+                {plan?.language && plan.language !== settings.language ? <p className="notice warn">The storyboard is in {plan.language === "hi" ? "Hindi" : plan.language === "hinglish" ? "Hinglish" : "English"}. Plan it again to switch language.</p> : null}
+                <div className="row-actions">
+                  <button className="btn ghost" type="button" onClick={() => void saveIdea()}>Save</button>
+                  <button className="btn ghost" type="button" disabled={busy} onClick={() => void brainstorm()}>Brainstorm</button>
+                  <button className="btn" type="button" disabled={busy} onClick={() => void planStory()}>Plan storyboard</button>
+                </div>
+                {angles.length ? (
+                  <div className="cards" aria-label="Angles">
+                    {angles.map((angle) => (
+                      <button key={angle.title} className="surface card" type="button" style={{ textAlign: "left", cursor: "pointer" }} onClick={() => setIdea({ ...idea, topic: `${angle.title}. ${angle.hook} ${angle.takeaway}` })}>
+                        <strong style={{ fontWeight: 500 }}>{angle.title}</strong>
+                        <span className="muted">{angle.hook}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </div>
-              {angles.length ? (
-                <div className="cards">
-                  {angles.map((angle) => (
-                    <button key={angle.title} className="clay card" type="button" onClick={() => setIdea({ ...idea, topic: `${angle.title}. ${angle.hook} ${angle.takeaway}` })}>
-                      <strong>{angle.title}</strong>
-                      <span className="muted">{angle.hook}</span>
-                    </button>
-                  ))}
+              {mode === "montage" ? (
+                <MontagePanel projectId={params.id} disabled={jobActive} onQueued={(jobId) => { setJob({ id: jobId, output: "mp4", state: "queued", stages: [] }); void follow(jobId, "mp4"); }} />
+              ) : <BriefPanel projectId={params.id} suggestedRequest={idea.topic || ""} audience={idea.audience} />}
+              {mode === "montage" && job ? (
+                <div className="surface panel progress" aria-live="polite">
+                  <p className="kicker">Montage · {job.state}</p>
+                  {job.stages.length ? <ol>{job.stages.map((stage) => <li key={stage.name} data-state={stage.state}>{STAGE_LABEL[stage.name] ?? stage.name}</li>)}</ol> : null}
                 </div>
               ) : null}
-              <BriefPanel projectId={params.id} suggestedRequest={idea.topic || ""} audience={idea.audience} />
               {mode === "code_lab" ? (
-                <div className="panel">
-                  <p className="kicker">Code Lab</p>
-                  <div className="row-actions">
-                    <button className="chip" type="button" onClick={() => { setCode(SEARCH); setEntry("binary_search"); }}>Binary search</button>
-                    <button className="chip" type="button" onClick={() => { setCode(FIB); setEntry("fib"); }}>fib(4)</button>
+                <div className="surface panel">
+                  <div>
+                    <p className="kicker">Runs in your browser</p>
+                    <h2>Trace the code</h2>
                   </div>
-                  <textarea className="field" value={code} onChange={(event) => setCode(event.target.value)} style={{ minHeight: 220, fontFamily: "ui-monospace, monospace" }} />
+                  <div className="chips">
+                    <button className={entry === "binary_search" ? "chip is-on" : "chip"} type="button" onClick={() => { setCode(SEARCH); setEntry("binary_search"); }}>Binary search</button>
+                    <button className={entry === "fib" ? "chip is-on" : "chip"} type="button" onClick={() => { setCode(FIB); setEntry("fib"); }}>fib(4)</button>
+                  </div>
+                  <textarea className="field mono" aria-label="Python code" value={code} onChange={(event) => setCode(event.target.value)} style={{ minHeight: 220, fontSize: 13 }} />
                   <button className="btn" type="button" onClick={() => void trace()}>Trace</button>
-                  {traceSummary ? <p>{traceSummary}</p> : null}
+                  {traceSummary ? <p className="ok" role="status">{traceSummary}</p> : null}
                   {traceError ? <p className="error">{traceError}</p> : null}
                 </div>
               ) : null}
-              {mode === "cartoon" ? <Puppet mouth={mouth} /> : null}
-            </div>
+            </>
           ) : null}
+
           {step === "storyboard" ? (
-            <div className="panel">
-              <label className="fine">Import a storyboard JSON file
-                <input type="file" accept=".json,application/json" onChange={event => {
-                  const file = event.currentTarget.files?.[0];
-                  event.currentTarget.value = "";
-                  void importStoryboard(file);
-                }} />
-              </label>
-              {plan?.scenes?.length ? plan.scenes.map((scene) => (
-                <article key={scene.id} className="glass" style={{ padding: 14, marginBottom: 12 }}>
-                  <p className="kicker">{scene.id} · {scene.purpose}</p>
-                  <textarea className="field" value={scene.lines[0]?.text || ""} onChange={(event) => editLine(scene.id, event.target.value)} />
-                  <p className="fine">{scene.layers.map((layer) => layer.component).join(" · ")}</p>
-                </article>
-              )) : <p className="muted">Plan a storyboard from the idea step.</p>}
-              <div className="row-actions">
-                <button className="btn ghost" type="button" onClick={() => void savePlan()} disabled={!plan}>Save edits</button>
-                <button className="btn" type="button" onClick={() => void approve()} disabled={!planHash || previewPending}>Approve and preview</button>
-                {previewJobId && previewPending ? <button className="btn" type="button" onClick={() => void changePreviewJob("cancel")}>Cancel preview</button> : null}
-                {previewJobId && !previewPending ? <button className="btn" type="button" onClick={() => void changePreviewJob("retry")}>Retry preview</button> : null}
+            <>
+              <div className="surface panel">
+                <div className="row-actions" style={{ justifyContent: "space-between" }}>
+                  <div>
+                    <p className="kicker">Revision {revision}</p>
+                    <h2>{plan?.title || "Storyboard"}</h2>
+                  </div>
+                  <label className="fine">Import a storyboard JSON file
+                    <input type="file" accept=".json,application/json" onChange={(event) => {
+                      const file = event.currentTarget.files?.[0];
+                      event.currentTarget.value = "";
+                      void importStoryboard(file);
+                    }} />
+                  </label>
+                </div>
+                {issues.length ? (
+                  <div className="notice bad">
+                    {issues.slice(0, 5).map((issue) => <div key={issue.path + issue.message}>{issue.path}: {issue.message}</div>)}
+                  </div>
+                ) : null}
+                {plan?.scenes?.length ? plan.scenes.map((scene) => (
+                  <article key={scene.id} className="raised scene">
+                    <div className="scene-head">
+                      <label className="row-actions" style={{ gap: 8 }}>
+                        <input type="checkbox" aria-label={`Ask the copilot about ${scene.id}`} checked={focusScenes.includes(scene.id)} onChange={(event) => setFocusScenes((current) => event.target.checked ? [...current, scene.id] : current.filter((id) => id !== scene.id))} />
+                        <strong style={{ fontWeight: 500 }}>{scene.id.toUpperCase()} · {scene.purpose}</strong>
+                      </label>
+                      <span>{scene.layers.map((layer) => layer.component.replace(/@\d+$/, "")).join(", ")}</span>
+                    </div>
+                    {scene.lines.map((line) => (
+                      <textarea key={line.id} className="field" aria-label={`Narration for ${scene.id} ${line.id}`} value={line.text} onChange={(event) => editLine(scene.id, line.id, event.target.value)} />
+                    ))}
+                  </article>
+                )) : <p className="empty">Plan a storyboard from the idea step, or import an authored JSON file.</p>}
+                <div className="row-actions">
+                  <button className="btn ghost" type="button" onClick={() => void savePlan()} disabled={!plan}>Save edits</button>
+                </div>
               </div>
-            </div>
+
+              <div className="surface panel">
+                <div>
+                  <p className="kicker">Approve</p>
+                  <h2>Render</h2>
+                </div>
+                <label className="stack-label">Narrator
+                  <select className="field" value={voiceId} onChange={(event) => void chooseVoice(event.target.value)} aria-label="Narrator">
+                    {voices.map((item) => {
+                      const speaks = !item.languages || item.languages.includes(plan?.language ?? settings.language);
+                      return <option key={item.id} value={item.id} disabled={!item.available || !speaks}>{item.label}{!item.available ? " (not configured)" : !speaks ? " (other language)" : ""}</option>;
+                    })}
+                  </select>
+                </label>
+                {voice ? <p className="fine">{voice.note}</p> : null}
+                <div className="row-actions">
+                  <button className="btn accent" type="button" onClick={() => void approve("mp4")} disabled={!planHash || jobActive || !voice?.available}>Approve and render film</button>
+                  <button className="btn ghost" type="button" onClick={() => void approve("preview")} disabled={!planHash || jobActive}>Approve and preview</button>
+                </div>
+                {!planHash && plan ? <p className="fine">Save a valid storyboard to approve it.</p> : null}
+                {job ? (
+                  <div className="progress" aria-live="polite">
+                    <p className="kicker">{job.output === "mp4" ? "Film render" : "Preview"} · {job.state}</p>
+                    {job.stages.length ? (
+                      <ol>
+                        {job.stages.map((stage) => <li key={stage.name} data-state={stage.state}>{STAGE_LABEL[stage.name] ?? stage.name}</li>)}
+                      </ol>
+                    ) : null}
+                    <div className="row-actions">
+                      {jobActive ? <button className="btn ghost sm" type="button" onClick={() => void changeJob("cancel")}>{job.output === "mp4" ? "Cancel render" : "Cancel preview"}</button> : null}
+                      {job.state === "failed" || job.state === "cancelled" ? <button className="btn ghost sm" type="button" onClick={() => void changeJob("retry")}>{job.output === "mp4" ? "Retry render" : "Retry preview"}</button> : null}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </>
           ) : null}
-          {step === "video" ? (
-            <div className="panel">
-              {warnings.map((warning) => <p key={warning} className="fine">{warning}</p>)}
-              <iframe className="player" title="Preview" sandbox="allow-scripts" src={videoId ? `/api/videos/${videoId}/preview` : `/api/projects/${params.id}/preview`} />
-            </div>
-          ) : null}
-          {step === "share" ? (
-            <div className="glass panel">
-              <p>Sharing will be available after a verified video export is ready.</p>
-              <button className="btn" type="button" onClick={() => void share()} disabled>Copy a share link</button>
-              {shareUrl ? <p><a href={shareUrl}>{shareUrl}</a></p> : null}
-            </div>
-          ) : null}
+
+          {step === "film" ? <FilmPanel videos={videos} selectedId={selected?.id ?? ""} onSelect={setSelectedVideo} /> : null}
+          {step === "share" ? <SharePanel key={selected?.id ?? "none"} video={selected} /> : null}
         </section>
-        <aside className="glass dock">
-          <p className="kicker">Copilot</p>
+
+        <aside className="surface dock" aria-label="Copilot">
+          <div>
+            <p className="kicker">Copilot</p>
+            <h3>Ask for a change</h3>
+          </div>
           <div className="notes">
+            {notes.length === 0 ? <p className="fine">Try “Make it slower” or “Make the ending punchier”. Changes arrive as a proposal you can keep or discard.</p> : null}
             {notes.map((note) => (
-              <div key={note.id}>
+              <div key={note.id} className="note">
                 <strong>{note.role}</strong>
                 <p>{note.text}</p>
-                {note.candidate?.status === "proposed" ? <button className="btn" type="button" onClick={() => void keep(note.id)}>Keep</button> : null}
+                {note.candidate?.status === "proposed" ? (
+                  <div className="row-actions" style={{ marginTop: 8 }}>
+                    <button className="btn sm" type="button" onClick={() => void decide(note.id, "keep")}>Keep</button>
+                    <button className="btn ghost sm" type="button" onClick={() => void decide(note.id, "discard")}>Discard</button>
+                  </div>
+                ) : note.candidate?.status ? <p className="fine">{note.candidate.status}</p> : null}
               </div>
             ))}
           </div>
-          <textarea className="field" value={copilot} onChange={(event) => setCopilot(event.target.value)} placeholder="Make it slower" />
-          <button className="btn" type="button" onClick={() => void ask()}>Send</button>
-          <Link className="fine" href="/studio/library">Library</Link>
+          <p className="fine">{focusScenes.length ? `Only ${focusScenes.join(", ")} will change.` : "Tick scenes in the storyboard to limit a change to them."}</p>
+          <textarea className="field" aria-label="Message to the copilot" value={copilot} onChange={(event) => setCopilot(event.target.value)} placeholder="Make it slower" style={{ minHeight: 80 }} />
+          <button className="btn" type="button" disabled={!copilot.trim() || busy} onClick={() => void ask()}>Send</button>
         </aside>
       </div>
     </main>
-  );
-}
-
-function Puppet({ mouth }: { mouth: number }) {
-  const open = [8, 18, 6][mouth];
-  return (
-    <svg viewBox="0 0 200 220" width="180" aria-label="Original puppet">
-      <ellipse cx="100" cy="200" rx="40" ry="8" fill="#000" opacity="0.25" />
-      <path d="M100 20 L150 150 H50 Z" fill="#f3f3f3" />
-      <ellipse cx="100" cy="150" rx="50" ry="16" fill="#8a8a8a" />
-      <circle cx="82" cy="90" r="5" fill="#0D0A1F" />
-      <circle cx="118" cy="90" r="5" fill="#0D0A1F" />
-      <ellipse cx="100" cy="120" rx="10" ry={open} fill="#0D0A1F" />
-    </svg>
   );
 }

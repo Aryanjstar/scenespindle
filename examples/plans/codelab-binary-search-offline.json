@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 1,
+  "mode": "code_lab",
+  "title": "How binary search finds",
+  "logline": "What binary_search does, step by step.",
+  "language": "en",
+  "format": "9x16",
+  "targetMs": 45000,
+  "styleId": "chalk-and-chai@1",
+  "voiceId": "test:tone",
+  "scenes": [
+    {
+      "id": "s1",
+      "purpose": "hook",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "Here is what binary_search really does when we run it."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "kicker",
+          "component": "text.kicker@1",
+          "props": {
+            "text": "Code Lab"
+          },
+          "slot": "top"
+        },
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "Here is what binary_search"
+          },
+          "slot": "title"
+        }
+      ],
+      "events": [],
+      "holdMs": 240
+    },
+    {
+      "id": "s2",
+      "purpose": "setup",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "This is the code we ran, with the input [4,9,15,21,28,33,40,52],33."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "This is the code"
+          },
+          "slot": "title"
+        },
+        {
+          "id": "code",
+          "component": "code.listing@1",
+          "props": {},
+          "slot": "center"
+        }
+      ],
+      "events": [],
+      "holdMs": 240
+    },
+    {
+      "id": "s3",
+      "purpose": "explain",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "It starts with the list 4, 9, 15, 21, 28, 33, 40, 52 and moves its markers one step at a time."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "It starts with the"
+          },
+          "slot": "title"
+        },
+        {
+          "id": "trace",
+          "component": "trace.array@1",
+          "props": {
+            "from": 0,
+            "to": 2
+          },
+          "slot": "center"
+        }
+      ],
+      "events": [],
+      "holdMs": 240
+    },
+    {
+      "id": "s4",
+      "purpose": "example",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "We recorded 6 visible steps. Every number you see came from the run."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "We recorded 6 visible"
+          },
+          "slot": "title"
+        },
+        {
+          "id": "trace",
+          "component": "trace.array@1",
+          "props": {
+            "from": 3,
+            "to": 5
+          },
+          "slot": "center"
+        }
+      ],
+      "events": [],
+      "holdMs": 240
+    },
+    {
+      "id": "s5",
+      "purpose": "recap",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "In the end it returns 5."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "slam",
+          "component": "text.slam@1",
+          "props": {
+            "text": "5"
+          },
+          "slot": "hero"
+        },
+        {
+          "id": "note",
+          "component": "text.handwritten@1",
+          "props": {
+            "text": "from the real run"
+          },
+          "slot": "bottom"
+        }
+      ],
+      "events": [],
+      "holdMs": 700
+    }
+  ]
+}

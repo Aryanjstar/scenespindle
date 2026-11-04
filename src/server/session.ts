@@ -1,8 +1,8 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import bcrypt from "bcryptjs";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { appEnv } from "../config/app";
-import { Session, User } from "./db";
+import { ApiToken, Session, User } from "./db";
 
 const COOKIE = "leela_session";
 
@@ -46,7 +46,26 @@ export async function openSession(userId: unknown, userAgent: string | null) {
   });
 }
 
+/** Bearer token from the Authorization header, if the caller is an API client (CLI, AI IDE). */
+export function bearerOf(value: string | null | undefined): string | null {
+  const match = /^Bearer\s+(ss_[A-Za-z0-9_-]{40,60})$/.exec(value?.trim() ?? "");
+  return match ? match[1] : null;
+}
+
 export async function currentUser() {
+  // API clients use a token and never fall back to cookies; browsers use the session cookie.
+  const auth = (await headers()).get("authorization");
+  if (auth) {
+    const token = bearerOf(auth);
+    if (!token) return null;
+    const row = await ApiToken.findOneAndUpdate(
+      { tokenHash: hashToken(token), revokedAt: { $exists: false }, expiresAt: { $gt: new Date() } },
+      { $set: { lastUsedAt: new Date() } },
+      { new: true },
+    );
+    if (!row) return null;
+    return User.findById(row.ownerId);
+  }
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
   if (!token) return null;

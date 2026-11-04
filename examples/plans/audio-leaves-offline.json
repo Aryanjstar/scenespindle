@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "mode": "audio",
+  "title": "Why leaves change colour",
+  "logline": "Every autumn, green leaves turn yellow, orange and red.",
+  "language": "en",
+  "format": "9x16",
+  "targetMs": 45000,
+  "styleId": "chalk-and-chai@1",
+  "voiceId": "test:tone",
+  "scenes": [
+    {
+      "id": "s1",
+      "purpose": "hook",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "Every autumn, green leaves turn yellow, orange and red."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "kicker",
+          "component": "text.kicker@1",
+          "props": {
+            "text": "Why leaves change colour"
+          },
+          "slot": "top"
+        },
+        {
+          "id": "words",
+          "component": "kinetic.words@1",
+          "props": {},
+          "slot": "hero"
+        },
+        {
+          "id": "pulse",
+          "component": "audio.pulse@1",
+          "props": {},
+          "slot": "bottom"
+        }
+      ],
+      "events": [],
+      "holdMs": 200
+    },
+    {
+      "id": "s2",
+      "purpose": "explain",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "The green comes from chlorophyll, which the tree uses to make food from sunlight."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "words",
+          "component": "kinetic.words@1",
+          "props": {},
+          "slot": "hero"
+        },
+        {
+          "id": "pulse",
+          "component": "audio.pulse@1",
+          "props": {},
+          "slot": "bottom"
+        }
+      ],
+      "events": [],
+      "holdMs": 200
+    },
+    {
+      "id": "s3",
+      "purpose": "explain",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "When days get shorter, the tree stops making chlorophyll."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "words",
+          "component": "kinetic.words@1",
+          "props": {},
+          "slot": "hero"
+        },
+        {
+          "id": "pulse",
+          "component": "audio.pulse@1",
+          "props": {},
+          "slot": "bottom"
+        }
+      ],
+      "events": [],
+      "holdMs": 200
+    },
+    {
+      "id": "s4",
+      "purpose": "explain",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "The green fades, and colours that were hiding underneath finally show."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "words",
+          "component": "kinetic.words@1",
+          "props": {},
+          "slot": "hero"
+        },
+        {
+          "id": "pulse",
+          "component": "audio.pulse@1",
+          "props": {},
+          "slot": "bottom"
+        }
+      ],
+      "events": [],
+      "holdMs": 200
+    },
+    {
+      "id": "s5",
+      "purpose": "recap",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "So the colour was there all along, waiting for the green to leave."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "words",
+          "component": "kinetic.words@1",
+          "props": {},
+          "slot": "hero"
+        },
+        {
+          "id": "pulse",
+          "component": "audio.pulse@1",
+          "props": {},
+          "slot": "bottom"
+        }
+      ],
+      "events": [],
+      "holdMs": 700
+    }
+  ]
+}

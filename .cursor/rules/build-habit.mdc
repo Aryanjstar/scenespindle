@@ -1,0 +1,14 @@
+---
+description: Use when a layer is finished, a screen is designed, a spike reports, or work is ready to merge. Log privately, branch, cross-check, update status.
+alwaysApply: false
+---
+
+# Build habit
+
+- Build in `docs/PRODUCT.md` layer order. Layer 0 spikes come before app code. A layer is done when a person can finish that job in the UI.
+- No nav items outside the page map; no empty modules for later layers.
+- Each layer or distinct change on a branch. Before merge: `npm test`, `npm run typecheck`, `npm run lint`, `docs/templates/CROSS-CHECK.md`, and `npm run e2e` (two creators, desktop and 390 px, no console errors).
+- Every render shown to the human is QA'd first (frame sheet, duration, safe zones, no pill captions, no em-dashes on screen).
+- Update `docs/PROJECT_STATUS.md` in the same change. Mark mock UI as mock.
+- Add a `docs/journey/` entry (gitignored). Update `docs/PLAYBOOK.md` or `docs/templates/` when a step taught a repeatable method.
+- Commit and push only when the human asks.

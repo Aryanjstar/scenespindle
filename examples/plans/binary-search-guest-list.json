@@ -1,0 +1,194 @@
+{
+  "schemaVersion": 1,
+  "mode": "explainer",
+  "title": "Finding Names Fast",
+  "logline": "How binary search finds one name in a sorted wedding guest list quickly.",
+  "language": "en",
+  "format": "9x16",
+  "targetMs": 45000,
+  "styleId": "chalk-and-chai@1",
+  "voiceId": "elevenlabs:pending",
+  "scenes": [
+    {
+      "id": "s1",
+      "purpose": "hook",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "Searching through a massive guest list of thousands of names can take forever if you check every single person."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "kicker",
+          "component": "text.kicker@1",
+          "props": {
+            "text": "Massive List"
+          },
+          "slot": "top"
+        },
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "Guest List"
+          },
+          "slot": "hero"
+        }
+      ],
+      "events": [],
+      "holdMs": 180
+    },
+    {
+      "id": "s2",
+      "purpose": "setup",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "Luckily, the wedding names are sorted in alphabetical order, which lets us use a very clever shortcut to speed things up."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "kicker",
+          "component": "text.kicker@1",
+          "props": {
+            "text": "Alphabetical"
+          },
+          "slot": "top"
+        },
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "Sorted Order"
+          },
+          "slot": "hero"
+        }
+      ],
+      "events": [],
+      "holdMs": 180
+    },
+    {
+      "id": "s3",
+      "purpose": "explain",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "Instead of reading sequentially, we check the exact middle name and immediately throw away the half we do not need."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "kicker",
+          "component": "text.kicker@1",
+          "props": {
+            "text": "Cut in Half"
+          },
+          "slot": "top"
+        },
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "The Middle"
+          },
+          "slot": "hero"
+        }
+      ],
+      "events": [],
+      "holdMs": 180
+    },
+    {
+      "id": "s4",
+      "purpose": "example",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "By repeating this simple halving process over and over, we reach the correct target name in just fourteen total checks."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "kicker",
+          "component": "text.kicker@1",
+          "props": {
+            "text": "Fast Search"
+          },
+          "slot": "top"
+        },
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "Fourteen Steps"
+          },
+          "slot": "hero"
+        }
+      ],
+      "events": [],
+      "holdMs": 180
+    },
+    {
+      "id": "s5",
+      "purpose": "recap",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "Smart algorithms turn impossible tasks into instant results."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "kicker",
+          "component": "text.kicker@1",
+          "props": {
+            "text": "Smart Search"
+          },
+          "slot": "top"
+        },
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "Done"
+          },
+          "slot": "title"
+        },
+        {
+          "id": "slam",
+          "component": "text.slam@1",
+          "props": {
+            "text": "Fast"
+          },
+          "slot": "hero"
+        },
+        {
+          "id": "note",
+          "component": "text.handwritten@1",
+          "props": {
+            "text": "Sorted!"
+          },
+          "slot": "bottom"
+        }
+      ],
+      "events": [],
+      "holdMs": 700
+    }
+  ]
+}

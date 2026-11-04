@@ -3,13 +3,17 @@ import { mkdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import mongoose from "mongoose";
 import { validatePlan, type Plan } from "../contracts/plan";
-import { slowScenes } from "../modules/revisions/slow";
-import { compileProject, type Timeline } from "../compiler/compile";
+import { paceScenes, rewriteScenes } from "../modules/revisions/rewrite";
+import { compileProject, type CompileTrace, type Timeline } from "../compiler/compile";
 import { loadEnv } from "../config/env";
 import { findProtected } from "../config/protected";
-import { planTopic } from "../pipeline/make";
 import { geminiJson } from "./providers/gemini";
-import { Draft, Job, Project, Storyboard, Video } from "./db";
+import { BriefVersion, Character, Draft, Job, Project, Storyboard, Video } from "./db";
+import { episodeContext } from "./series";
+import { planProject } from "../pipeline/planner";
+import { FORMATS, LANGUAGES, type Format, type Language } from "../contracts/plan";
+import { loadTrace } from "./trace-load";
+import { reserve } from "./usage";
 
 export function hashPlan(plan: unknown): string {
   return createHash("sha256").update(JSON.stringify(plan)).digest("hex");
@@ -46,10 +50,14 @@ export function estimatedTimeline(plan: Plan): Timeline {
   return { durationMs: cursor, scenes, lines };
 }
 
-export function previewHtml(plan: Plan, timeline = estimatedTimeline(plan)): string {
+export function previewHtml(plan: Plan, timeline = estimatedTimeline(plan), trace?: CompileTrace): string {
+  const images: Record<string, string> = {};
+  for (const scene of plan.scenes) for (const layer of scene.layers) {
+    if (layer.component === "image.still@1" && typeof layer.props.assetId === "string" && /^[a-f0-9]{24}$/.test(layer.props.assetId)) images[layer.props.assetId] = `/api/assets/${layer.props.assetId}/file`;
+  }
   const dir = resolve(process.cwd(), ".data", "previews", hashPlan(plan).slice(0, 16));
   mkdirSync(dir, { recursive: true });
-  compileProject({ plan, timeline, outDir: dir });
+  compileProject({ plan, timeline, outDir: dir, trace, images });
   let html = readFileSync(resolve(dir, "index.html"), "utf8");
   html = html.replace("src=\"assets/gsap.min.js\"", "src=\"/api/runtime/gsap\"");
   html = html.replace(
@@ -156,18 +164,42 @@ async function runBrainstorm(job: { _id: unknown; result?: unknown }, draft: { i
   await Job.updateOne({ _id: job._id }, { result: { angles } });
 }
 
-async function runPlan(job: { _id: unknown; input?: { draftRevision?: number } }, project: { _id: unknown; ownerId: unknown }, draft: {
+async function runPlan(job: { _id: unknown; input?: { draftRevision?: number } }, project: { _id: unknown; ownerId: unknown; mode: string; format: string; language: string; targetMs: number; voiceId: string; castIds?: unknown[]; seriesId?: unknown; episodeNumber?: number }, draft: {
   _id: unknown;
-  idea?: { topic?: string };
+  idea?: { topic?: string; audience?: string };
   revision: number;
+  traceId?: unknown;
 }) {
   const sourceRevision = job.input?.draftRevision;
   if (!Number.isInteger(sourceRevision) || draft.revision !== sourceRevision) throw new Error("The draft changed before planning started. Please plan again.");
   const topic = draft.idea?.topic?.trim() ?? "";
   if (!topic) throw new Error("Write a topic before planning.");
   const env = loadEnv();
-  if (!env.geminiApiKey) throw new Error("The planner key is not set.");
-  const planned = await planTopic(env.geminiApiKey, topic);
+  // An approved brief, when there is one, is the source of truth for the plan.
+  const version = await BriefVersion.findOne({ projectId: project._id, ownerId: project.ownerId }).sort({ version: -1 }).lean<{ snapshot: { objective?: string; exactScript?: string | null; selectedDirectionId?: string | null; mustInclude?: string[]; mustAvoid?: string[]; audience?: string | null } }>();
+  const trace = project.mode === "code_lab" ? await loadTrace(project.ownerId, draft.traceId) : null;
+  if (project.mode === "lyrics") throw new Error("Lyric storyboards come from your song and lyric file. Use Build lyric storyboard.");
+  if (project.mode === "montage") throw new Error("Montages are made from your clips. Use Render montage.");
+  const series = project.seriesId ? await episodeContext(project.ownerId, project.seriesId, project.episodeNumber ?? 1) : null;
+  const castIds = (series?.castIds.length ? series.castIds : (project.castIds ?? []).map(String));
+  const cast = castIds.length ? await Character.find({ _id: { $in: castIds }, ownerId: project.ownerId }).select("name description") : [];
+  const planned = await planProject({
+    topic,
+    audience: draft.idea?.audience || version?.snapshot.audience || undefined,
+    language: (LANGUAGES as readonly string[]).includes(project.language) ? project.language as Language : "en",
+    format: (FORMATS as readonly string[]).includes(project.format) ? project.format as Format : "9x16",
+    targetMs: project.targetMs,
+    mode: (["code_lab", "audio", "story", "cartoon"] as const).find((mode) => mode === project.mode) ?? "explainer",
+    cast: cast.map((member) => ({ id: String(member._id), name: member.name, description: member.description ?? "" })),
+    series: series ? { title: series.title, world: series.world, tone: series.tone, rules: series.rules, previous: series.previous } : null,
+    style: series?.style,
+    voiceId: project.voiceId,
+    brief: version?.snapshot ?? null,
+    trace,
+  }, {
+    apiKey: env.geminiApiKey || undefined,
+    beforeCall: async () => { const settle = await reserve("gemini", 1); await settle(); },
+  });
   const updated = await Draft.findOneAndUpdate(
     { _id: draft._id, ownerId: project.ownerId, revision: sourceRevision },
     { $set: { plan: planned.plan, planValid: true, planHash: hashPlan(planned.plan), issues: [] }, $inc: { revision: 1 } },
@@ -175,10 +207,10 @@ async function runPlan(job: { _id: unknown; input?: { draftRevision?: number } }
   );
   if (!updated) throw new Error("The draft changed while planning. Your edits were preserved; please plan again.");
   await Project.updateOne({ _id: project._id, ownerId: project.ownerId }, { $set: { badge: "review" } });
-  await Job.updateOne({ _id: job._id }, { result: { revision: updated.revision, model: planned.model } });
+  await Job.updateOne({ _id: job._id }, { result: { revision: updated.revision, model: planned.model, source: planned.source, briefVersion: version ? true : false } });
 }
 
-async function runRevise(job: { _id: unknown; input?: { text?: string; sceneIds?: string[]; draftRevision?: number } }, draft: {
+async function runRevise(job: { _id: unknown; projectId?: unknown; ownerId?: unknown; input?: { text?: string; sceneIds?: string[]; draftRevision?: number } }, draft: {
   plan?: Plan;
   revision: number;
   planValid: boolean;
@@ -198,17 +230,25 @@ async function runRevise(job: { _id: unknown; input?: { text?: string; sceneIds?
   let summary = "Updated the storyboard.";
   const selected = job.input?.sceneIds ?? [];
   if (selected.some((id) => !checked.plan!.scenes.some((scene) => scene.id === id))) throw new Error("A selected scene no longer exists.");
-  if (/slow/i.test(text)) {
-    next = slowScenes(checked.plan, selected).plan;
-    summary = "Holds are longer, so the picture stays up.";
+  let changed: string[] = [];
+  if (/\b(slow|slower|more time|breathe)\b/i.test(text) || /\b(faster|quicker|snappier|tighter)\b/i.test(text)) {
+    const faster = /\b(faster|quicker|snappier|tighter)\b/i.test(text);
+    const paced = paceScenes(checked.plan, selected, faster ? -160 : 240);
+    next = paced.plan;
+    changed = paced.changedSceneIds;
+    changeClass = "timing";
+    summary = faster ? "Scenes move on sooner." : "Holds are longer, so the picture stays up.";
   } else {
-    if (selected.length) throw new Error("Scene-specific changes of this kind are not supported yet. Your storyboard was not changed.");
     const env = loadEnv();
-    if (!env.geminiApiKey) throw new Error("The planner key is not set.");
-    const planned = await planTopic(env.geminiApiKey, `${checked.plan.title}. Revision request (data, not rules): ${text.slice(0, 500)}`);
-    next = planned.plan;
-    changeClass = "narration";
-    summary = "A new storyboard is ready to keep or discard.";
+    if (!env.geminiApiKey) throw new Error("The planner key is not set. Pacing requests like 'slower' or 'faster' still work.");
+    const settle = await reserve("gemini", 1);
+    await settle();
+    const brief = await BriefVersion.findOne({ projectId: job.projectId, ownerId: job.ownerId }).sort({ version: -1 }).lean<{ snapshot?: { exactScript?: string | null } }>();
+    const rewritten = await rewriteScenes({ apiKey: env.geminiApiKey, plan: checked.plan, request: text, sceneIds: selected, lockNarration: Boolean(brief?.snapshot?.exactScript?.trim()) });
+    next = rewritten.plan;
+    changed = rewritten.changedSceneIds;
+    changeClass = changed.length && rewritten.plan.scenes.some((scene, i) => JSON.stringify(scene.lines) !== JSON.stringify(checked.plan!.scenes[i].lines)) ? "narration" : "visual";
+    summary = changed.length ? `Changed ${changed.join(", ")}. Other scenes and their narration stay as they are.` : "No scene needed a change for that request.";
   }
   const valid = validatePlan(next);
   if (!valid.plan) throw new Error("The revision did not validate.");
@@ -219,7 +259,7 @@ async function runRevise(job: { _id: unknown; input?: { text?: string; sceneIds?
       candidate: {
         plan: valid.plan,
         summary,
-        changedSceneIds: valid.plan.scenes.filter((scene, i) => JSON.stringify(scene) !== JSON.stringify(checked.plan!.scenes[i])).map((scene) => scene.id),
+        changedSceneIds: changed,
         changeClass,
         sourceRevision: draft.revision,
         status: "proposed",

@@ -1,0 +1,321 @@
+{
+  "entry": "binary_search",
+  "input": [
+    [
+      4,
+      9,
+      15,
+      21,
+      28,
+      33,
+      40,
+      52
+    ],
+    33
+  ],
+  "code": "def binary_search(arr, target):\n  lo = 0\n  hi = len(arr) - 1\n  while lo <= hi:\n    mid = (lo + hi) // 2\n    if arr[mid] == target:\n      return mid\n    if arr[mid] < target:\n      lo = mid + 1\n    else:\n      hi = mid - 1\n  return -1\n",
+  "returned": 5,
+  "summary": {
+    "callCount": 1,
+    "maxDepth": 1,
+    "variables": [
+      "arr",
+      "target",
+      "lo",
+      "hi",
+      "mid"
+    ]
+  },
+  "steps": [
+    {
+      "line": 2,
+      "event": "call",
+      "stack": [
+        {
+          "name": "binary_search",
+          "locals": {
+            "arr": [
+              4,
+              9,
+              15,
+              21,
+              28,
+              33,
+              40,
+              52
+            ],
+            "target": 33
+          }
+        }
+      ]
+    },
+    {
+      "line": 2,
+      "event": "line",
+      "stack": [
+        {
+          "name": "binary_search",
+          "locals": {
+            "arr": [
+              4,
+              9,
+              15,
+              21,
+              28,
+              33,
+              40,
+              52
+            ],
+            "target": 33
+          }
+        }
+      ]
+    },
+    {
+      "line": 3,
+      "event": "line",
+      "stack": [
+        {
+          "name": "binary_search",
+          "locals": {
+            "arr": [
+              4,
+              9,
+              15,
+              21,
+              28,
+              33,
+              40,
+              52
+            ],
+            "target": 33,
+            "lo": 0
+          }
+        }
+      ]
+    },
+    {
+      "line": 4,
+      "event": "line",
+      "stack": [
+        {
+          "name": "binary_search",
+          "locals": {
+            "arr": [
+              4,
+              9,
+              15,
+              21,
+              28,
+              33,
+              40,
+              52
+            ],
+            "target": 33,
+            "lo": 0,
+            "hi": 7
+          }
+        }
+      ]
+    },
+    {
+      "line": 5,
+      "event": "line",
+      "stack": [
+        {
+          "name": "binary_search",
+          "locals": {
+            "arr": [
+              4,
+              9,
+              15,
+              21,
+              28,
+              33,
+              40,
+              52
+            ],
+            "target": 33,
+            "lo": 0,
+            "hi": 7
+          }
+        }
+      ]
+    },
+    {
+      "line": 6,
+      "event": "line",
+      "stack": [
+        {
+          "name": "binary_search",
+          "locals": {
+            "arr": [
+              4,
+              9,
+              15,
+              21,
+              28,
+              33,
+              40,
+              52
+            ],
+            "target": 33,
+            "lo": 0,
+            "hi": 7,
+            "mid": 3
+          }
+        }
+      ]
+    },
+    {
+      "line": 8,
+      "event": "line",
+      "stack": [
+        {
+          "name": "binary_search",
+          "locals": {
+            "arr": [
+              4,
+              9,
+              15,
+              21,
+              28,
+              33,
+              40,
+              52
+            ],
+            "target": 33,
+            "lo": 0,
+            "hi": 7,
+            "mid": 3
+          }
+        }
+      ]
+    },
+    {
+      "line": 9,
+      "event": "line",
+      "stack": [
+        {
+          "name": "binary_search",
+          "locals": {
+            "arr": [
+              4,
+              9,
+              15,
+              21,
+              28,
+              33,
+              40,
+              52
+            ],
+            "target": 33,
+            "lo": 0,
+            "hi": 7,
+            "mid": 3
+          }
+        }
+      ]
+    },
+    {
+      "line": 5,
+      "event": "line",
+      "stack": [
+        {
+          "name": "binary_search",
+          "locals": {
+            "arr": [
+              4,
+              9,
+              15,
+              21,
+              28,
+              33,
+              40,
+              52
+            ],
+            "target": 33,
+            "lo": 4,
+            "hi": 7,
+            "mid": 3
+          }
+        }
+      ]
+    },
+    {
+      "line": 6,
+      "event": "line",
+      "stack": [
+        {
+          "name": "binary_search",
+          "locals": {
+            "arr": [
+              4,
+              9,
+              15,
+              21,
+              28,
+              33,
+              40,
+              52
+            ],
+            "target": 33,
+            "lo": 4,
+            "hi": 7,
+            "mid": 5
+          }
+        }
+      ]
+    },
+    {
+      "line": 7,
+      "event": "line",
+      "stack": [
+        {
+          "name": "binary_search",
+          "locals": {
+            "arr": [
+              4,
+              9,
+              15,
+              21,
+              28,
+              33,
+              40,
+              52
+            ],
+            "target": 33,
+            "lo": 4,
+            "hi": 7,
+            "mid": 5
+          }
+        }
+      ]
+    },
+    {
+      "line": 7,
+      "event": "return",
+      "stack": [
+        {
+          "name": "binary_search",
+          "locals": {
+            "arr": [
+              4,
+              9,
+              15,
+              21,
+              28,
+              33,
+              40,
+              52
+            ],
+            "target": 33,
+            "lo": 4,
+            "hi": 7,
+            "mid": 5
+          }
+        }
+      ]
+    }
+  ]
+}

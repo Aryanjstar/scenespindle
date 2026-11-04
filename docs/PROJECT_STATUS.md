@@ -1,22 +1,18 @@
 # SceneSpindle — project status
 
-**Updated 2026-11-04. Implementation in progress; no full product release yet.**
+**Updated 2026-11-04 (night). Deployed on Azure Container Apps. No full product release yet; see open gates.**
 
 ## Current verified position
 
-- Portable offline CLI, caption grouping, revision-conditional draft/candidate editing and Code Lab browser-worker traces work for the documented v1 scope.
-- Two creators can sign in and complete the project/HTML-preview journey at desktop and 390 px. Owner-scoped project and brief access denies the other creator.
-- Configured owner can create/revoke one-time invitation links; the invited creator can join. The browser test covers replay and redemption races.
-- Approval transactionally freezes a storyboard and enqueues a preview job. A separate worker leases, recovers, cancels and retries preview work. Result is **silent HTML with estimated timing**, never a ready MP4.
-- Basic project Brief Builder works in web/CLI. It saves a rough request, one direction choice and an immutable approved version. Exact scripts remain frozen. External research, series scope and production-plan gating are open.
-
-Verification on 2026-11-04: 20 unit tests, TypeScript typecheck, production build and the two-creator Playwright journey passed against a disposable MongoDB replica set, including invite and worker recovery, brief approval/replay, stale refinement and foreign-owner denial. This is not an MP4 release test.
+- Live at https://scenespindle.blackforest-f0b810b6.centralindia.azurecontainerapps.io with web and worker apps, private Azure Blob storage and Atlas database `scenespindle`.
+- Modes that render end to end: Explainer, Code Lab (trace-driven), Audio (kinetic type), Montage (beat cuts). Formats 9:16, 16:9, 1:1. Languages English, Hindi, Hinglish.
+- Brief-driven planning with verbatim exact scripts, scene-scoped copilot, QA-gated current film, versions, downloads, share links, invites, resets, rate limits, soft delete with restore and retention sweep, usage ledger.
+- Verification: 36 unit tests, typecheck, lint, two browser journeys (`npm run e2e`), live Gemini/ElevenLabs/Sarvam renders with frame-sheet review, a real render inside the production worker, live Blob driver round trip, external security checks on production. Details: HANDOFF.md section 5.
+- Not verified: signed-in browser session on production, Resend delivery.
 
 ## Open release gates
 
-Actual narrated/aligned MP4; private artifact storage and delivery; mail/reset/rate limits; full durable job and budget controls; provider/voice/format parity; approved-brief-to-production wiring and source research; Reel Studio editing flows and visual QA; series/3D/paired workers; optional timeline/matting; publishing, static creator utilities, accessible UI and rollout. See IMPLEMENTATION_PLAN.md and REEL_STUDIO_PARITY.md for acceptance by slice. No complete claim follows from an HTML preview, skill or recipe.
-
-[HANDOFF.txt](../HANDOFF.txt) is the fresh-account entrypoint and names the implementation branch. The older notes below are historical; some contain superseded statements and do not override this section.
+Story, Cartoon, series, 3D, paired agents, OTIO, cutouts, publishing, brief research, persistent voice cache. See HANDOFF.md section 7.
 
 ## Historical status (retained verbatim from the previous log)
 

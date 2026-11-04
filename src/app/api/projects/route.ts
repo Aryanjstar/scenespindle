@@ -5,10 +5,10 @@ import { connectDb, Draft, Project } from "../../../server/db";
 import { apiError, originOk } from "../../../server/http";
 import { currentUser } from "../../../server/session";
 
-const MODES = new Set(["explainer", "code_lab", "story", "audio", "cartoon", "montage"]);
-const OPEN = new Set(["explainer", "code_lab", "story", "audio", "cartoon", "montage"]);
+const MODES = new Set(["explainer", "code_lab", "story", "audio", "cartoon", "montage", "lyrics"]);
+const OPEN = new Set(["explainer", "code_lab", "audio", "montage", "story", "cartoon", "lyrics"]);
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await connectDb();
   } catch {
@@ -17,7 +17,10 @@ export async function GET() {
   const user = await currentUser();
   if (!user) return apiError(401, "UNAUTHENTICATED", "NO_SESSION", "Sign in to open the studio.");
   try {
-    const items = await Project.find({ ownerId: user._id }).sort({ updatedAt: -1 }).limit(24).maxTimeMS(8_000).lean();
+    const deleted = new URL(request.url).searchParams.get("deleted") === "1";
+    const items = deleted
+      ? await Project.find({ ownerId: user._id, deletedAt: { $gt: new Date(Date.now() - 7 * 86_400_000) } }, null, { withDeleted: true }).sort({ deletedAt: -1 }).limit(50).lean()
+      : await Project.find({ ownerId: user._id }).sort({ updatedAt: -1, _id: -1 }).limit(50).maxTimeMS(8_000).lean();
     return NextResponse.json({
       items: items.map((project) => ({
         id: String(project._id),
@@ -27,6 +30,8 @@ export async function GET() {
         targetMs: project.targetMs,
         badge: project.badge,
         updatedAt: project.updatedAt,
+        deletedAt: project.deletedAt,
+        poster: project.currentVideoId ? `/api/videos/${String(project.currentVideoId)}/file/thumb` : undefined,
       })),
     });
   } catch {

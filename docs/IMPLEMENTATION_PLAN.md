@@ -1,12 +1,12 @@
 # SceneSpindle — implementation and verification plan
 
-Updated 2026-11-04. Documentation precedes implementation. **Implementation is in progress.** No milestone is complete merely because its plan exists.
+Updated 2026-11-04 (evening). Documentation precedes implementation. **Implementation is in progress.** No milestone is complete merely because its plan exists.
 
 | Slice | Requirements | Deliverable / release gate | Status |
 |---|---|---|---|
 | 0. Research and specification | SS-01,20,21 | Updated contracts, brief workflow, pinned on-demand toolbox and acceptance matrix | Complete — docs only |
 | 0b. Portable foundation | SS-01,03,08 | Portable CLI, caption grouping and draft/candidate concurrency regressions | In progress; offline CLI and database race checks implemented; browser journeys remain |
-| 1. Identity, storage and job integrity | SS-02,04,05,14 | Two-creator browser journey; invites/reset; private storage; atomic approval and durable worker; actual MP4 | In progress: invites, atomic preview queue and worker; MP4, storage, reset, quotas open |
+| 1. Identity, storage and job integrity | SS-02,04,05,14 | Two-creator browser journey; invites/reset; private storage; atomic approval and durable worker; actual MP4 | In progress: invites, reset, rate limits, leased MP4 worker, QA-gated current film, private local storage, voice allowance ledger done 2026-11-04; blob storage, planner metering, deletion cleanup open |
 | B. Brief Builder (after slice 1, before slice 2) | SS-20,21 | Shared brief state, contextual research, revision-bound questions, prompt bundles and UI/CLI/IDE parity | In progress: project brief/approval and offline CLI implemented; research, series and production gate open |
 | 2. Reference parity and providers | SS-06,07 | Reference examples, configurable planner, voices/alignment, revisions, formats and cache recovery | Planned |
 | 3. Editing and illustrated stories | SS-08,09,10,15 | Montage/cover/talking-head/kinetic/story/launch artifacts with inspected frames and audio | Planned |

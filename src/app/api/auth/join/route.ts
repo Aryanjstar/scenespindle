@@ -4,6 +4,7 @@ import { connectDb, Invite, User } from "../../../../server/db";
 import { apiError, originOk } from "../../../../server/http";
 import { hashPassword, hashToken, openSession, passwordOk } from "../../../../server/session";
 import { json } from "../../../../server/guard";
+import { limit } from "../../../../server/rate-limit";
 
 const schema = z.object({ token: z.string().regex(/^[A-Za-z0-9_-]{43}$/), name: z.string().trim().min(1).max(120), password: z.string().min(10).max(128) }).strict();
 class InvalidInvite extends Error {}
@@ -12,6 +13,7 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success || !passwordOk(parsed.data.password)) return apiError(400, "VALIDATION", "INVALID_JOIN", "Check your name and choose a password of at least 10 characters.");
   try { await connectDb(); } catch { return apiError(503, "UNAVAILABLE", "DB_DOWN", "The studio database is not reachable."); }
+  if (!(await limit(request, "join", 5, 3_600_000))) return apiError(429, "RATE_LIMITED", "RATE_LIMITED", "Too many attempts. Try again in an hour.");
   const tokenHash = hashToken(parsed.data.token);
   const eligible = { tokenHash, usedAt: { $exists: false }, revokedAt: { $exists: false }, expiresAt: { $gt: new Date() } };
   if (!await Invite.exists(eligible)) return apiError(400, "VALIDATION", "INVALID_INVITE", "This invitation is invalid, expired or already used.");

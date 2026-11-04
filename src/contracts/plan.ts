@@ -2,6 +2,13 @@ import { z } from "zod";
 import { findProtected } from "../config/protected";
 
 export const PURPOSES = ["hook", "setup", "explain", "example", "recap", "cta"] as const;
+export const LANGUAGES = ["en", "hi", "hinglish"] as const;
+export const PLAN_MODES = ["explainer", "code_lab", "audio", "story", "cartoon", "lyrics"] as const;
+export const ILLUSTRATED = new Set(["story", "cartoon"]);
+export const FORMATS = ["9x16", "16x9", "1x1"] as const;
+export type Language = (typeof LANGUAGES)[number];
+export type Format = (typeof FORMATS)[number];
+
 export const VISUALS = [
   "none",
   "lattu-still",
@@ -49,15 +56,24 @@ const layerSchema = z.object({
     "diagram.orbit@1",
     "diagram.compare@1",
     "text.bullets@1",
+    "trace.array@1",
+    "trace.stack@1",
+    "code.listing@1",
+    "kinetic.words@1",
+    "audio.pulse@1",
+    "image.still@1",
   ]),
-  props: z.record(z.string(), z.unknown()),
-  slot: z.enum(["top", "title", "center", "bottom", "hero"]),
+  props: z.record(z.string(), z.unknown()).default({}),
+  slot: z.enum(["top", "title", "center", "bottom", "hero", "full"]),
 });
 
 const lineSchema = z.object({
   id: z.string().regex(/^l[1-8]$/),
   text: z.string().min(1).max(320),
   spoken: z.string().min(1).max(400).optional(),
+  // Lyric videos only: creator-supplied times from their LRC file.
+  atMs: z.number().int().min(0).max(1_200_000).optional(),
+  untilMs: z.number().int().min(0).max(1_200_000).optional(),
 });
 
 const cueSchema = z.union([
@@ -74,25 +90,26 @@ const eventSchema = z.object({
 
 export const planSchema = z.object({
   schemaVersion: z.literal(1),
-  mode: z.literal("explainer"),
+  mode: z.enum(PLAN_MODES),
   title: z.string().min(3).max(120),
   logline: z.string().min(3).max(280),
-  language: z.literal("en"),
-  format: z.literal("9x16"),
+  language: z.enum(LANGUAGES),
+  format: z.enum(FORMATS),
   targetMs: z.number().int().min(15000).max(180000),
   styleId: z.literal("chalk-and-chai@1"),
   voiceId: z.string().min(3).max(80),
+  songAssetId: z.string().regex(/^[a-f0-9]{24}$/).optional(),
   scenes: z.array(
     z.object({
       id: z.string().regex(/^s([1-9]|[1-3][0-9]|40)$/),
       purpose: z.enum(PURPOSES),
-      lines: z.array(lineSchema).min(1).max(2),
+      lines: z.array(lineSchema).min(1).max(8),
       background: z.object({ kind: z.literal("style") }),
       layers: z.array(layerSchema).min(1).max(8),
       events: z.array(eventSchema).max(8),
       holdMs: z.number().int().min(0).max(1200).optional(),
     }),
-  ).min(4).max(6),
+  ).min(1).max(15),
 });
 
 export type Plan = z.infer<typeof planSchema>;
@@ -200,6 +217,25 @@ export function validatePlan(input: unknown): { plan: Plan | null; issues: PlanI
           issues.push({ path: `scenes.${s}.layers.${i}.props.items`, message: "Each bullet is 1 to 32 characters" });
         }
       }
+      if (layer.component === "trace.array@1" || layer.component === "trace.stack@1") {
+        const from = layer.props.from;
+        const to = layer.props.to;
+        if (!Number.isInteger(from) || !Number.isInteger(to) || (from as number) < 0 || (to as number) < (from as number) || (to as number) > 200) {
+          issues.push({ path: `scenes.${s}.layers.${i}.props`, message: "Trace layers need integer from <= to (0 to 200)" });
+        }
+      }
+      if (layer.component === "image.still@1") {
+        const { prompt, assetId, characterIds } = layer.props as { prompt?: unknown; assetId?: unknown; characterIds?: unknown };
+        if (typeof prompt !== "string" || prompt.trim().length < 8 || prompt.length > 600) issues.push({ path: `scenes.${s}.layers.${i}.props.prompt`, message: "A still needs a picture description of 8 to 600 characters" });
+        if (assetId !== undefined && assetId !== null && (typeof assetId !== "string" || !/^[a-f0-9]{24}$/.test(assetId))) issues.push({ path: `scenes.${s}.layers.${i}.props.assetId`, message: "Invalid image id" });
+        if (characterIds !== undefined && (!Array.isArray(characterIds) || characterIds.length > 4 || characterIds.some((id) => typeof id !== "string" || !/^[a-f0-9]{24}$/.test(id)))) issues.push({ path: `scenes.${s}.layers.${i}.props.characterIds`, message: "Up to four character ids" });
+      }
+      if (layer.component === "code.listing@1") {
+        const line = layer.props.highlight;
+        if (line !== undefined && (!Number.isInteger(line) || (line as number) < 0 || (line as number) > 200)) {
+          issues.push({ path: `scenes.${s}.layers.${i}.props.highlight`, message: "Highlight is a line number" });
+        }
+      }
       if (layer.component === "obj.lattu@1" && layer.props.state !== "still" && layer.props.state !== "spinning") {
         issues.push({ path: `scenes.${s}.layers.${i}.props.state`, message: "Lattu state must be still or spinning" });
       }
@@ -227,6 +263,27 @@ export function validatePlan(input: unknown): { plan: Plan | null; issues: PlanI
     if (!lineIds.has("l1")) issues.push({ path: `scenes.${s}.lines`, message: "Scene needs line l1" });
   });
 
+  if (plan.mode !== "audio" && plan.mode !== "lyrics" && plan.scenes.some((scene) => scene.layers.some((layer) => layer.component === "kinetic.words@1"))) {
+    issues.push({ path: "mode", message: "Kinetic word layers need an Audio or Lyrics plan" });
+  }
+  // Scene-count rules per mode: short explainers stay 4 to 6 scenes; stories use 6 to 15 beats.
+  const [minScenes, maxScenes] = ILLUSTRATED.has(plan.mode) ? [3, 15] : plan.mode === "lyrics" ? [1, 15] : [4, 6];
+  if (plan.scenes.length < minScenes || plan.scenes.length > maxScenes) issues.push({ path: "scenes", message: `${plan.mode} plans need ${minScenes} to ${maxScenes} scenes` });
+  if (plan.mode !== "lyrics" && plan.scenes.some((scene) => scene.lines.length > 2)) issues.push({ path: "scenes", message: "Scenes have at most two narration lines" });
+  if (plan.mode === "lyrics") {
+    if (!plan.songAssetId) issues.push({ path: "songAssetId", message: "A lyric video needs a song" });
+    let previous = -1;
+    for (const line of plan.scenes.flatMap((scene) => scene.lines)) {
+      if (line.atMs === undefined || line.untilMs === undefined || line.untilMs <= line.atMs || line.atMs < previous) {
+        issues.push({ path: "scenes", message: "Lyric lines need increasing times from the lyric file" });
+        break;
+      }
+      previous = line.atMs;
+    }
+  }
+  if (plan.mode !== "code_lab" && plan.scenes.some((scene) => scene.layers.some((layer) => layer.component.startsWith("trace.") || layer.component.startsWith("code.")))) {
+    issues.push({ path: "mode", message: "Trace and code layers need a Code Lab plan" });
+  }
   return { plan: issues.length ? null : plan, issues };
 }
 
@@ -234,7 +291,7 @@ function clean(value: string): string {
   return value.replaceAll("—", ", ").replaceAll("–", ", ").replaceAll(/\s+/g, " ").trim();
 }
 
-export function expandBrief(brief: Brief, voiceId: string): unknown {
+export function expandBrief(brief: Brief, voiceId: string, settings: { language?: Language; format?: Format; targetMs?: number } = {}): unknown {
   const scenes = brief.scenes.map((scene, index) => {
     const layers: unknown[] = [];
     const kicker = clean(scene.kicker);
@@ -304,9 +361,9 @@ export function expandBrief(brief: Brief, voiceId: string): unknown {
     mode: "explainer",
     title: clean(brief.title),
     logline: clean(brief.logline),
-    language: "en",
-    format: "9x16",
-    targetMs: 45000,
+    language: settings.language ?? "en",
+    format: settings.format ?? "9x16",
+    targetMs: Math.min(180000, Math.max(15000, settings.targetMs ?? 45000)),
     styleId: "chalk-and-chai@1",
     voiceId,
     scenes,

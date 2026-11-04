@@ -1,0 +1,12 @@
+---
+description: Use after a decision, spike, shipped layer, deploy, or research step. Append the private journey log. Do not commit it.
+alwaysApply: false
+---
+
+# Journey log
+
+After a meaningful step, add `docs/journey/YYYY-MM-DD-short-title.md` using `docs/templates/JOURNEY-LOG.md` and a row in `docs/journey/README.md`.
+
+- Date, what the human asked, what we did (files, not tool traces), resources, decision, next.
+- No secrets. `docs/journey/` is gitignored.
+- Say if PRODUCT.md or PLAYBOOK.md changed.

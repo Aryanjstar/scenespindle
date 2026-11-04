@@ -11,5 +11,5 @@ test('doctor reports missing executables without exposing environment secrets', 
   assert.doesNotMatch(result.stdout, /private-test-value/);
   const output = JSON.parse(result.stdout);
   assert.equal(typeof output.node.supported, 'boolean');
-  assert.deepEqual(output.tools, { python3: false, ffmpeg: false, ffprobe: false });
+  assert.deepEqual(output.tools, { python3: false, ffmpeg: false, ffprobe: false, mongod: false });
 });

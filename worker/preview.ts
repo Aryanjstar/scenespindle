@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { validatePlan } from "../src/contracts/plan";
 import { Job, Project, Storyboard, Video } from "../src/server/db";
 import { estimatedTimeline, previewHtml } from "../src/server/studio";
+import { loadTrace } from "../src/server/trace-load";
 
 const leaseMs = 30_000;
 
@@ -11,11 +12,11 @@ export async function processPreview(): Promise<boolean> {
   const now = new Date();
   const token = randomUUID();
   const job = await Job.findOneAndUpdate({
-    type: "render", attempts: { $lt: 3 },
+    type: "render", "input.output": { $nin: ["mp4", "montage"] }, attempts: { $lt: 3 },
     $or: [{ state: "queued", runAfter: { $lte: now } }, { state: "running", leaseExpiresAt: { $lte: now } }],
   }, { $set: { state: "running", leaseToken: token, leaseExpiresAt: new Date(now.getTime() + leaseMs), stages: [{ name: "preview", state: "running" }] }, $inc: { attempts: 1 } }, { sort: { runAfter: 1, _id: 1 }, new: true });
   if (!job) {
-    await Job.updateMany({ type: "render", state: "running", attempts: { $gte: 3 }, leaseExpiresAt: { $lte: now } }, {
+    await Job.updateMany({ type: "render", "input.output": { $nin: ["mp4", "montage"] }, state: "running", attempts: { $gte: 3 }, leaseExpiresAt: { $lte: now } }, {
       $set: { state: "failed", finishedAt: now, error: { code: "WORKER_EXHAUSTED", message: "Preview could not be completed. Please try again.", retryable: true } },
       $unset: { activeSlot: 1, leaseToken: 1, leaseExpiresAt: 1 },
     });
@@ -31,7 +32,8 @@ export async function processPreview(): Promise<boolean> {
     const checked = validatePlan(storyboard?.plan);
     if (!checked.plan) throw new Error("The approved storyboard is not valid.");
     const timeline = estimatedTimeline(checked.plan);
-    const html = previewHtml(checked.plan, timeline);
+    const trace = checked.plan.mode === "code_lab" ? await loadTrace(job.ownerId, storyboard!.traceId) : null;
+    const html = previewHtml(checked.plan, timeline, trace ?? undefined);
     const session = await mongoose.startSession();
     try {
       await session.withTransaction(async () => {

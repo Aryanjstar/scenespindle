@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "mode": "explainer",
+  "title": "Why Ice Floats",
+  "logline": "An explainer on why ice floats on water for young learners.",
+  "language": "en",
+  "format": "16x9",
+  "targetMs": 45000,
+  "styleId": "chalk-and-chai@1",
+  "voiceId": "test:tone",
+  "scenes": [
+    {
+      "id": "s1",
+      "purpose": "hook",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "Have you ever wondered why ice cubes float in your cold drink instead of sinking?"
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "kicker",
+          "component": "text.kicker@1",
+          "props": {
+            "text": "Float or Sink"
+          },
+          "slot": "top"
+        }
+      ],
+      "events": [],
+      "holdMs": 180
+    },
+    {
+      "id": "s2",
+      "purpose": "setup",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "Most things become denser when they freeze, but water actually behaves in a very strange way."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "Water Behavior"
+          },
+          "slot": "hero"
+        }
+      ],
+      "events": [],
+      "holdMs": 180
+    },
+    {
+      "id": "s3",
+      "purpose": "explain",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "When water turns into ice, its molecules lock into a spread out shape that takes more space."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "Crystal Shape"
+          },
+          "slot": "hero"
+        }
+      ],
+      "events": [],
+      "holdMs": 180
+    },
+    {
+      "id": "s4",
+      "purpose": "example",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "Because ice expands, it becomes lighter than the liquid water surrounding it, pushing it straight up."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "Lighter Ice"
+          },
+          "slot": "hero"
+        }
+      ],
+      "events": [],
+      "holdMs": 180
+    },
+    {
+      "id": "s5",
+      "purpose": "recap",
+      "lines": [
+        {
+          "id": "l1",
+          "text": "Ice floats because frozen water molecules spread apart and become less dense than liquid water."
+        }
+      ],
+      "background": {
+        "kind": "style"
+      },
+      "layers": [
+        {
+          "id": "title",
+          "component": "text.title@1",
+          "props": {
+            "text": "Summary"
+          },
+          "slot": "title"
+        },
+        {
+          "id": "slam",
+          "component": "text.slam@1",
+          "props": {
+            "text": "Density"
+          },
+          "slot": "hero"
+        },
+        {
+          "id": "note",
+          "component": "text.handwritten@1",
+          "props": {
+            "text": "Science!"
+          },
+          "slot": "bottom"
+        }
+      ],
+      "events": [],
+      "holdMs": 700
+    }
+  ]
+}
