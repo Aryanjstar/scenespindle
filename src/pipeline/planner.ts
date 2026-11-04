@@ -299,6 +299,15 @@ export function stageAction(picture: string, index: number): (typeof STAGE_ACTIO
   return STAGE_ACTIONS[index % STAGE_ACTIONS.length];
 }
 
+/** Where the beat happens. The picture is only used to pick a registered set. */
+export function stageSet(picture: string, mode: string): "home" | "bank" | "lane" {
+  const text = picture.toLowerCase();
+  if (/\b(door|house|home|fold|folds|folded)\b/.test(text)) return "home";
+  if (/\b(road|lane|bus|street|cross|crosses)\b/.test(text)) return "lane";
+  if (/\b(river|water|boat|sail|sails|wave|waves|bank)\b/.test(text)) return "bank";
+  return mode === "cartoon" ? "lane" : "bank";
+}
+
 export function stageLook(style: string | undefined, mode: string): "storybook" | "cartoon" {
   if (mode === "cartoon" || style === "cartoon") return "cartoon";
   return "storybook";
@@ -351,7 +360,7 @@ async function storyPlan(req: PlanRequest, opts: { apiKey?: string; beforeCall?:
     const members = cast.filter((member) => beat.cast.some((name) => name.toLowerCase() === member.name.toLowerCase()));
     const rigs = members.length >= 2 || cast.length >= 2 ? 2 : 1;
     const layers: Plan["scenes"][number]["layers"] = [
-      { id: "stage", component: "stage.perform@1", props: { action: stageAction(beat.picture, index), look, rigs }, slot: "full" },
+      { id: "stage", component: "stage.perform@1", props: { action: stageAction(beat.picture, index), look, rigs, set: stageSet(beat.picture, req.mode) }, slot: "full" },
     ];
     if (index === 0) layers.push({ id: "kicker", component: "text.kicker@1", props: { text: shortTitle(title, 30) }, slot: "top" });
     const caption = beat.caption.replaceAll(/[—–]/g, " ").slice(0, 28);

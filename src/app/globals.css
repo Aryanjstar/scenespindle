@@ -245,9 +245,9 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--ink); width: 1
 .stack dt { font-size: 15px; font-weight: 700; }
 .stack dd { margin: 4px 0 0; color: var(--ink-2); font-size: 14px; }
 
-.site-foot { margin-top: 110px; padding: 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; border-radius: var(--r-panel); background: var(--night); color: var(--paper); }
-.site-foot .brand { color: var(--paper); }
-.site-foot p { margin: 0; color: #d8d0c6; }
+.site-foot { margin-top: 110px; padding: 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; border-radius: var(--r-panel); background: var(--paper-2); color: var(--ink); border: 1.5px solid var(--line); }
+.site-foot .brand { color: var(--ink); }
+.site-foot p { margin: 0; color: var(--muted); }
 .marks { display: flex; align-items: center; gap: 4px; }
 .mark { display: grid; place-items: center; width: 38px; height: 38px; color: var(--paper); border-radius: 50%; }
 .mark:hover { background: var(--night-2); }

@@ -5,7 +5,7 @@ import type { Format, Plan } from "../contracts/plan";
 import type { TraceState } from "../trace/states";
 import { chalkAndChai as ink } from "../catalog/style";
 import { assertSafeId, escapeHtml } from "./escape";
-import { mouthTrack, stageModule, STAGE_ACTIONS, STAGE_LOOKS, type StageScene } from "./stage";
+import { mouthTrack, stageModule, STAGE_ACTIONS, STAGE_LOOKS, STAGE_SETS, type StageScene } from "./stage";
 
 export type TimedWord = { text: string; startMs: number; endMs: number };
 
@@ -440,6 +440,25 @@ function illustratedCss(L: Layout): string {
 `;
 }
 
+/** Explainer, Code Lab and Audio sit on a coloured night stage, not a blank cream page. */
+function spokenCss(): string {
+  return `
+  html, body, #root { background: #1b2433; }
+  .wash { background:
+    radial-gradient(ellipse at 18% 0%, rgba(242,159,5,.32), transparent 44%),
+    radial-gradient(ellipse at 88% 18%, rgba(14,156,143,.3), transparent 48%),
+    #1b2433; }
+  .kicker { color: #f2c14e; }
+  .title, .slam, .cap p, .kword { color: #fff6e8; }
+  .kword.strong { color: #f2c14e; }
+  .note { color: #f2c14e; }
+  .underline { background: #f29f05; }
+  .cell { background: #fffaf3; }
+  .bullets span, .bullets em { color: #fff6e8; }
+  .code { background: #10151f; }
+  `;
+}
+
 function lyricsCss(L: Layout): string {
   return `
   html, body, #root { background: #120d18; }
@@ -467,7 +486,8 @@ function performedScenes(plan: Plan, timeline: Timeline): StageScene[] {
     const action = STAGE_ACTIONS.find((item) => item === layer.props.action) ?? "talk";
     const look = STAGE_LOOKS.find((item) => item === layer.props.look) ?? "storybook";
     const rigs = layer.props.rigs === 2 ? 2 : 1;
-    scenes.push({ start, end, action, look, rigs });
+    const set = STAGE_SETS.find((item) => item === layer.props.set) ?? "bank";
+    scenes.push({ start, end, action, look, rigs, set });
   }
   return scenes;
 }
@@ -556,7 +576,7 @@ window.__timelines["main"] = tl;`;
   <title>${escapeHtml(opts.plan.title)}</title>
   <script src="assets/gsap.min.js"></script>
   ${performed.length ? `<script type="importmap">{"imports":{"three":"./assets/three.module.js"}}</script>` : ""}
-  <style>${fontFace()}${css(layout)}${ILLUSTRATED_MODES.has(opts.plan.mode) ? illustratedCss(layout) : ""}${opts.plan.mode === "lyrics" ? lyricsCss(layout) : ""}</style>
+  <style>${fontFace()}${css(layout)}${ILLUSTRATED_MODES.has(opts.plan.mode) ? illustratedCss(layout) : ""}${opts.plan.mode === "lyrics" ? lyricsCss(layout) : ""}${opts.plan.mode === "explainer" || opts.plan.mode === "code_lab" || opts.plan.mode === "audio" ? spokenCss() : ""}</style>
 </head>
 <body>
   <div id="root" data-composition-id="main" data-start="0" data-duration="${duration}" data-width="${layout.w}" data-height="${layout.h}">

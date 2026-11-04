@@ -2,6 +2,7 @@ import type { TimedLine } from "./compile";
 
 export const STAGE_ACTIONS = ["talk", "walk", "turn", "wave", "hold"] as const;
 export const STAGE_LOOKS = ["storybook", "cartoon"] as const;
+export const STAGE_SETS = ["home", "bank", "lane"] as const;
 export type StageAction = (typeof STAGE_ACTIONS)[number];
 export type StageLook = (typeof STAGE_LOOKS)[number];
 
@@ -11,6 +12,7 @@ export type StageScene = {
   action: StageAction;
   look: StageLook;
   rigs: 1 | 2;
+  set: (typeof STAGE_SETS)[number];
 };
 
 /** How open the mouth is for one word. Vowels open wider. Times stay with the caller. */
@@ -71,40 +73,58 @@ const PALETTE = {
 };
 function actor(clothHex) {
   const group = new THREE.Group();
-  const skin = new THREE.MeshStandardMaterial({ color: 0xf0c9a0, roughness: 0.5 });
-  const cloth = new THREE.MeshStandardMaterial({ color: clothHex, roughness: 0.42 });
+  const skin = new THREE.MeshStandardMaterial({ color: 0xf0c9a0, roughness: 0.45 });
+  const cloth = new THREE.MeshStandardMaterial({ color: clothHex, roughness: 0.4 });
+  const hairMat = new THREE.MeshStandardMaterial({ color: 0x3a2418, roughness: 0.55 });
   const ink = new THREE.MeshStandardMaterial({ color: 0x2a2238, roughness: 0.4 });
-  const mouthMat = new THREE.MeshStandardMaterial({ color: 0x6b2a3a, roughness: 0.35 });
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.36, 0.62, 6, 16), cloth);
-  body.position.y = 1.2;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.36, 28, 20), skin);
-  head.position.y = 0.72;
+  const mouthMat = new THREE.MeshStandardMaterial({ color: 0x8a3050, roughness: 0.35 });
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.42, 6, 16), cloth);
+  body.position.y = 1.15;
+  const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.46, 0.55, 20), cloth);
+  skirt.position.y = 0.72;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.34, 28, 20), skin);
+  head.position.y = 0.62;
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.38, 24, 16), hairMat);
+  hair.position.set(0, 0.08, -0.06);
+  hair.scale.set(1, 1.15, 0.95);
+  const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.42, 4, 8), hairMat);
+  tail.position.set(0.22, -0.28, -0.08);
+  tail.rotation.z = 0.5;
   const eye = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), ink);
   const eyeL = eye.clone();
-  eyeL.position.set(-0.12, 0.05, 0.31);
+  eyeL.position.set(-0.11, 0.04, 0.29);
   const eyeR = eye.clone();
-  eyeR.position.set(0.12, 0.05, 0.31);
-  const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.08, 14, 10), mouthMat);
-  mouth.scale.set(1.35, 0.22, 0.45);
-  mouth.position.set(0, -0.12, 0.3);
-  head.add(eyeL, eyeR, mouth);
-  const armGeo = new THREE.CapsuleGeometry(0.08, 0.46, 4, 8);
+  eyeR.position.set(0.11, 0.04, 0.29);
+  const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.07, 14, 10), mouthMat);
+  mouth.scale.set(1.4, 0.28, 0.4);
+  mouth.position.set(0, -0.12, 0.28);
+  head.add(hair, tail, eyeL, eyeR, mouth);
+  const armGeo = new THREE.CapsuleGeometry(0.07, 0.42, 4, 8);
   const armL = new THREE.Mesh(armGeo, skin);
-  armL.position.set(-0.48, 0.12, 0);
+  armL.position.set(-0.4, 0.05, 0);
   const armR = new THREE.Mesh(armGeo, skin);
-  armR.position.set(0.48, 0.12, 0);
-  const legGeo = new THREE.CapsuleGeometry(0.1, 0.42, 4, 8);
+  armR.position.set(0.4, 0.05, 0);
+  const legGeo = new THREE.CapsuleGeometry(0.08, 0.36, 4, 8);
   const legL = new THREE.Mesh(legGeo, ink);
-  legL.position.set(-0.16, 0.42, 0);
+  legL.position.set(-0.14, 0.28, 0);
   const legR = new THREE.Mesh(legGeo, ink);
-  legR.position.set(0.16, 0.42, 0);
+  legR.position.set(0.14, 0.28, 0);
   body.add(head, armL, armR);
-  group.add(body, legL, legR);
+  group.add(body, skirt, legL, legR);
   scene.add(group);
-  return { group, body, head, mouth, armL, armR, legL, legR, skin, cloth, ink };
+  return { group, body, head, mouth, armL, armR, legL, legR, skin, cloth, ink, hairMat };
 }
 const lead = actor(0xe07a3d);
 const pal = actor(0x2a9d8f);
+const water = new THREE.Mesh(new THREE.BoxGeometry(6.4, 0.08, 1.6), new THREE.MeshStandardMaterial({ color: 0x2f6f8f, roughness: 0.25 }));
+water.position.set(0, 0.02, 1.15);
+const boat = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.08, 0.18), new THREE.MeshStandardMaterial({ color: 0xfff6e4, roughness: 0.6 }));
+boat.position.set(-0.7, 0.1, 1.05);
+const door = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.3, 0.08), new THREE.MeshStandardMaterial({ color: 0x8a5a32, roughness: 0.7 }));
+door.position.set(-1.35, 0.7, -0.8);
+const road = new THREE.Mesh(new THREE.BoxGeometry(6.2, 0.04, 1.1), new THREE.MeshStandardMaterial({ color: 0x3a4150, roughness: 0.85 }));
+road.position.set(0, 0.02, 0.95);
+scene.add(water, boat, door, road);
 function openAt(time) {
   let open = 0.06;
   for (const sample of data.mouth) {
@@ -117,7 +137,7 @@ function pose(actor, action, local, span, open, x) {
   const u = span <= 0 ? 0 : Math.min(1, Math.max(0, local / span));
   actor.group.position.set(x, 0, 0);
   actor.group.rotation.set(0, 0, 0);
-  actor.body.position.y = 1.2;
+  actor.body.position.y = 1.15;
   actor.body.rotation.set(0, 0, 0);
   actor.head.rotation.set(0, 0, 0);
   actor.armL.rotation.set(0, 0, 0.18);
@@ -150,7 +170,7 @@ function pose(actor, action, local, span, open, x) {
     actor.head.rotation.y = Math.sin(local * 1.6) * 0.32;
     actor.head.rotation.x = Math.sin(local * 2.3) * 0.09;
     actor.body.rotation.z = Math.sin(local * 1.3) * 0.035;
-    actor.body.position.y = 1.2 + Math.sin(local * 1.8) * 0.02;
+    actor.body.position.y = 1.15 + Math.sin(local * 1.8) * 0.02;
   }
 }
 function renderAt(time) {
@@ -172,8 +192,17 @@ function renderAt(time) {
   const local = Math.max(0, t - shot.start);
   const open = openAt(t);
   pal.group.visible = shot.rigs === 2;
+  water.visible = shot.set === "bank";
+  boat.visible = shot.set === "bank" || shot.set === "home";
+  door.visible = shot.set === "home";
+  road.visible = shot.set === "lane";
   pose(lead, shot.action, local, span, open, shot.rigs === 2 ? -0.46 : 0);
   if (shot.rigs === 2) pose(pal, shot.action === "walk" ? "talk" : shot.action, local, span, open * 0.85, 0.46);
+  const along = span <= 0 ? 0 : Math.min(1, local / span);
+  const sail = shot.set === "bank" ? along : 0;
+  boat.position.x = shot.set === "home" ? -0.55 : -0.85 + sail * 1.7;
+  boat.position.y = 0.1 + (shot.set === "bank" ? Math.sin(local * 3) * 0.03 : 0);
+  boat.position.z = shot.set === "home" ? 0.35 : 1.05;
   camera.position.z = camZ - Math.sin(t * 0.35) * 0.1;
   camera.position.x = Math.sin(t * 0.2) * 0.08;
   camera.lookAt(0, lookY, 0);

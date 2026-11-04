@@ -226,7 +226,7 @@ export function validatePlan(input: unknown): { plan: Plan | null; issues: PlanI
         }
       }
       if (layer.component === "stage.perform@1") {
-        const { action, look, rigs } = layer.props as { action?: unknown; look?: unknown; rigs?: unknown };
+        const { action, look, rigs, set } = layer.props as { action?: unknown; look?: unknown; rigs?: unknown; set?: unknown };
         if (action !== "talk" && action !== "walk" && action !== "turn" && action !== "wave" && action !== "hold") {
           issues.push({ path: `scenes.${s}.layers.${i}.props.action`, message: "Stage action must be talk, walk, turn, wave or hold" });
         }
@@ -235,6 +235,9 @@ export function validatePlan(input: unknown): { plan: Plan | null; issues: PlanI
         }
         if (rigs !== 1 && rigs !== 2) {
           issues.push({ path: `scenes.${s}.layers.${i}.props.rigs`, message: "A stage has one or two performers" });
+        }
+        if (set !== "home" && set !== "bank" && set !== "lane") {
+          issues.push({ path: `scenes.${s}.layers.${i}.props.set`, message: "Stage set must be home, bank or lane" });
         }
       }
       if (layer.component === "image.still@1") {

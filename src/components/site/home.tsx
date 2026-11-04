@@ -118,7 +118,7 @@ export function HomePage() {
           </div>
           <figcaption>
             <strong>{hero.title}</strong>
-            <span>{hero.kind} · {hero.length} · the whole frame, head to feet</span>
+            <span>{hero.kind} · {hero.length}</span>
           </figcaption>
         </figure>
       </section>
@@ -221,12 +221,12 @@ export function HomePage() {
 
       <footer className="site-foot">
         <Brand />
-        <p className="fine">SceneSpindle. Built on what Leela and Reel Studio taught us.</p>
+        <p className="fine">SceneSpindle. An idea, a script, or a song becomes a film.</p>
         <div className="marks">
           <a className="mark" href="https://aryanjaiswal.in" aria-label="Aryan Jaiswal, portfolio">
             <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" strokeWidth="1.6"/><path fill="currentColor" d="M16 7.5 22.2 24h-2.5l-1.4-4h-4.6l-1.4 4H9.8L16 7.5zm0 6.2-1.5 4.2h3L16 13.7z"/></svg>
           </a>
-          <a className="mark" href="https://github.com/Aryanjstar" aria-label="GitHub">
+          <a className="mark" href="https://github.com/Aryanjstar/scenespindle" aria-label="GitHub">
             <svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 4a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.1c-3.3.7-4-1.6-4-1.6-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 .1.8 1.8 2.6 1.3.1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-6a4.7 4.7 0 0 1 1.2-3.2 4.3 4.3 0 0 1 .1-3.2s1-.3 3.3 1.2a11.3 11.3 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2a4.3 4.3 0 0 1 .1 3.2 4.7 4.7 0 0 1 1.2 3.2c0 4.7-2.8 5.7-5.5 6 .4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 16 4z"/></svg>
           </a>
           <a className="mark" href="https://nextjs.org" aria-label="Next.js">
