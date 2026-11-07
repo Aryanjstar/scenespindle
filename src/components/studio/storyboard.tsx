@@ -21,11 +21,13 @@ export function StoryboardPanel({ project, plan, revision, planHash, issues, voi
   onApprove: (output: "mp4" | "preview") => Promise<void>; onFocus: (ids: string[]) => void; focus: string[]; onRegenerated: () => Promise<void>; onError: (m: string) => void; onStatus: (m: string) => void;
 }) {
   const { run, busy } = usePending();
-  const [dirty, setDirty] = useState(false);
+  // Edits belong to the revision they were made on; a new revision (save, keep, restore) clears them.
+  const [dirtyAt, setDirtyAt] = useState<number | null>(null);
+  const dirty = dirtyAt === revision;
+  const setDirty = (value: boolean) => setDirtyAt(value ? revision : null);
   const [versions, setVersions] = useState<{ version: number; title: string; scenes: number; approvedAt: string; origin: string }[] | null>(null);
   const [stillsNote, setStillsNote] = useState("");
 
-  useEffect(() => { setDirty(false); }, [revision]);
 
   const edit = (next: Plan) => { onPlan(next); setDirty(true); };
   const editLine = (sceneId: string, lineId: string, text: string) => plan && edit({ ...plan, scenes: plan.scenes.map((s) => (s.id === sceneId ? { ...s, lines: s.lines.map((l) => (l.id === lineId ? { ...l, text } : l)) } : s)) });

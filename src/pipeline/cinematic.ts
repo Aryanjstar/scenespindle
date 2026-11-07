@@ -38,10 +38,13 @@ export async function renderCinematic(opts: Parameters<typeof renderFilm>[0]) {
       const data = { w: layout.w, h: layout.h, fps: 30, duration: timeline.durationMs / 1000, scenes, mouth: mouthTrack(timeline.lines), cast: (plan.cast ?? []).map((m, i) => cleanLook(m.look, i)) };
       const json = resolve(workDir, "stage.json");
       writeFileSync(json, JSON.stringify(data));
-      const out = resolve(workDir, "stage.mp4");
+      const frames = resolve(workDir, "frames");
+      mkdirSync(frames, { recursive: true });
       const script = resolve(process.cwd(), "scripts", "blender", "stage.py");
-      await run(bin, ["-b", "--factory-startup", "--disable-autoexec", "-noaudio", "-P", script, "--", json, out], { timeout: 60 * 60_000, maxBuffer: 64 * 1024 * 1024, signal, env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "" } as unknown as NodeJS.ProcessEnv });
-      if (!existsSync(out)) throw new Error("Blender did not produce the stage video.");
+      await run(bin, ["-b", "--factory-startup", "--disable-autoexec", "-noaudio", "-P", script, "--", json, frames], { timeout: 60 * 60_000, maxBuffer: 256 * 1024 * 1024, signal, env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "" } as unknown as NodeJS.ProcessEnv });
+      if (!existsSync(resolve(frames, "0001.png"))) throw new Error("Blender did not produce the stage frames.");
+      const out = resolve(workDir, "stage.mp4");
+      await run("ffmpeg", ["-hide_banner", "-nostdin", "-y", "-framerate", "30", "-i", resolve(frames, "%04d.png"), "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", out], { timeout: 20 * 60_000, maxBuffer: 64 * 1024 * 1024 });
       return out;
     },
   });

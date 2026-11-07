@@ -57,6 +57,14 @@ async function videos(page, id) {
 }
 const dims = qa => qa.checks.find(check => check.name === 'dimensions').detail;
 
+/** The narrator lives in the project settings on the first step. */
+async function chooseTestVoice(page) {
+  await page.getByRole('button', { name: /^\d?(Idea|Song)$/ }).first().click();
+  await page.getByLabel('Narrator').selectOption('test:tone');
+  await expect(page.getByLabel('Narrator')).toHaveValue('test:tone');
+  await page.getByRole('button', { name: /Storyboard/ }).first().click();
+}
+
 try {
   launch('mongod', ['--dbpath', dir, '--port', '27933', '--bind_ip', '127.0.0.1', '--replSet', 'modes', '--logpath', join(dir, 'mongo.log')]);
   for (let i = 0; i < 50; i++) { try { await mongoose.connect(uri + '?directConnection=true', { serverSelectionTimeoutMS: 1000 }); break; } catch { await sleep(200); } }
@@ -77,14 +85,14 @@ try {
 
   // Catalog only offers what renders.
   const catalog = await page.evaluate(async () => (await fetch('/api/catalog')).json());
-  assert.deepEqual(catalog.modes.filter(mode => mode.available).map(mode => mode.id).sort(), ['audio', 'cartoon', 'code_lab', 'explainer', 'lyrics', 'montage', 'story']);
+  assert.deepEqual(catalog.modes.filter(mode => mode.available).map(mode => mode.id).sort(), ['audio', 'cartoon', 'code_lab', 'explainer', 'lyrics', 'montage', 'reel', 'story']);
 
   // Audio film from an approved exact script, planned offline, rendered with the test voice.
   const audioId = await createProject(page, 'audio', 'Why leaves change colour');
   await page.getByLabel('Narrator').waitFor({ state: 'detached' }).catch(() => {});
   await page.getByRole('textbox', { name: 'Exact script, if you have one' }).fill(SCRIPT);
   await page.getByRole('button', { name: 'Refine brief' }).click();
-  await page.getByRole('button', { name: /Story led/ }).click();
+  await page.getByRole('radio', { name: /Story led/ }).click();
   await expect(page.getByText('Direction saved.', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Approve brief' }).click();
   await expect(page.getByText('Brief approved and saved as version 1.', { exact: true })).toBeVisible();
@@ -93,8 +101,7 @@ try {
   const audioDraft = await page.evaluate(async id => (await fetch('/api/projects/' + id + '/draft')).json(), audioId);
   assert.equal(audioDraft.plan.mode, 'audio');
   assert.equal(audioDraft.plan.scenes.map(scene => scene.lines[0].text).join(' '), SCRIPT.replace(/\s+/g, ' '), 'Exact script kept verbatim');
-  await page.getByLabel('Narrator').selectOption('test:tone');
-  await expect(page.getByText('Narrator saved', { exact: true })).toBeVisible();
+  await chooseTestVoice(page);
   await page.getByRole('button', { name: 'Approve and render film' }).click();
   await expect(page.getByText('Film ready', { exact: true }).first()).toBeVisible({ timeout: 300_000 });
   const audioFilm = (await videos(page, audioId)).items[0];
@@ -103,7 +110,7 @@ try {
 
   // Scene-scoped copilot: only the ticked scene changes.
   await page.getByRole('button', { name: 'Storyboard', exact: true }).click();
-  await page.getByLabel('Ask the copilot about s2').check();
+  await page.getByLabel('Limit copilot changes to s2').check();
   await page.getByLabel('Message to the copilot').fill('Make it faster');
   await page.getByRole('button', { name: 'Send', exact: true }).click();
   await page.getByRole('button', { name: 'Keep', exact: true }).click();
@@ -115,7 +122,7 @@ try {
   // Code Lab: browser trace, offline plan from the trace, square film.
   const codeId = await createProject(page, 'code_lab', 'How binary search finds 21');
   await page.getByLabel('Format').selectOption('1x1');
-  await expect(page.getByText('Settings saved', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Format')).toHaveValue('1x1');
   await page.getByRole('button', { name: 'Trace', exact: true }).click();
   await expect(page.getByText(/calls, depth/)).toBeVisible({ timeout: 30_000 });
   await page.getByRole('button', { name: 'Plan storyboard' }).click();
@@ -125,8 +132,7 @@ try {
   assert.equal(codeDraft.plan.format, '1x1');
   assert.ok(codeDraft.plan.scenes.some(scene => scene.layers.some(layer => layer.component === 'trace.array@1')));
   assert.equal(codeDraft.plan.scenes[4].layers.find(layer => layer.component === 'text.slam@1').props.text, '3', 'Answer comes from the run');
-  await page.getByLabel('Narrator').selectOption('test:tone');
-  await expect(page.getByText('Narrator saved', { exact: true })).toBeVisible();
+  await chooseTestVoice(page);
   await page.getByRole('button', { name: 'Approve and render film' }).click();
   await expect(page.getByText('Film ready', { exact: true }).first()).toBeVisible({ timeout: 300_000 });
   const codeFilm = (await videos(page, codeId)).items[0];
@@ -136,12 +142,18 @@ try {
   // Montage: upload generated demo media, cut on beats, landscape.
   const montageId = await createProject(page, 'montage', 'Demo montage');
   await page.getByLabel('Format').selectOption('16x9');
-  await expect(page.getByText('Settings saved', { exact: true })).toBeVisible();
-  const files = ['clip-testcard.mp4', 'photo-gradient-a.png', 'clip-mandelbrot.mp4', 'photo-gradient-b.jpg', 'music-120bpm.mp3'].map(name => resolve('examples/media', name));
-  await page.getByLabel(/Upload photos, clips or music/).setInputFiles(files);
-  await expect(page.getByText('Photos and clips · 4 picked')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByLabel('Music music-120bpm.mp3')).toBeChecked();
-  await page.getByLabel('Montage length').selectOption('10');
+  await expect(page.getByLabel('Format')).toHaveValue('16x9');
+  const files = ['clip-testcard.mp4', 'photo-gradient-a.png', 'clip-mandelbrot.mp4', 'photo-gradient-b.jpg'].map(name => resolve('examples/media', name));
+  await page.locator('label:has-text("Upload clips") input[type=file]').setInputFiles(files);
+  await expect(page.getByText('Photos and clips, in order (4 of 24)')).toBeVisible({ timeout: 60_000 });
+  await page.locator('label:has-text("Upload music") input[type=file]').setInputFiles(resolve('examples/media', 'music-120bpm.mp3'));
+  await expect(page.getByRole('button', { name: /music-120bpm/, pressed: true })).toBeVisible({ timeout: 30_000 });
+  await page.getByLabel('Length in seconds').fill('10');
+  await page.getByRole('radio', { name: /Day in my life/ }).click();
+  await page.getByLabel('Chapter 1 activity').waitFor({ state: 'detached' }).catch(() => {});
+  await page.getByRole('button', { name: 'Add a chapter' }).click();
+  await page.getByLabel('Chapter 1 time').fill('7:30 AM');
+  await page.getByLabel('Chapter 1 activity').fill('wake up');
   await page.getByRole('button', { name: 'Render montage' }).click();
   await expect(page.getByText('Film ready', { exact: true }).first()).toBeVisible({ timeout: 300_000 });
   const montage = (await videos(page, montageId)).items[0];
@@ -165,16 +177,18 @@ try {
 
   // Story performs on the 3D stage. Offline planning needs an exact script.
   const storyId = await createProject(page, 'story', 'Paper boat');
-  await expect(page.getByRole('heading', { name: 'Who performs' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Who is in it' })).toBeVisible();
   await page.getByRole('textbox', { name: 'Exact script, if you have one' }).fill('Meera walks to the river. She waves at the boat. She turns toward home.');
   await page.getByRole('button', { name: 'Refine brief' }).click();
-  await page.getByRole('button', { name: /Story led/ }).click();
+  await page.getByRole('radio', { name: /Story led/ }).click();
+  await expect(page.getByText('Direction saved.', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Approve brief' }).click();
+  await expect(page.getByText('Brief approved and saved as version 1.', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Plan storyboard' }).click();
   await expect(page.getByText('Storyboard ready', { exact: true })).toBeVisible({ timeout: 30_000 });
   const storyDraft = await page.evaluate(async id => (await fetch('/api/projects/' + id + '/draft')).json(), storyId);
   assert.ok(storyDraft.plan.scenes.every(scene => scene.layers.some(layer => layer.component === 'stage.perform@1')));
-  await page.getByLabel('Narrator').selectOption('test:tone');
+  await chooseTestVoice(page);
   await page.getByRole('button', { name: 'Approve and render film' }).click();
   await expect(page.getByText('Film ready', { exact: true }).first()).toBeVisible({ timeout: 300_000 });
 
@@ -200,7 +214,7 @@ try {
 
   // Phone width: no horizontal overflow on any workspace step.
   await other.goto(origin + '/studio/p/' + otherMontage);
-  for (const name of ['Idea', 'Storyboard', 'Film', 'Share']) {
+  for (const name of ['Make', 'Film', 'Share']) {
     await other.getByRole('button', { name, exact: true }).click();
     assert.equal(await other.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), 0, 'no overflow on ' + name);
   }

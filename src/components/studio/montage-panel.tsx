@@ -85,23 +85,18 @@ export function MontagePanel({ project, catalog, disabled, onQueued }: { project
         {overlay ? (
           <>
             <div className="split">
-              <label className="stack-label">Title
-                <input className="field" value={title} maxLength={60} onChange={(e) => setTitle(e.target.value)} placeholder="day in my life" />
+              <label className="stack-label">On-screen title<input aria-label="On-screen title" className="field" value={title} maxLength={60} onChange={(e) => setTitle(e.target.value)} placeholder="day in my life" />
               </label>
-              <label className="stack-label">Handwritten subtitle
-                <input className="field" value={subtitle} maxLength={60} onChange={(e) => setSubtitle(e.target.value)} placeholder="study and classes" />
+              <label className="stack-label">Handwritten subtitle<input aria-label="Handwritten subtitle" className="field" value={subtitle} maxLength={60} onChange={(e) => setSubtitle(e.target.value)} placeholder="study and classes" />
               </label>
             </div>
             <div className="split">
-              <label className="stack-label">Small line above the title
-                <input className="field" value={kicker} maxLength={40} onChange={(e) => setKicker(e.target.value)} placeholder="(exam season)" />
+              <label className="stack-label">Small line above the title<input aria-label="Small line above the title" className="field" value={kicker} maxLength={40} onChange={(e) => setKicker(e.target.value)} placeholder="(exam season)" />
               </label>
-              <label className="stack-label">Ending
-                <input className="field" value={outro} maxLength={40} onChange={(e) => setOutro(e.target.value)} placeholder="Good Night" />
+              <label className="stack-label">Ending<input aria-label="Ending" className="field" value={outro} maxLength={40} onChange={(e) => setOutro(e.target.value)} placeholder="Good Night" />
               </label>
             </div>
-            <label className="stack-label">Line under the ending
-              <input className="field" value={outroSub} maxLength={40} onChange={(e) => setOutroSub(e.target.value)} placeholder="[thanks for watching]" />
+            <label className="stack-label">Line under the ending<input aria-label="Line under the ending" className="field" value={outroSub} maxLength={40} onChange={(e) => setOutroSub(e.target.value)} placeholder="[thanks for watching]" />
             </label>
             <div className="stack-label">
               <span className="stack-label-text">Chapters (time and activity, shown as the day moves on)</span>
@@ -115,22 +110,19 @@ export function MontagePanel({ project, catalog, disabled, onQueued }: { project
               {chapters.length < 8 ? <Button tone="ghost" size="sm" onClick={() => setChapters((list) => [...list, { time: "", label: "" }])}>Add a chapter</Button> : null}
             </div>
             <div className="grid-3">
-              <label className="stack-label">Title font
-                <select className="field" value={font} onChange={(e) => setFont(e.target.value)}>{FONTS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select>
+              <label className="stack-label">Title font<select aria-label="Title font" className="field" value={font} onChange={(e) => setFont(e.target.value)}>{FONTS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select>
               </label>
               <label className="stack-label">Accent colour
                 <span className="row-actions"><input type="color" value={accent || "#ff4f58"} onChange={(e) => setAccent(e.target.value)} aria-label="Accent colour" />{accent ? <Button tone="quiet" size="sm" onClick={() => setAccent("")}>Default</Button> : null}</span>
               </label>
-              <label className="stack-label">Pacing
-                <select className="field" value={pacing} onChange={(e) => setPacing(e.target.value)}>
+              <label className="stack-label">Pacing<select aria-label="Pacing" className="field" value={pacing} onChange={(e) => setPacing(e.target.value)}>
                   <option value="">Style default</option><option value="two-beats">Calm, every two beats</option><option value="beat">Every beat</option><option value="half-beat">Fast, every half beat</option>
                 </select>
               </label>
             </div>
           </>
         ) : null}
-        <label className="stack-label">How should it be edited? (your words win over the style)
-          <textarea className="field" value={instructions} maxLength={1200} onChange={(e) => setInstructions(e.target.value)} placeholder="Soft and cozy, slow first half, chapters for morning, class, cafe and night, end on Good Night in script." />
+        <label className="stack-label">How should it be edited? (your words win over the style)<textarea aria-label="How should it be edited? (your words win over the style)" className="field" value={instructions} maxLength={1200} onChange={(e) => setInstructions(e.target.value)} placeholder="Soft and cozy, slow first half, chapters for morning, class, cafe and night, end on Good Night in script." />
         </label>
       </Panel>
 

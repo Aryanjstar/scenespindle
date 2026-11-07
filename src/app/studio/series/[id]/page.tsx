@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { StudioBar } from "../../../../components/studio/studio-bar";
 import { BriefPanel } from "../../../../components/studio/panels";
-import { api, newKey, usePending } from "../../../../components/ui/client";
+import { api, newKey, useLoad, usePending } from "../../../../components/ui/client";
 import { Button, Empty, Notice, Panel, timeAgo } from "../../../../components/ui/kit";
 
 type Bible = { world: string; tone: string; rules: string[]; continuity: string; locations: string[] };
@@ -40,8 +40,8 @@ export default function SeriesDetailPage() {
     setVersions(res.data.versions);
   }, [params.id]);
 
+  useLoad(load, [load]);
   useEffect(() => {
-    void load();
     void api<{ items: Cast[] }>("/api/characters").then((res) => { if (res.ok) setLibrary(res.data.items); });
     void api<{ research: { available: boolean } }>("/api/catalog").then((res) => { if (res.ok) setResearch(res.data.research.available); });
   }, [load]);
@@ -105,15 +105,15 @@ export default function SeriesDetailPage() {
         <div className="ws-main">
           <Panel kicker="Bible" title="World, tone and rules">
             <div className="split">
-              <label className="stack-label">Title<input className="field" value={form.title} maxLength={120} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
-              <label className="stack-label">Drawing style<select className="field" value={form.style} onChange={(e) => setForm({ ...form, style: e.target.value })}><option value="storybook">Storybook</option><option value="cartoon">Cartoon</option><option value="flat">Flat</option><option value="clay">Clay</option></select></label>
+              <label className="stack-label">Title<input aria-label="Title" className="field" value={form.title} maxLength={120} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
+              <label className="stack-label">Drawing style<select aria-label="Drawing style" className="field" value={form.style} onChange={(e) => setForm({ ...form, style: e.target.value })}><option value="storybook">Storybook</option><option value="cartoon">Cartoon</option><option value="flat">Flat</option><option value="clay">Clay</option></select></label>
             </div>
-            <label className="stack-label">Logline<input className="field" value={form.logline} maxLength={400} onChange={(e) => setForm({ ...form, logline: e.target.value })} /></label>
-            <label className="stack-label">World<textarea className="field" value={form.world} maxLength={2000} onChange={(e) => setForm({ ...form, world: e.target.value })} placeholder="A small hill town with a busy market and a river" /></label>
-            <label className="stack-label">Tone<input className="field" value={form.tone} maxLength={400} onChange={(e) => setForm({ ...form, tone: e.target.value })} placeholder="Warm, funny, never scary" /></label>
-            <label className="stack-label">Rules (one per line)<textarea className="field small" value={form.rules} onChange={(e) => setForm({ ...form, rules: e.target.value })} placeholder="Tikku always asks one question\nEvery episode ends at home" /></label>
-            <label className="stack-label">Continuity notes<textarea className="field small" value={form.continuity} maxLength={2000} onChange={(e) => setForm({ ...form, continuity: e.target.value })} placeholder="Tikku broke his kite in episode 2; it is mended now" /></label>
-            <label className="stack-label">Recurring places (comma separated)<input className="field" value={form.locations} onChange={(e) => setForm({ ...form, locations: e.target.value })} placeholder="market, school, riverbank" /></label>
+            <label className="stack-label">Logline<input aria-label="Logline" className="field" value={form.logline} maxLength={400} onChange={(e) => setForm({ ...form, logline: e.target.value })} /></label>
+            <label className="stack-label">World<textarea aria-label="World" className="field" value={form.world} maxLength={2000} onChange={(e) => setForm({ ...form, world: e.target.value })} placeholder="A small hill town with a busy market and a river" /></label>
+            <label className="stack-label">Tone<input aria-label="Tone" className="field" value={form.tone} maxLength={400} onChange={(e) => setForm({ ...form, tone: e.target.value })} placeholder="Warm, funny, never scary" /></label>
+            <label className="stack-label">Rules (one per line)<textarea aria-label="Rules (one per line)" className="field small" value={form.rules} onChange={(e) => setForm({ ...form, rules: e.target.value })} placeholder="Tikku always asks one question\nEvery episode ends at home" /></label>
+            <label className="stack-label">Continuity notes<textarea aria-label="Continuity notes" className="field small" value={form.continuity} maxLength={2000} onChange={(e) => setForm({ ...form, continuity: e.target.value })} placeholder="Tikku broke his kite in episode 2; it is mended now" /></label>
+            <label className="stack-label">Recurring places (comma separated)<input aria-label="Recurring places (comma separated)" className="field" value={form.locations} onChange={(e) => setForm({ ...form, locations: e.target.value })} placeholder="market, school, riverbank" /></label>
           </Panel>
           <Panel kicker="Cast" title="Who is in every episode" actions={<Link className="btn ghost sm" href="/studio/library?tab=characters">Make a character</Link>}>
             {library.length ? (

@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { StudioBar } from "../../../components/studio/studio-bar";
 import { AssetPicker } from "../../../components/studio/asset-picker";
-import { api, uploadFile, usePending, waitForJob } from "../../../components/ui/client";
+import { api, uploadFile, useLoad, usePending, waitForJob } from "../../../components/ui/client";
 import { Button, Empty, Notice, Panel, timeAgo } from "../../../components/ui/kit";
 
 type Tab = "files" | "characters" | "styles";
@@ -50,7 +50,7 @@ function Files() {
     if (!res.ok) { setError(res.error); setItems([]); return; }
     setItems(res.data.items);
   }, []);
-  useEffect(() => { void load(); }, [load]);
+  useLoad(load, [load]);
 
   async function upload(files: FileList | null, mask = false) {
     if (!files?.length) return;
@@ -121,7 +121,7 @@ const DEFAULT_LOOK: Look = { skin: "#d9a477", hair: "#1a1410", hairStyle: "short
 function LookEditor({ look, onChange }: { look: Look; onChange: (l: Look) => void }) {
   const sel = (key: keyof Look, options: string[]) => (
     <label className="stack-label">{key === "hairStyle" ? "Hair" : key[0].toUpperCase() + key.slice(1)}
-      <select className="field field-sm" value={look[key]} onChange={(e) => onChange({ ...look, [key]: e.target.value })}>{options.map((o) => <option key={o} value={o}>{o}</option>)}</select>
+      <select className="field field-sm" aria-label={key === "hairStyle" ? "Hair" : key[0].toUpperCase() + key.slice(1)} value={look[key]} onChange={(e) => onChange({ ...look, [key]: e.target.value })}>{options.map((o) => <option key={o} value={o}>{o}</option>)}</select>
     </label>
   );
   return (
@@ -154,7 +154,7 @@ function Characters() {
     setItems(res.data.items);
     setImages(res.data.imagesAvailable);
   }, []);
-  useEffect(() => { void load(); }, [load]);
+  useLoad(load, [load]);
 
   const create = () => run("create", async () => {
     setError("");
@@ -193,7 +193,7 @@ function Characters() {
     <>
       <Panel kicker="New character" title="Make an original character">
         <div className="split">
-          <label className="stack-label">Name<input className="field" value={form.name} maxLength={40} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Asha" /></label>
+          <label className="stack-label">Name<input className="field" aria-label="Name" value={form.name} maxLength={40} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Asha" /></label>
           <label className="stack-label">Drawing style<select className="field" value={form.style} onChange={(e) => setForm({ ...form, style: e.target.value })}><option value="storybook">Storybook</option><option value="cartoon">Cartoon</option><option value="flat">Flat</option><option value="clay">Clay</option></select></label>
         </div>
         <label className="stack-label">Who they are<textarea className="field small" value={form.description} maxLength={280} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="A grandmother who tells stories, silver bun, purple saree" /></label>
@@ -271,7 +271,7 @@ function Styles() {
     setItems(res.ok ? res.data.items : []);
     if (!res.ok) setError(res.error);
   }, []);
-  useEffect(() => { void load(); }, [load]);
+  useLoad(load, [load]);
 
   const learn = () => run("learn", async () => {
     setError("");
@@ -296,7 +296,7 @@ function Styles() {
     <>
       <Panel kicker="Style from references" title="Teach the studio a look">
         <p className="fine">Upload one to five reels you like (yours, or ones you have the right to study). The studio measures their cut rhythm and loudness and reads their type, colour and grade into a style you can use in any Montage. Frames are studied, never kept.</p>
-        <label className="stack-label">Style name<input className="field" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} placeholder="Cozy study vlog" /></label>
+        <label className="stack-label">Style name<input className="field" aria-label="Style name" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} placeholder="Cozy study vlog" /></label>
         <AssetPicker kinds={["video"]} multiple value={refs} onChange={(ids) => setRefs(ids.slice(0, 5))} label={`Reference reels (${refs.length} of 5)`} uploadLabel="Upload reels" />
         <Button tone="accent" pending={busy("learn")} disabled={!name.trim() || !refs.length} onClick={() => void learn()}>Learn this style</Button>
       </Panel>

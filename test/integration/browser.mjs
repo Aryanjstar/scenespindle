@@ -54,18 +54,19 @@ try {
     await mongoose.connection.db.collection('users').insertOne({ email, name: 'Creator ' + width, passwordHash: await bcrypt.hash(password, 12), passwordChangedAt: new Date() });
     const page = await browser.newPage({ viewport: { width, height: 900 } });
     page.on('pageerror', e => errors.push(e.message));
+    page.on('dialog', dialog => dialog.accept());
     await page.goto(origin + '/sign-in');
     await page.getByPlaceholder('Email').fill(email);
     await page.getByPlaceholder('Password').fill(password);
     await page.getByRole('button', { name: 'Enter the studio' }).click();
     await page.getByPlaceholder('A topic, in one sentence').fill('Local example ' + width);
     await page.getByRole('button', { name: 'Start', exact: true }).click();
-    await expect(page.getByPlaceholder('Topic', { exact: true })).toHaveValue('Local example ' + width);
+    await expect(page.getByLabel('Topic', { exact: true })).toHaveValue('Local example ' + width);
     await page.getByLabel('Title', { exact: true }).fill('Renamed ' + width);
     await page.getByRole('button', { name: 'Rename', exact: true }).click();
     await expect(page.getByText('Project renamed', { exact: true })).toBeVisible();
     await page.getByPlaceholder('Audience').fill('New readers');
-    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await page.getByRole('button', { name: 'Save', exact: true }).first().click();
     await expect(page.getByText('Saved', { exact: true })).toBeVisible();
     await page.reload();
     await expect(page.getByPlaceholder('Audience')).toHaveValue('New readers');
@@ -73,13 +74,13 @@ try {
     await page.getByRole('textbox', { name: 'What should this video do?' }).fill('Explain a useful idea clearly for new readers');
     await page.getByRole('textbox', { name: 'Exact script, if you have one' }).fill('Use this exact sentence.');
     await page.getByRole('button', { name: 'Refine brief' }).click();
-    await expect(page.getByRole('button', { name: /Story led/ })).toBeVisible();
-    await page.getByRole('button', { name: /Story led/ }).click();
+    await expect(page.getByRole('radio', { name: /Story led/ })).toBeVisible();
+    await page.getByRole('radio', { name: /Story led/ }).click();
     await expect(page.getByText('Direction saved.', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Approve brief' }).click();
     await expect(page.getByText('Brief approved and saved as version 1.', { exact: true })).toBeVisible();
     await page.reload();
-    await expect(page.getByText('Status: Approved', { exact: false })).toBeVisible();
+    await expect(page.getByText('approved v1', { exact: true })).toBeVisible();
     const approved = await mongoose.connection.db.collection('briefversions').findOne({ projectId: new mongoose.Types.ObjectId(new URL(page.url()).pathname.split('/').pop()) });
     assert.equal(approved.version, 1);
     assert.equal(approved.snapshot.selectedDirectionId, 'story');
@@ -107,7 +108,7 @@ try {
     const plan = { schemaVersion: 1, mode: 'explainer', title: 'A simple example', logline: 'A short example plan.',
       language: 'en', format: '9x16', targetMs: 45000, styleId: 'chalk-and-chai@1', voiceId: 'test', scenes };
     await page.getByRole('button', { name: 'Storyboard', exact: true }).click();
-    await page.getByLabel('Import a storyboard JSON file').setInputFiles({
+    await page.locator('label:has-text("Import JSON") input[type=file]').setInputFiles({
       name: 'authored.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(plan)),
     });
     await page.getByRole('button', { name: 'Save edits' }).click();
@@ -125,7 +126,7 @@ try {
     assert.equal(approvals[0].body.jobId, approvals[1].body.jobId);
     assert.equal(await mongoose.connection.db.collection('storyboards').countDocuments({ projectId: new mongoose.Types.ObjectId(projectId) }), 1);
     assert.equal(await mongoose.connection.db.collection('jobs').countDocuments({ projectId: new mongoose.Types.ObjectId(projectId), type: 'render' }), 1);
-    await page.getByRole('button', { name: 'Approve and preview' }).click();
+    await page.getByRole('button', { name: 'Silent preview' }).click();
     await expect(page.getByText('Preview ready', { exact: true })).toBeVisible();
     const frame = page.locator('iframe[title="Preview"]');
     await expect(frame).toHaveAttribute('src', /api\/videos\/[a-f0-9]+\/preview/);
@@ -136,11 +137,12 @@ try {
   {
     const { page, id } = projects[0];
     const other = projects[1].page;
-    await page.getByRole('button', { name: 'Storyboard', exact: true }).click();
+    await page.getByRole('button', { name: 'Idea', exact: true }).click();
     const unconfigured = await page.evaluate(async id => (await fetch('/api/projects/' + id, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ voiceId: 'elevenlabs:alice' }) })).status, id);
     assert.equal(unconfigured, 422, 'An unconfigured narrator cannot be chosen');
     await page.getByLabel('Narrator').selectOption('test:tone');
-    await expect(page.getByText('Narrator saved', { exact: true })).toBeVisible();
+    await expect(page.getByLabel('Narrator')).toHaveValue('test:tone');
+    await page.getByRole('button', { name: 'Storyboard', exact: true }).click();
     const previewShare = await page.evaluate(async () => {
       const list = await (await fetch(location.pathname.replace('/studio/p/', '/api/projects/') + '/videos')).json();
       return (await fetch('/api/videos/' + list.items[0].id + '/share', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status;
@@ -206,8 +208,9 @@ try {
     assert.equal(await status(projects[index].id), 200);
     assert.equal(await status(foreign), 404);
     const usage = await page.evaluate(async () => (await fetch('/api/usage')).json());
-    assert.equal(usage.measured, true);
-    assert.ok(usage.providers.every(provider => provider.configured === false));
+    assert.ok(usage.period);
+    assert.ok(usage.providers.filter(provider => ['gemini', 'elevenlabs', 'sarvam'].includes(provider.id)).every(provider => provider.configured === false));
+    assert.equal(usage.owner, index === 0);
     assert.equal(await page.evaluate(async id => (await fetch('/api/projects/' + id + '/brief')).status, foreign), 404);
 
   }

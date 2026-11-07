@@ -46,17 +46,17 @@ function BannerTool() {
       <div className="chips" role="radiogroup" aria-label="Platform">
         {[["linkedin", "LinkedIn 1584×396"], ["x", "X 1500×500"]].map(([id, label]) => <button key={id} type="button" role="radio" aria-checked={b.platform === id} className={b.platform === id ? "chip is-on" : "chip"} onClick={() => set({ platform: id })}>{label}</button>)}
       </div>
-      <label className="stack-label">Headline<input className="field" value={b.headline} maxLength={60} onChange={(e) => set({ headline: e.target.value })} placeholder="I make films that teach" /></label>
-      <label className="stack-label">Second line<input className="field" value={b.subline} maxLength={90} onChange={(e) => set({ subline: e.target.value })} placeholder="Explainers, code walkthroughs and stories" /></label>
-      <label className="stack-label">Handwritten note<input className="field" value={b.note} maxLength={40} onChange={(e) => set({ note: e.target.value })} placeholder="hi, I'm Riya" /></label>
+      <label className="stack-label">Headline<input aria-label="Headline" className="field" value={b.headline} maxLength={60} onChange={(e) => set({ headline: e.target.value })} placeholder="I make films that teach" /></label>
+      <label className="stack-label">Second line<input aria-label="Second line" className="field" value={b.subline} maxLength={90} onChange={(e) => set({ subline: e.target.value })} placeholder="Explainers, code walkthroughs and stories" /></label>
+      <label className="stack-label">Handwritten note<input aria-label="Handwritten note" className="field" value={b.note} maxLength={40} onChange={(e) => set({ note: e.target.value })} placeholder="hi, I'm Riya" /></label>
       <div className="grid-3">
-        <label className="stack-label">Background<input type="color" value={b.background} onChange={(e) => set({ background: e.target.value })} /></label>
-        <label className="stack-label">Accent<input type="color" value={b.accent} onChange={(e) => set({ accent: e.target.value })} /></label>
-        <label className="stack-label">Text<input type="color" value={b.text} onChange={(e) => set({ text: e.target.value })} /></label>
+        <label className="stack-label">Background<input aria-label="Background" type="color" value={b.background} onChange={(e) => set({ background: e.target.value })} /></label>
+        <label className="stack-label">Accent<input aria-label="Accent" type="color" value={b.accent} onChange={(e) => set({ accent: e.target.value })} /></label>
+        <label className="stack-label">Text<input aria-label="Text" type="color" value={b.text} onChange={(e) => set({ text: e.target.value })} /></label>
       </div>
       <div className="split">
-        <label className="stack-label">Headline font<select className="field" value={b.headlineFont} onChange={(e) => set({ headlineFont: e.target.value })}>{FONTS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
-        <label className="stack-label">Pattern<select className="field" value={b.pattern} onChange={(e) => set({ pattern: e.target.value })}><option value="glow">Glow</option><option value="grid">Grid</option><option value="dots">Dots</option><option value="none">Plain</option></select></label>
+        <label className="stack-label">Headline font<select aria-label="Headline font" className="field" value={b.headlineFont} onChange={(e) => set({ headlineFont: e.target.value })}>{FONTS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+        <label className="stack-label">Pattern<select aria-label="Pattern" className="field" value={b.pattern} onChange={(e) => set({ pattern: e.target.value })}><option value="glow">Glow</option><option value="grid">Grid</option><option value="dots">Dots</option><option value="none">Plain</option></select></label>
       </div>
       <Button tone="accent" pending={busy("make")} disabled={b.headline.trim().length < 2} onClick={() => void make()}>Draw banner</Button>
       {state ? <p className="fine" role="status">{state}</p> : null}
@@ -94,15 +94,14 @@ function CopyTool() {
     <Panel kicker="Profile copy" title="Headline, About and bios">
       <p className="fine">Drafted only from the facts you give. Any number that is not in your facts is flagged for you to check.</p>
       <div className="split">
-        <label className="stack-label">Name<input className="field" value={c.name} maxLength={80} onChange={(e) => set({ name: e.target.value })} /></label>
-        <label className="stack-label">Role<input className="field" value={c.role} maxLength={160} onChange={(e) => set({ role: e.target.value })} placeholder="Student and video creator" /></label>
+        <label className="stack-label">Name<input aria-label="Name" className="field" value={c.name} maxLength={80} onChange={(e) => set({ name: e.target.value })} /></label>
+        <label className="stack-label">Role<input aria-label="Role" className="field" value={c.role} maxLength={160} onChange={(e) => set({ role: e.target.value })} placeholder="Student and video creator" /></label>
       </div>
-      <label className="stack-label">Facts about you (what you do, have done, care about)
-        <textarea className="field" value={c.facts} maxLength={3000} onChange={(e) => set({ facts: e.target.value })} placeholder="Final-year CS student. Built SceneSpindle. Teaches DSA with short films." />
+      <label className="stack-label">Facts about you (what you do, have done, care about)<textarea aria-label="Facts about you (what you do, have done, care about)" className="field" value={c.facts} maxLength={3000} onChange={(e) => set({ facts: e.target.value })} placeholder="Final-year CS student. Built SceneSpindle. Teaches DSA with short films." />
       </label>
       <div className="split">
-        <label className="stack-label">Audience<input className="field" value={c.audience} maxLength={200} onChange={(e) => set({ audience: e.target.value })} placeholder="Recruiters and students" /></label>
-        <label className="stack-label">Tone<select className="field" value={c.tone} onChange={(e) => set({ tone: e.target.value })}><option value="warm">Warm</option><option value="crisp">Crisp</option><option value="playful">Playful</option><option value="formal">Formal</option></select></label>
+        <label className="stack-label">Audience<input aria-label="Audience" className="field" value={c.audience} maxLength={200} onChange={(e) => set({ audience: e.target.value })} placeholder="Recruiters and students" /></label>
+        <label className="stack-label">Tone<select aria-label="Tone" className="field" value={c.tone} onChange={(e) => set({ tone: e.target.value })}><option value="warm">Warm</option><option value="crisp">Crisp</option><option value="playful">Playful</option><option value="formal">Formal</option></select></label>
       </div>
       <Button tone="accent" pending={busy("draft")} disabled={!c.name.trim() || c.role.trim().length < 2 || c.facts.trim().length < 10} onClick={() => void draft()}>Draft my copy</Button>
       {out ? Object.entries(out).map(([key, field]) => (

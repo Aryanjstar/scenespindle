@@ -152,8 +152,10 @@ export function SharePanel({ video }: { video?: VideoItem }) {
     setNote("Share link ready.");
   });
   const toggle = (allowDownload: boolean) => run("toggle", async () => {
+    // Show the new state at once; put it back if the save fails.
+    setShare((current) => (current ? { ...current, allowDownload } : current));
     const res = await api<{ share: Share }>(`/api/videos/${video.id}/share`, { method: "PATCH", body: { allowDownload } });
-    if (!res.ok) { setError(res.error); return; }
+    if (!res.ok) { setError(res.error); setShare((current) => (current ? { ...current, allowDownload: !allowDownload } : current)); return; }
     setShare(res.data.share);
     setNote(allowDownload ? "Viewers can now download the MP4." : "Downloads are off.");
   });
@@ -170,9 +172,9 @@ export function SharePanel({ video }: { video?: VideoItem }) {
       <p className="fine">Anyone with the link can watch this version. They do not see your script, storyboard or other versions.</p>
       {!loaded ? <p className="fine">Checking for a link</p> : share ? (
         <>
-          <CopyRow value={share.url} />
+          <CopyRow value={share.url} name="Share link" />
           <label className="row-actions fine">
-            <input type="checkbox" checked={share.allowDownload} disabled={busy("toggle")} onChange={(e) => void toggle(e.target.checked)} />
+            <input type="checkbox" checked={share.allowDownload} onChange={(e) => void toggle(e.target.checked)} />
             Let viewers download the MP4
           </label>
           <div className="row-actions">

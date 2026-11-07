@@ -39,10 +39,10 @@ export default function SeriesPage() {
       <Panel kicker="New series" title="Start a series">
         <form onSubmit={create} className="stack-label">
           <div className="split">
-            <label className="stack-label">Title<input className="field" value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} placeholder="Tikku's town" required minLength={2} /></label>
-            <label className="stack-label">Kind<select className="field" value={mode} onChange={(e) => setMode(e.target.value)}><option value="story">Story</option><option value="cartoon">Cartoon</option></select></label>
+            <label className="stack-label">Title<input aria-label="Title" className="field" value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} placeholder="Tikku's town" required minLength={2} /></label>
+            <label className="stack-label">Kind<select aria-label="Kind" className="field" value={mode} onChange={(e) => setMode(e.target.value)}><option value="story">Story</option><option value="cartoon">Cartoon</option></select></label>
           </div>
-          <label className="stack-label">Logline<input className="field" value={logline} maxLength={400} onChange={(e) => setLogline(e.target.value)} placeholder="A curious boy learns one safety rule each episode" /></label>
+          <label className="stack-label">Logline<input aria-label="Logline" className="field" value={logline} maxLength={400} onChange={(e) => setLogline(e.target.value)} placeholder="A curious boy learns one safety rule each episode" /></label>
           <Button tone="accent" type="submit" pending={busy("create")} disabled={title.trim().length < 2}>Create series</Button>
         </form>
         <Notice tone="bad" onClose={() => setError("")}>{error}</Notice>

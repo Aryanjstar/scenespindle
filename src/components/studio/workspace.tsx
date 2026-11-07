@@ -41,9 +41,10 @@ export function Workspace() {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [title, setTitle] = useState("");
   const savedPlan = useRef("");
-  const savedIdea = useRef("");
+  const [savedIdea, setSavedIdea] = useState("{}");
 
   const loadVideos = useCallback(async () => {
     const res = await api<{ items: VideoItem[] }>(`/api/projects/${params.id}/videos`);
@@ -63,7 +64,7 @@ export function Workspace() {
     setProject(res.data.project);
     setTitle(res.data.project.title);
     setIdea(d?.idea ?? {});
-    savedIdea.current = JSON.stringify(d?.idea ?? {});
+    setSavedIdea(JSON.stringify(d?.idea ?? {}));
     setRevision(d?.revision ?? 1);
     setPlan(d?.plan ?? null);
     savedPlan.current = JSON.stringify(d?.plan ?? null);
@@ -74,15 +75,14 @@ export function Workspace() {
     return res.data;
   }, [params.id]);
 
-  const { job, follow, clear, active: jobActive } = useJob(async (finished: JobView) => {
-    await afterJob(finished);
-  });
+  const afterRef = useRef<(job: JobView) => Promise<void>>(async () => {});
+  const { job, follow, clear, active: jobActive } = useJob((finished: JobView) => afterRef.current(finished));
 
   async function afterJob(finished: JobView) {
     if (finished.state === "failed") setError(finished.error?.message ?? "That did not finish.");
     if (finished.state === "cancelled") setStatus("Cancelled");
     if (finished.state !== "succeeded") { await load(); return; }
-    if (finished.type === "plan") { await load(); setStep("storyboard"); setStatus(String(finished.result?.notice ?? "Storyboard ready")); clear(); return; }
+    if (finished.type === "plan") { await load(); setStep("storyboard"); setStatus("Storyboard ready"); setInfo(finished.result?.notice ? String(finished.result.notice) : ""); clear(); return; }
     if (finished.type === "revise" || finished.type === "scene_regen") { await loadNotes(); setStatus("The copilot has a proposal"); clear(); return; }
     if (finished.type === "render" || finished.type === "caption") {
       const list = await loadVideos();
@@ -94,6 +94,9 @@ export function Workspace() {
       clear();
     }
   }
+
+  // The job hook always calls the latest handler, which sees current state.
+  useEffect(() => { afterRef.current = afterJob; });
 
   useEffect(() => {
     void (async () => {
@@ -116,7 +119,7 @@ export function Workspace() {
     const res = await api<{ revision: number }>(`/api/projects/${params.id}/draft`, { method: "PATCH", body: { expectedRevision: revision, idea: { topic: idea.topic ?? "", audience: idea.audience ?? "", notes: idea.notes ?? "" } } });
     if (!res.ok) { setError(res.reason === "REVISION_CONFLICT" ? "This project changed in another tab. Reload to continue." : res.error); return false; }
     setRevision(res.data.revision);
-    savedIdea.current = JSON.stringify(idea);
+    setSavedIdea(JSON.stringify(idea));
     return true;
   };
 
@@ -126,7 +129,7 @@ export function Workspace() {
       const res = await api<{ project: ProjectView }>(`/api/projects/${params.id}`, { method: "PATCH", body: { title } });
       if (!res.ok) { setError(res.error); return; }
       setProject(res.data.project);
-      setStatus("Renamed");
+      setStatus("Project renamed");
     });
   };
 
@@ -150,6 +153,7 @@ export function Workspace() {
     if (!res.ok) { setError(res.error); if (res.details?.activeJobId) void follow(String(res.details.activeJobId)); return; }
     setStatus("Planning the storyboard");
     void follow(res.data.jobId);
+    void load();
   });
 
   const approve = async (output: "mp4" | "preview") => {
@@ -158,6 +162,7 @@ export function Workspace() {
     if (!res.ok) { setError(res.error); if (res.details?.activeJobId) void follow(String(res.details.activeJobId)); return; }
     setStatus(output === "mp4" ? "Rendering the film" : "Preparing preview");
     void follow(res.data.jobId);
+    void load();
   };
 
   const changeJob = (action: "cancel" | "retry") => run(`job-${action}`, async () => {
@@ -230,6 +235,7 @@ export function Workspace() {
       </div>
 
       <Notice tone="bad" onClose={() => setError("")}>{error}</Notice>
+      <Notice tone="warn" onClose={() => setInfo("")}>{info}</Notice>
       {job ? (
         <section className="surface panel job-box" aria-label="Current job">
           <Progress stages={job.stages} labels={STAGE_LABEL} state={job.state} />
@@ -249,18 +255,18 @@ export function Workspace() {
               {planned ? (
                 <Panel kicker={MODE_LABEL[mode]} title={mode === "code_lab" ? "What should the film teach?" : mode === "audio" ? "What will be said?" : "What is this film about?"}>
                   <label className="stack-label">Topic
-                    <textarea className="field" value={idea.topic ?? ""} onChange={(e) => setIdea({ ...idea, topic: e.target.value })} placeholder="One or two sentences" maxLength={2000} />
+                    <textarea className="field" aria-label="Topic" value={idea.topic ?? ""} onChange={(e) => setIdea({ ...idea, topic: e.target.value })} placeholder="One or two sentences" maxLength={2000} />
                   </label>
                   <div className="split">
                     <label className="stack-label">Who is it for
-                      <input className="field" value={idea.audience ?? ""} onChange={(e) => setIdea({ ...idea, audience: e.target.value })} placeholder="Audience" maxLength={200} />
+                      <input className="field" aria-label="Who is it for" value={idea.audience ?? ""} onChange={(e) => setIdea({ ...idea, audience: e.target.value })} placeholder="Audience" maxLength={200} />
                     </label>
                     <label className="stack-label">Notes for the planner (optional)
-                      <input className="field" value={idea.notes ?? ""} onChange={(e) => setIdea({ ...idea, notes: e.target.value })} placeholder="Use a chai example; end with a question" maxLength={2000} />
+                      <input className="field" aria-label="Notes for the planner" value={idea.notes ?? ""} onChange={(e) => setIdea({ ...idea, notes: e.target.value })} placeholder="Use a chai example; end with a question" maxLength={2000} />
                     </label>
                   </div>
                   <div className="row-actions">
-                    <Button tone="ghost" pending={busy("save-idea")} disabled={JSON.stringify(idea) === savedIdea.current} onClick={() => void run("save-idea", async () => { if (await saveIdea()) setStatus("Saved"); })}>Save</Button>
+                    <Button tone="ghost" pending={busy("save-idea")} disabled={JSON.stringify(idea) === savedIdea} onClick={() => void run("save-idea", async () => { if (await saveIdea()) setStatus("Saved"); })}>Save</Button>
                     <Button tone="ghost" pending={busy("brainstorm")} disabled={busyJob} onClick={() => void brainstorm()}>Brainstorm angles</Button>
                     <Button tone="accent" pending={busy("plan")} disabled={busyJob || !idea.topic?.trim() || (mode === "code_lab" && !hasTrace)} onClick={() => void planIt()}>Plan storyboard</Button>
                   </div>
@@ -279,8 +285,8 @@ export function Workspace() {
               {mode === "code_lab" ? <CodePanel projectId={project.id} onTraced={(rev) => { setHasTrace(true); if (rev) setRevision(rev); }} /> : null}
               {mode === "story" || mode === "cartoon" ? <CastPanel project={project} onChange={(castIds) => setProject({ ...project, castIds })} /> : null}
               {mode === "lyrics" ? <LyricsPanel project={project} revision={revision} onBuilt={async () => { await load(); setStep("storyboard"); }} /> : null}
-              {mode === "montage" ? <MontagePanel project={project} catalog={catalog} disabled={busyJob} onQueued={(id) => { setStatus("Rendering the montage"); void follow(id); }} /> : null}
-              {mode === "reel" ? <ReelPanel project={project} catalog={catalog} disabled={busyJob} onQueued={(id) => { setStatus("Captioning your reel"); void follow(id); }} /> : null}
+              {mode === "montage" ? <MontagePanel project={project} catalog={catalog} disabled={busyJob} onQueued={(id) => { setStatus("Rendering the montage"); void follow(id); void load(); }} /> : null}
+              {mode === "reel" ? <ReelPanel project={project} catalog={catalog} disabled={busyJob} onQueued={(id) => { setStatus("Captioning your reel"); void follow(id); void load(); }} /> : null}
               {planned ? <BriefPanel scope="projects" id={project.id} suggested={idea.topic ?? ""} audience={idea.audience} researchAvailable={Boolean(catalog?.research.available)} onApproved={() => setStatus("Brief approved")} /> : null}
               <SettingsPanel project={project} catalog={catalog} planLanguage={plan?.language} onError={setError} onSaved={(p, draftRevision) => { setProject(p); setStatus("Saved"); if (draftRevision) void load(); }} />
               <DangerZone project={project} onDeleted={() => router.push("/studio")} onError={setError} />

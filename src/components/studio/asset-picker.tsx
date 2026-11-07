@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { api, uploadFile } from "../ui/client";
+import { useCallback, useState } from "react";
+import { api, uploadFile, useLoad } from "../ui/client";
 import { Notice } from "../ui/kit";
 
 export type Asset = { id: string; name: string; kind: string; source?: string; bytes?: number | null };
@@ -30,7 +30,7 @@ export function AssetPicker({ kinds, value, onChange, multiple = false, label, u
     return list;
   }, [kindKey]);
 
-  useEffect(() => { void load(); }, [load]);
+  useLoad(load, [load]);
 
   async function upload(files: FileList | null) {
     if (!files?.length) return;

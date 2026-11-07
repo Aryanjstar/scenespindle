@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { StudioBar } from "../../../components/studio/studio-bar";
-import { ACTIVE, api, usePending } from "../../../components/ui/client";
+import { ACTIVE, api, useLoad, usePending } from "../../../components/ui/client";
 import { Button, Empty, Notice, STAGE_LABEL, timeAgo } from "../../../components/ui/kit";
 
 type Item = { id: string; what: string; state: string; progress: number | null; stages: { name: string; state: string }[]; error: string | null; target: string; title: string; href: string | null; createdAt: string; finishedAt: string | null };
@@ -20,8 +20,8 @@ export default function QueuePage() {
     setItems(res.data.items);
   }, []);
 
+  useLoad(load, [load]);
   useEffect(() => {
-    void load();
     const timer = setInterval(() => { void load(); }, 4000);
     return () => clearInterval(timer);
   }, [load]);

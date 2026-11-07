@@ -7,6 +7,8 @@ import type { TraceStep } from "./interpret";
  */
 export type TraceState = {
   line: number;
+  /** The line whose execution produced these values (the step before this one). */
+  after?: number;
   event: "call" | "line" | "return";
   array: number[] | null;
   arrayName: string | null;
@@ -68,9 +70,12 @@ function signature(state: TraceState): string {
 export function keyStates(steps: TraceStep[]): TraceState[] {
   const out: TraceState[] = [];
   let last = "";
+  let previousLine: number | undefined;
   for (const step of steps) {
     if (!step || !Array.isArray(step.stack) || step.stack.length === 0) continue;
-    const state = stateOf(step);
+    // A step shows values just before its own line runs, so a change was made by the line before.
+    const state = { ...stateOf(step), after: previousLine };
+    previousLine = step.line;
     const sig = signature(state);
     if (sig === last) continue;
     last = sig;
@@ -89,7 +94,7 @@ export function describeRun(entry: string, input: unknown, states: TraceState[],
     const vars = state.scalars.map(([key, value]) => `${key}=${value}`).join(", ");
     if (state.event === "call") facts.push(`Enter ${state.stack[state.stack.length - 1]}.`);
     else if (state.event === "return") facts.push(`Return from ${state.stack[state.stack.length - 1]}.`);
-    else if (vars) facts.push(`Line ${state.line}: ${vars}.`);
+    else if (vars) facts.push(state.after ? `After line ${state.after} runs: ${vars}.` : `At line ${state.line}: ${vars}.`);
   }
   if (returned !== undefined && returned !== null) facts.push(`It returns ${JSON.stringify(returned)}.`);
   return facts;

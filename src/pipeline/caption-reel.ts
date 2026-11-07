@@ -1,5 +1,8 @@
 import { execFile } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { escapeHtml } from "../compiler/escape";
+import { hyperframesBin } from "./render";
 import { promisify } from "node:util";
 import { toSrt } from "./subtitles";
 import { parseLrc } from "./lyrics";
@@ -58,25 +61,62 @@ export async function probeReel(file: string): Promise<{ durationMs: number }> {
   return { durationMs: Math.round(seconds * 1000) };
 }
 
-function filterPath(file: string): string {
-  return file.replaceAll("\\", "\\\\").replaceAll(":", "\\:").replaceAll("'", "\\'");
-}
-
-/** Burn outlined captions into a copy of the reel. The band is the creator's choice. */
-export async function burnCaptionReel(opts: { video: string; cues: CaptionCue[]; band: CaptionBand; srtPath: string; out: string; size?: "regular" | "big" }): Promise<void> {
+/**
+ * Burn captions onto a copy of the reel with the studio renderer (HyperFrames), so captions use the
+ * film fonts on every machine, with no dependency on an FFmpeg build that has libass. The picture is
+ * re-encoded with the captions; the reel's own sound is copied back unchanged.
+ */
+export async function burnCaptionReel(opts: { video: string; cues: CaptionCue[]; band: CaptionBand; srtPath: string; out: string; size?: "regular" | "big"; words?: { text: string; startMs: number; endMs: number }[] }): Promise<void> {
   writeFileSync(opts.srtPath, toSrt(opts.cues.map((cue) => ({ text: cue.text, startMs: cue.startMs, endMs: cue.endMs, words: [] }))));
-  const align = opts.band === "upper" ? 8 : opts.band === "middle" ? 5 : 2;
-  const margin = opts.band === "middle" ? 0 : 72;
-  const style = `Alignment=${align},Fontname=Liberation Sans,Fontsize=${opts.size === "big" ? 28 : 22},Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00120D18,BorderStyle=1,Outline=2,Shadow=0,MarginV=${margin}`;
-  await run("ffmpeg", [
-    "-hide_banner", "-nostdin", "-y",
-    "-i", opts.video,
-    "-vf", `subtitles=${filterPath(opts.srtPath)}:force_style='${style}'`,
-    "-c:a", "copy",
-    "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
-    "-movflags", "+faststart",
-    opts.out,
-  ], { timeout: 180_000, maxBuffer: 16 * 1024 * 1024 });
+  const probe = await run("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height:format=duration", "-of", "json", opts.video], { encoding: "utf8" });
+  const info = JSON.parse(String(probe.stdout)) as { streams?: { width?: number; height?: number }[]; format?: { duration?: string } };
+  const w = Math.max(2, Math.round((info.streams?.[0]?.width ?? 1080) / 2) * 2);
+  const h = Math.max(2, Math.round((info.streams?.[0]?.height ?? 1920) / 2) * 2);
+  const seconds = Number(info.format?.duration ?? 0) || Math.max(1, ...opts.cues.map((c) => c.endMs / 1000));
+  const dir = resolve(dirname(opts.out), "captions-project");
+  mkdirSync(resolve(dir, "assets/fonts"), { recursive: true });
+  copyFileSync(opts.video, resolve(dir, "assets/reel.mp4"));
+  copyFileSync(resolve(process.cwd(), "node_modules/gsap/dist/gsap.min.js"), resolve(dir, "assets/gsap.min.js"));
+  copyFileSync(resolve(process.cwd(), "node_modules/@fontsource/bricolage-grotesque/files/bricolage-grotesque-latin-700-normal.woff2"), resolve(dir, "assets/fonts/bricolage.woff2"));
+  copyFileSync(resolve(process.cwd(), "node_modules/@fontsource/anek-devanagari/files/anek-devanagari-devanagari-700-normal.woff2"), resolve(dir, "assets/fonts/anek.woff2"));
+  const k = Math.min(w, h) / 1080;
+  const size = Math.round((opts.size === "big" ? 78 : 56) * k);
+  const top = opts.band === "upper" ? "14%" : opts.band === "middle" ? "44%" : "74%";
+  const tweens: { target: string; at: number; duration: number }[] = [];
+  const clips = opts.cues.map((cue, i) => {
+    const words = cue.text.split(/\s+/).filter(Boolean);
+    const inner = words.map((word, n) => `<span id="c${i}w${n}" class="w">${escapeHtml(word)}</span>`).join(" ");
+    // Punchy captions light up word by word on measured times when they exist.
+    const heard = (opts.words ?? []).filter((x) => x.startMs >= cue.startMs - 20 && x.endMs <= cue.endMs + 20);
+    words.forEach((_, n) => {
+      const at = heard[n] ? heard[n].startMs / 1000 : cue.startMs / 1000 + ((cue.endMs - cue.startMs) / 1000) * (n / Math.max(1, words.length));
+      if (opts.size === "big") tweens.push({ target: `c${i}w${n}`, at, duration: 0.08 });
+    });
+    return `<div id="c${i}" class="clip cap" data-start="${(cue.startMs / 1000).toFixed(3)}" data-duration="${Math.max(0.1, (cue.endMs - cue.startMs) / 1000).toFixed(3)}" data-track-index="2">${inner}</div>`;
+  });
+  const html = `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=${w}, height=${h}"><script src="assets/gsap.min.js"></script><style>
+@font-face { font-family: Cap; src: url("assets/fonts/anek.woff2") format("woff2"); font-weight: 700; unicode-range: U+0900-097F; }
+@font-face { font-family: Cap; src: url("assets/fonts/bricolage.woff2") format("woff2"); font-weight: 700; }
+html,body{margin:0;background:#000}#root{position:relative;width:${w}px;height:${h}px;overflow:hidden}
+#bg{position:absolute;inset:0;width:${w}px;height:${h}px;object-fit:cover}
+.cap{position:absolute;left:6%;right:6%;top:${top};text-align:center;font-family:Cap,sans-serif;font-weight:700;font-size:${size}px;line-height:1.15;color:#fff8ee;text-shadow:-3px 0 0 #120d18,3px 0 0 #120d18,0 -3px 0 #120d18,0 3px 0 #120d18,0 6px 18px rgba(0,0,0,.45)}
+.w{display:inline-block}
+</style></head><body><div id="root" data-composition-id="main" data-start="0" data-duration="${seconds.toFixed(3)}" data-width="${w}" data-height="${h}">
+<video id="bg" class="clip" src="assets/reel.mp4" data-start="0" data-duration="${seconds.toFixed(3)}" data-track-index="0" muted playsinline></video>
+${clips.join("\n")}
+</div><script>const tl=gsap.timeline({paused:true});for(const t of ${JSON.stringify(tweens)}){tl.fromTo("#"+t.target,{color:"#fff8ee",scale:1},{color:"#ffd31a",scale:1.08,duration:t.duration,immediateRender:false},t.at);}
+window.__timelines=window.__timelines||{};window.__timelines.main=tl;</script></body></html>`;
+  writeFileSync(resolve(dir, "index.html"), html);
+  writeFileSync(resolve(dir, "hyperframes.json"), JSON.stringify({ paths: { assets: "assets" }, media: { autoProxy: true } }));
+  const raw = resolve(dir, "raw.mp4");
+  await run(process.execPath, [hyperframesBin(), "render", "--quality", "draft", "--output", raw], { cwd: dir, timeout: 20 * 60_000, maxBuffer: 64 * 1024 * 1024, env: { ...process.env, HYPERFRAMES_NO_TELEMETRY: "1", GEMINI_API_KEY: "", ELEVENLABS_API_KEY: "", SARVAM_API_KEY: "", MONGODB_URI: "" } });
+  const audio = await run("ffprobe", ["-v", "error", "-select_streams", "a", "-show_entries", "stream=index", "-of", "csv=p=0", opts.video], { encoding: "utf8" });
+  if (String(audio.stdout).trim()) {
+    await run("ffmpeg", ["-hide_banner", "-nostdin", "-y", "-i", raw, "-i", opts.video, "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "copy", "-shortest", "-movflags", "+faststart", opts.out], { timeout: 180_000, maxBuffer: 16 * 1024 * 1024 });
+  } else {
+    // A silent reel stays silent, with a silent track so every player and platform accepts it.
+    await run("ffmpeg", ["-hide_banner", "-nostdin", "-y", "-i", raw, "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-b:a", "96k", "-shortest", "-movflags", "+faststart", opts.out], { timeout: 180_000, maxBuffer: 16 * 1024 * 1024 });
+  }
 }
 
 /** Mono 16 kHz WAV of the reel's sound, for transcription. */

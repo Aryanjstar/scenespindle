@@ -27,6 +27,8 @@ export async function api<T = Record<string, unknown>>(path: string, opts: { met
   let json: unknown = null;
   try { json = text ? JSON.parse(text) : {}; } catch { json = null; }
   if (response.status === 401 && typeof window !== "undefined" && !path.startsWith("/api/auth/")) {
+    // A full navigation on purpose: the session ended, so all client state should reset.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign(`/sign-in?next=${encodeURIComponent(window.location.pathname)}`);
   }
   if (!response.ok || json === null) {
@@ -127,4 +129,14 @@ export async function uploadFile(file: File, opts: { rights?: "own" | "licensed"
     opts.onProgress?.((part + 1) / parts);
   }
   return api<{ asset: { id: string; name: string; kind: string } }>(`/api/uploads/${id}/complete`, { body: {} });
+}
+
+/** Run an async loader after mount and whenever deps change, without setting state synchronously in the effect. */
+export function useLoad(fn: () => Promise<unknown> | void, deps: unknown[]) {
+  useEffect(() => {
+    let live = true;
+    void Promise.resolve().then(() => (live ? fn() : undefined));
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
 }

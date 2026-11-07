@@ -26,9 +26,21 @@ export function sttAvailable(env: Env): { available: boolean; via: "elevenlabs" 
 }
 
 /** Word-level transcript of a WAV/MP3 file. The route chosen is reported; nothing falls back silently. */
-export async function transcribe(env: Env, audioFile: string, language?: "en" | "hi"): Promise<Transcript> {
+export async function transcribe(env: Env, audioFile: string, language?: "en" | "hi"): Promise<Transcript & { note?: string }> {
   const route = sttAvailable(env);
-  if (route.via === "elevenlabs") return scribe(env.elevenLabsApiKey, audioFile, language);
+  if (route.via === "elevenlabs") {
+    try {
+      return await scribe(env.elevenLabsApiKey, audioFile, language);
+    } catch (error) {
+      // Transcription (not a narrator voice) may use the local engine when the hosted one is out
+      // of allowance or down; the result says which engine heard the words.
+      if (error instanceof ProviderError && error.kind !== "invalid" && whisperModel() && whisperBinary()) {
+        const local = whisperCpp(audioFile, language);
+        return { ...local, note: `ElevenLabs could not transcribe (${error.kind === "quota" ? "its allowance is used up" : "unavailable"}), so the words were heard by whisper.cpp on this machine.` };
+      }
+      throw error;
+    }
+  }
   if (route.via === "whisper.cpp") return whisperCpp(audioFile, language);
   throw new ProviderError("auth", route.reason ?? "Transcription is not configured.");
 }
@@ -42,7 +54,7 @@ async function scribe(apiKey: string, audioFile: string, language?: string): Pro
   form.set("file", new Blob([readFileSync(audioFile)]), "audio.wav");
   const response = await fetch("https://api.elevenlabs.io/v1/speech-to-text", { method: "POST", headers: { "xi-api-key": apiKey }, body: form });
   const body = await response.text();
-  if (!response.ok) throw new ProviderError(classifyStatus(response.status), `ElevenLabs STT ${response.status} ${redact(body, [apiKey])}`);
+  if (!response.ok) throw new ProviderError(/quota_exceeded|quota/i.test(body) ? "quota" : classifyStatus(response.status), `ElevenLabs STT ${response.status} ${redact(body, [apiKey])}`);
   const parsed = JSON.parse(body) as { language_code?: string; words?: { text?: string; type?: string; start?: number | null; end?: number | null }[] };
   const words = (parsed.words ?? [])
     .filter((w) => w.type === "word" && typeof w.start === "number" && typeof w.end === "number" && (w.text ?? "").trim())

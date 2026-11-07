@@ -12,7 +12,7 @@ import { analyzeStyle } from "../src/server/style-analysis";
 import { draftCopy, makeBanner } from "../src/server/tools";
 import { meter, QuotaError } from "../src/server/usage";
 import { burnCaptionReel, cuesFromWords, extractSpeech, parseCaptionText, probeSize, reelPreviews, sampleFrames, type CaptionBand } from "../src/pipeline/caption-reel";
-import { toOtio, writeZip } from "../src/pipeline/exports";
+import { otioJson, toOtio, writeZip } from "../src/pipeline/exports";
 import { probeVideo, RENDERER } from "../src/pipeline/render";
 import { toSrt, toVtt } from "../src/pipeline/subtitles";
 import { claimOne, settleBadge, Stop, type Lease } from "./lease";
@@ -23,7 +23,8 @@ const workRoot = () => process.env.RENDER_WORK_DIR || resolve(process.cwd(), ".d
 
 function failure(error: unknown) {
   if (error instanceof QuotaError) return { code: "QUOTA_EXHAUSTED", message: error.message, retryable: false };
-  if (error instanceof ProviderError && error.kind === "auth") return { code: "PROVIDER_UNAVAILABLE", message: error.message.length < 200 ? error.message : "A provider is not configured.", retryable: false };
+  if (error instanceof ProviderError && error.kind === "quota") return { code: "QUOTA_EXHAUSTED", message: "The provider's allowance is used up (its own account limit). Try again after it resets, or paste your captions instead.", retryable: false };
+  if (error instanceof ProviderError && error.kind === "auth") return { code: "PROVIDER_UNAVAILABLE", message: error.message.length < 200 && !/\{/.test(error.message) ? error.message : "A provider key is not working. Check it in the environment.", retryable: false };
   if (error instanceof ProviderError) return { code: "PROVIDER_UNAVAILABLE", message: "A provider did not answer. Try again shortly.", retryable: true };
   if (error instanceof Error && error.message.length < 200 && !/ffmpeg|ffprobe|ENOENT|spawn/i.test(error.message)) return { code: "TASK_FAILED", message: error.message, retryable: true };
   return { code: "TASK_FAILED", message: "That did not finish. Try again.", retryable: true };
@@ -67,6 +68,7 @@ async function captionReel(lease: Lease) {
     if (size.durationMs > 180_000) throw new Error("Caption reels stay under 3 minutes.");
     const warnings: string[] = [];
     let cues;
+    let heardWords: { text: string; startMs: number; endMs: number }[] | undefined;
     let timing: "aligned" | "estimated" = "aligned";
     if (job.input.source === "auto") {
       const wav = resolve(dir, "speech.wav");
@@ -78,7 +80,9 @@ async function captionReel(lease: Lease) {
       catch (error) { await usage.release(); throw error; }
       if (!heard.words.length) throw new Error("No speech was heard in that reel. Paste your captions instead.");
       cues = cuesFromWords(heard.words, job.input.style === "punchy" ? "punchy" : "phrase");
+      heardWords = heard.words;
       warnings.push(`Word times come from the reel's own audio (${heard.via}). Check spellings before sharing.`);
+      if (heard.note) warnings.push(heard.note);
     } else {
       const parsed = parseCaptionText(String(job.input.text ?? ""), size.durationMs);
       cues = parsed.cues;
@@ -95,7 +99,7 @@ async function captionReel(lease: Lease) {
     }
     await lease.stage(stages(2), 50);
     const out = resolve(dir, "film.mp4");
-    await burnCaptionReel({ video: source, cues, band, srtPath: resolve(dir, "burn.srt"), out, size: job.input.style === "punchy" ? "big" : "regular" });
+    await burnCaptionReel({ video: source, cues, band, srtPath: resolve(dir, "burn.srt"), out, size: job.input.style === "punchy" ? "big" : "regular", words: heardWords });
     await lease.stage(stages(3), 80);
     const thumb = resolve(dir, "thumb.jpg");
     const sheet = resolve(dir, "sheet.jpg");
@@ -140,7 +144,7 @@ async function exportVideo(lease: Lease) {
       const otio = toOtio(project.title, (video.edl as never) ?? { durationMs: video.durationMs ?? 0 });
       if (kind === "otio") {
         const out = resolve(dir, "timeline.otio");
-        writeFileSync(out, JSON.stringify(otio, null, 2));
+        writeFileSync(out, otioJson(otio));
         key = (await putFile(`${prefix}/timeline.otio`, out)).key;
       } else {
         const storyboard = video.storyboardId ? await Storyboard.findOne({ _id: video.storyboardId, ownerId: job.ownerId }).select("plan version planHash") : null;
@@ -149,7 +153,7 @@ async function exportVideo(lease: Lease) {
           const from = video.artifacts[extra];
           if (from) files.push({ name: extra === "thumb" ? "media/thumb.jpg" : `captions/captions.${extra}`, file: await fetchToFile(from, resolve(dir, `x.${extra}`)) });
         }
-        files.push({ name: "timeline.otio", data: JSON.stringify({ ...otio, tracks: { ...(otio.tracks as object) } }, null, 2).replaceAll('"film.mp4"', '"media/film.mp4"') });
+        files.push({ name: "timeline.otio", data: otioJson(otio).replaceAll('"film.mp4"', '"media/film.mp4"') });
         if (storyboard) files.push({ name: "storyboard.json", data: JSON.stringify(storyboard.plan, null, 2) });
         files.push({ name: "edl.json", data: JSON.stringify(video.edl ?? {}, null, 2) });
         files.push({ name: "manifest.json", data: JSON.stringify({

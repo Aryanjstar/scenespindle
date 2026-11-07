@@ -53,21 +53,18 @@ export function SettingsPanel({ project, catalog, onSaved, onError, planLanguage
   return (
     <Panel kicker="Settings" title="How it is made">
       <div className="grid-3">
-        <label className="stack-label">Format
-          <select className="field" aria-label="Format" value={project.format} disabled={busy("save-format")} onChange={(e) => void save({ format: e.target.value })}>
+        <label className="stack-label">Format<select className="field" aria-label="Format" value={project.format} disabled={busy("save-format")} onChange={(e) => void save({ format: e.target.value })}>
             <option value="9x16">Vertical 9:16</option><option value="16x9">Landscape 16:9</option><option value="1x1">Square 1:1</option>
           </select>
         </label>
         {film ? (
-          <label className="stack-label">Language
-            <select className="field" aria-label="Language" value={project.language} disabled={busy("save-language")} onChange={(e) => void save({ language: e.target.value })}>
+          <label className="stack-label">Language<select className="field" aria-label="Language" value={project.language} disabled={busy("save-language")} onChange={(e) => void save({ language: e.target.value })}>
               <option value="en">English</option><option value="hi">Hindi</option><option value="hinglish">Hinglish</option>
             </select>
           </label>
         ) : null}
         {film && project.mode !== "lyrics" ? (
-          <label className="stack-label">Length
-            <select className="field" aria-label="Length" value={project.targetMs} disabled={busy("save-targetMs")} onChange={(e) => void save({ targetMs: Number(e.target.value) })}>
+          <label className="stack-label">Length<select className="field" aria-label="Length" value={project.targetMs} disabled={busy("save-targetMs")} onChange={(e) => void save({ targetMs: Number(e.target.value) })}>
               {LENGTHS.map((ms) => <option key={ms} value={ms}>{ms < 60000 ? `${ms / 1000} seconds` : `${ms / 60000} min`}</option>)}
             </select>
           </label>
@@ -117,8 +114,7 @@ export function SettingsPanel({ project, catalog, onSaved, onError, planLanguage
         </div>
       ) : null}
       {project.seriesId ? (
-        <label className="stack-label">Episode recap (later episodes build on it)
-          <textarea className="field" defaultValue={project.recap} maxLength={600} onBlur={(e) => { if (e.target.value !== project.recap) void save({ recap: e.target.value }); }} placeholder="What happened in this episode, in two sentences" />
+        <label className="stack-label">Episode recap (later episodes build on it)<textarea aria-label="Episode recap (later episodes build on it)" className="field" defaultValue={project.recap} maxLength={600} onBlur={(e) => { if (e.target.value !== project.recap) void save({ recap: e.target.value }); }} placeholder="What happened in this episode, in two sentences" />
         </label>
       ) : null}
     </Panel>
@@ -177,7 +173,7 @@ export function BriefPanel({ scope, id, suggested, audience, researchAvailable, 
     const res = await api<{ version: number }>(`${base}/approve`, { body: { expectedRevision: brief.revision, contentHash: brief.result.contentHash } });
     if (!res.ok) { setError(res.error); return; }
     setBrief({ ...brief, version: res.data.version, state: "approved" });
-    setNote(`Brief approved as version ${res.data.version}. Planning now follows it.`);
+    setNote(`Brief approved and saved as version ${res.data.version}.`);
     onApproved?.();
   });
 
@@ -198,27 +194,21 @@ export function BriefPanel({ scope, id, suggested, audience, researchAvailable, 
   return (
     <Panel kicker={scope === "series" ? "Series brief" : "Creative brief"} title="What we will make" actions={brief ? <span className="badge" data-tone={brief.state === "approved" ? "ready" : "review"}>{brief.state === "approved" ? `approved v${brief.version}` : brief.state.replaceAll("_", " ")}</span> : null}>
       <p className="fine">Shape the idea before planning. Your exact words and must-haves are kept as you wrote them.</p>
-      <label className="stack-label">What should this video do?
-        <textarea className="field" value={form.rawRequest} onChange={(e) => setForm({ ...form, rawRequest: e.target.value })} placeholder={suggested || "Describe the video in your own words"} maxLength={20000} />
+      <label className="stack-label">What should this video do?<textarea className="field" aria-label="What should this video do?" value={form.rawRequest} onChange={(e) => setForm({ ...form, rawRequest: e.target.value })} placeholder={suggested || "Describe the video in your own words"} maxLength={20000} />
       </label>
       <div className="split">
-        <label className="stack-label">Goal, in one line (optional)
-          <input className="field" value={form.objective} onChange={(e) => setForm({ ...form, objective: e.target.value })} maxLength={2000} placeholder="Viewers understand why ice floats" />
+        <label className="stack-label">Goal, in one line (optional)<input className="field" aria-label="Goal, in one line" value={form.objective} onChange={(e) => setForm({ ...form, objective: e.target.value })} maxLength={2000} placeholder="Viewers understand why ice floats" />
         </label>
-        <label className="stack-label">Audience
-          <input className="field" value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value })} maxLength={200} placeholder={audience || "Curious teens"} />
+        <label className="stack-label">Audience<input className="field" aria-label="Audience" value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value })} maxLength={200} placeholder={audience || "Curious teens"} />
         </label>
       </div>
       <div className="split">
-        <label className="stack-label">Must include (one per line)
-          <textarea className="field small" value={form.mustInclude} onChange={(e) => setForm({ ...form, mustInclude: e.target.value })} placeholder={"Hydrogen bonds\nA glass of water"} />
+        <label className="stack-label">Must include (one per line)<textarea className="field small" aria-label="Must include" value={form.mustInclude} onChange={(e) => setForm({ ...form, mustInclude: e.target.value })} placeholder={"Hydrogen bonds\nA glass of water"} />
         </label>
-        <label className="stack-label">Must avoid (one per line)
-          <textarea className="field small" value={form.mustAvoid} onChange={(e) => setForm({ ...form, mustAvoid: e.target.value })} placeholder="Jargon" />
+        <label className="stack-label">Must avoid (one per line)<textarea className="field small" aria-label="Must avoid" value={form.mustAvoid} onChange={(e) => setForm({ ...form, mustAvoid: e.target.value })} placeholder="Jargon" />
         </label>
       </div>
-      <label className="stack-label">Exact script, if you have one
-        <textarea className="field" value={form.exactScript} onChange={(e) => setForm({ ...form, exactScript: e.target.value })} placeholder="Leave blank to let the planner write it. A script here is kept word for word." maxLength={30000} />
+      <label className="stack-label">Exact script, if you have one<textarea className="field" aria-label="Exact script, if you have one" value={form.exactScript} onChange={(e) => setForm({ ...form, exactScript: e.target.value })} placeholder="Leave blank to let the planner write it. A script here is kept word for word." maxLength={30000} />
       </label>
       <div className="row-actions">
         <label className="stack-label inline">Research
@@ -320,11 +310,9 @@ export function CodePanel({ projectId, onTraced }: { projectId: string; onTraced
       </div>
       <textarea className="field mono code" aria-label={`${language} code`} value={code} onChange={(e) => setCode(e.target.value)} spellCheck={false} />
       <div className="split">
-        <label className="stack-label">Function to run
-          <input className="field mono" value={entry} onChange={(e) => setEntry(e.target.value)} aria-label="Function to run" />
+        <label className="stack-label">Function to run<input className="field mono" value={entry} onChange={(e) => setEntry(e.target.value)} aria-label="Function to run" />
         </label>
-        <label className="stack-label">Inputs (JSON list of arguments)
-          <input className="field mono" value={input} onChange={(e) => setInput(e.target.value)} aria-label="Inputs" />
+        <label className="stack-label">Inputs (JSON list of arguments)<input className="field mono" value={input} onChange={(e) => setInput(e.target.value)} aria-label="Inputs" />
         </label>
       </div>
       <Button pending={busy("trace")} onClick={() => void trace()}>Trace</Button>
@@ -396,8 +384,7 @@ export function LyricsPanel({ project, revision, onBuilt }: { project: ProjectVi
   return (
     <Panel kicker="Lyrics" title="Song and timed words">
       <AssetPicker kinds={["audio"]} value={song} onChange={(ids) => setSong(ids)} label="Song" uploadLabel="Upload song" />
-      <label className="stack-label">Timed lyrics (LRC)
-        <textarea className="field mono" aria-label="Timed lyrics" value={lrc} onChange={(e) => setLrc(e.target.value)} placeholder={"[00:01.20] First line\n[00:04.80] Second line"} style={{ minHeight: 180 }} />
+      <label className="stack-label">Timed lyrics (LRC)<textarea className="field mono" aria-label="Timed lyrics" value={lrc} onChange={(e) => setLrc(e.target.value)} placeholder={"[00:01.20] First line\n[00:04.80] Second line"} style={{ minHeight: 180 }} />
       </label>
       <p className="fine">Each line appears when it is sung, over a coloured stage that pulses with the song. Times come from your file, never guessed.</p>
       <Button pending={busy("build")} disabled={!song[0] || lrc.trim().length < 8} onClick={() => void build()}>Build lyric storyboard</Button>
@@ -440,12 +427,10 @@ export function ReelPanel({ project, catalog, disabled, onQueued }: { project: P
         {!auto ? <p className="fine">{catalog?.captions.reason}</p> : null}
       </div>
       {source === "text" ? (
-        <label className="stack-label">Captions: SRT, LRC, or plain lines
-          <textarea className="field mono" value={text} onChange={(e) => setText(e.target.value)} placeholder={"1\n00:00:00,500 --> 00:00:02,000\nHello there"} style={{ minHeight: 160 }} />
+        <label className="stack-label">Captions: SRT, LRC, or plain lines<textarea aria-label="Captions: SRT, LRC, or plain lines" className="field mono" value={text} onChange={(e) => setText(e.target.value)} placeholder={"1\n00:00:00,500 --> 00:00:02,000\nHello there"} style={{ minHeight: 160 }} />
         </label>
       ) : (
-        <label className="stack-label">Spoken language
-          <select className="field field-sm" value={language} onChange={(e) => setLanguage(e.target.value)}><option value="auto">Detect</option><option value="en">English</option><option value="hi">Hindi or Hinglish</option></select>
+        <label className="stack-label">Spoken language<select aria-label="Spoken language" className="field field-sm" value={language} onChange={(e) => setLanguage(e.target.value)}><option value="auto">Detect</option><option value="en">English</option><option value="hi">Hindi or Hinglish</option></select>
         </label>
       )}
       <div className="split">

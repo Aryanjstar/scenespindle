@@ -499,3 +499,9 @@ input[type="color"] { width: 46px; height: 34px; border: 1.5px solid var(--ink);
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0ms !important; animation: none !important; }
 }
+
+.split.align-start { align-items: start; }
+.swatch-btn { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--ink); cursor: pointer; }
+.look-preview.big { width: 46%; height: 80%; }
+.file-thumb video { width: 100%; height: 100%; object-fit: cover; }
+.style-swatch { background: linear-gradient(135deg, var(--paper-2), var(--accent)); }

@@ -36,11 +36,11 @@ export function Panel({ kicker, title, actions, children, id, className }: { kic
   );
 }
 
-export function CopyRow({ value, label = "Copy" }: { value: string; label?: string }) {
+export function CopyRow({ value, label = "Copy", name = "Link" }: { value: string; label?: string; name?: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="copy-row">
-      <input className="field" readOnly value={value} aria-label="Link" onFocus={(e) => e.currentTarget.select()} />
+      <input className="field" readOnly value={value} aria-label={name} onFocus={(e) => e.currentTarget.select()} />
       <Button tone="ghost" size="sm" onClick={async () => { try { await navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* the field is selectable */ } }}>{copied ? "Copied" : label}</Button>
     </div>
   );

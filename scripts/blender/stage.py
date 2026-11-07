@@ -1,7 +1,7 @@
 """SceneSpindle cinematic stage for Blender (trusted scene builder).
 
 Run headless only:
-  blender -b --factory-startup --disable-autoexec -noaudio -P scripts/blender/stage.py -- stage.json out.mp4
+  blender -b --factory-startup --disable-autoexec -noaudio -P scripts/blender/stage.py -- stage.json frames_dir
 
 stage.json holds validated enums, numbers and #rrggbb colours (see src/pipeline/cinematic.ts).
 The scene mirrors the real-time Three.js stage: the same sets, performers, actions, shots and
@@ -43,11 +43,10 @@ try:
     scene.eevee.taa_render_samples = 16
 except AttributeError:
     pass
-scene.render.image_settings.file_format = "FFMPEG"
-scene.render.ffmpeg.format = "MPEG4"
-scene.render.ffmpeg.codec = "H264"
-scene.render.ffmpeg.constant_rate_factor = "HIGH"
-scene.render.filepath = OUT
+# PNG frames work in every Blender version (5.x moved video output); FFmpeg encodes them after.
+scene.render.image_settings.file_format = "PNG"
+scene.render.image_settings.color_mode = "RGB"
+scene.render.filepath = OUT.rstrip("/") + "/"
 scene.view_settings.view_transform = "Standard"
 
 world = bpy.data.worlds.new("World")
@@ -169,7 +168,7 @@ set_group("night", lambda p: (sphere(0.4, 0xFFF1C4, 2.2, 3.4, -5, 0.2, p), house
 set_group("market", lambda p: [box(1.6, 0.7, 0.8, 0x8A6A4A, -2.4 + i * 2.4, 0.35, -1.2, parent=p) for i in range(3)] + [box(1.8, 0.06, 1.1, [0xE07A3D, 0x2A9D8F, 0xFFD36A][i], -2.4 + i * 2.4, 1.6, -1.1, parent=p) for i in range(3)])
 
 SET_LIGHT = {"home": (0x2A1D14, 1.0, 3.5), "bank": (0x1C2A33, 1.0, 3.5), "lane": (0x1F2433, 1.0, 3.2), "room": (0x1D2A24, 1.0, 3.2), "street": (0x232831, 1.0, 3.5),
-             "park": (0x8FC7E8, 1.2, 4.0), "school": (0x2A2418, 1.0, 3.2), "office": (0x1F262E, 1.0, 3.0), "night": (0x0B1024, 0.35, 1.0), "market": (0x31220F, 1.1, 3.6)}
+             "park": (0x8FC7E8, 1.2, 4.0), "school": (0x2A2418, 1.0, 3.2), "office": (0x1F262E, 1.0, 3.0), "night": (0x0B1024, 0.6, 2.0), "market": (0x31220F, 1.1, 3.6)}
 
 
 # ---------- performers ----------
@@ -367,9 +366,20 @@ for frame in range(1, FRAMES + 1):
     target.location = (focus, 0, look_y)
     key_all(frame)
 
+def all_fcurves(action):
+    # Blender 4.x keeps curves on the action; Blender 5 keeps them in layers, strips and channel bags.
+    curves = list(getattr(action, "fcurves", []) or [])
+    for layer in getattr(action, "layers", []) or []:
+        for strip in getattr(layer, "strips", []) or []:
+            for bag in getattr(strip, "channelbags", []) or []:
+                curves.extend(bag.fcurves)
+    return curves
+
+
+# Every frame is keyed, so hold each value until the next frame: sets, light and colour cut on the beat.
 for action in bpy.data.actions:
-    for curve in getattr(action, "fcurves", []):
+    for curve in all_fcurves(action):
         for point in curve.keyframe_points:
-            point.interpolation = "CONSTANT" if curve.data_path == "hide_render" else "LINEAR"
+            point.interpolation = "CONSTANT"
 
 bpy.ops.render.render(animation=True)

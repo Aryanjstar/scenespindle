@@ -88,7 +88,7 @@ export async function synthesize(opts: {
   });
   const body = await response.text();
   if (!response.ok) {
-    throw new ProviderError(classifyStatus(response.status), `ElevenLabs tts ${response.status} ${redact(body, [opts.apiKey])}`);
+    throw new ProviderError(/quota_exceeded/i.test(body) ? "quota" : classifyStatus(response.status), `ElevenLabs tts ${response.status} ${redact(body, [opts.apiKey])}`);
   }
   const parsed = JSON.parse(body) as {
     audio_base64?: string;

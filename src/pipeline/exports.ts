@@ -64,3 +64,8 @@ export function writeZip(out: string, entries: { name: string; file?: string; da
   end.writeUInt32LE(centralSize, 12); end.writeUInt32LE(offset, 16);
   writeFileSync(out, Buffer.concat([...parts, ...central, end]));
 }
+
+/** OTIO JSON text. OpenTimelineIO reads RationalTime rate and value as doubles, so write them as 30.0, not 30. */
+export function otioJson(timeline: Record<string, unknown>): string {
+  return JSON.stringify(timeline, null, 2).replace(/"(rate|value)": (-?\d+)(?=[,\n\r}])/g, '"$1": $2.0');
+}

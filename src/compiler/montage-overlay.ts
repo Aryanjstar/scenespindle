@@ -29,7 +29,7 @@ const ROOT = process.cwd();
 
 /** Intro, chapter spans and outro, snapped to cut points so text changes on a cut. */
 export function overlayTimeline(seconds: number, cuts: number[], chapters: number) {
-  const snap = (t: number) => cuts.reduce((best, cut) => (Math.abs(cut - t) < Math.abs(best - t) ? cut : best), t);
+  const snap = (t: number) => (cuts.length ? cuts.reduce((best, cut) => (Math.abs(cut - t) < Math.abs(best - t) ? cut : best), cuts[0]) : t);
   const intro = Math.min(2.4, Math.max(1.2, seconds * 0.15));
   const outro = Math.min(2.2, Math.max(1.2, seconds * 0.14));
   const bodyStart = snap(intro);
