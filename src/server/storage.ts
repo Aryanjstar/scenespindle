@@ -106,6 +106,10 @@ const TYPES: Record<string, string> = {
   wav: "audio/wav",
   srt: "application/x-subrip; charset=utf-8",
   vtt: "text/vtt; charset=utf-8",
+  m4a: "audio/mp4",
+  zip: "application/zip",
+  otio: "application/json; charset=utf-8",
+  json: "application/json; charset=utf-8",
 };
 
 /**

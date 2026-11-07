@@ -59,3 +59,17 @@ export async function DELETE(request: Request, ctx: Ctx) {
   await ShareLink.updateMany({ videoId: id, ownerId: auth.user!._id, revokedAt: { $exists: false } }, { revokedAt: new Date() });
   return new Response(null, { status: 204 });
 }
+
+/** Turn downloads on or off for the live share link without changing its address. */
+export async function PATCH(request: Request, ctx: Ctx) {
+  const auth = await authed(request);
+  if ("error" in auth && auth.error) return auth.error;
+  const { id } = await ctx.params;
+  const parsed = z.object({ allowDownload: z.boolean() }).strict().safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return apiError(400, "VALIDATION", "INVALID_BODY", "Send allowDownload true or false.");
+  const video = await ownReady(auth.user!._id, id);
+  if (!video) return apiError(404, "NOT_FOUND", "NOT_FOUND", "That video is not here.");
+  const share = await ShareLink.findOneAndUpdate({ videoId: video._id, ownerId: auth.user!._id, revokedAt: { $exists: false } }, { $set: { allowDownload: parsed.data.allowDownload } }, { new: true });
+  if (!share) return apiError(404, "NOT_FOUND", "NOT_FOUND", "There is no live share link for this video.");
+  return json({ share: link(share) });
+}

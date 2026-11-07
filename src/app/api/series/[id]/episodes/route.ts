@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import { z } from "zod";
-import { Draft, Project, Series, SeriesVersion } from "../../../../../server/db";
+import { Draft, Project, Series, SeriesVersion, User } from "../../../../../server/db";
 import { apiError } from "../../../../../server/http";
 import { authed, json } from "../../../../../server/guard";
 
@@ -14,7 +14,11 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   if (!parsed.success) return apiError(400, "VALIDATION", "INVALID_BODY", "Describe what happens in this episode.");
   const series = await Series.findOne({ _id: id, ownerId: auth.user!._id, deletedAt: { $exists: false } });
   if (!series) return apiError(404, "NOT_FOUND", "NOT_FOUND", "That series is not here.");
-  if (!(await SeriesVersion.exists({ seriesId: series._id, ownerId: auth.user!._id }))) return apiError(422, "VALIDATION", "SERIES_NOT_APPROVED", "Approve the series bible and cast before making episodes.");
+  const frozen = await SeriesVersion.findOne({ seriesId: series._id, ownerId: auth.user!._id }).sort({ version: -1 }).select("version snapshot");
+  if (!frozen) return apiError(422, "VALIDATION", "SERIES_NOT_APPROVED", "Approve the series bible and cast before making episodes.");
+  // New episodes use the creator's own defaults and the approved (frozen) cast, not live edits.
+  const prefs = (await User.findById(auth.user!._id).select("prefs").lean<{ prefs?: { defaultFormat?: string; defaultLanguage?: string; defaultVoiceId?: string; defaultTargetMs?: number } }>())?.prefs ?? {};
+  const frozenCast = ((frozen.snapshot as { cast?: { id: string }[] })?.cast ?? []).map((c) => c.id);
   const session = await mongoose.startSession();
   try {
     let projectId = "";
@@ -23,7 +27,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       const last = await Project.findOne({ ownerId: auth.user!._id, seriesId: series._id }, null, { withDeleted: true }).sort({ episodeNumber: -1 }).select("episodeNumber").session(session);
       episodeNumber = (last?.episodeNumber ?? 0) + 1;
       const title = parsed.data.title || `${series.title}: Episode ${episodeNumber}`;
-      const [project] = await Project.create([{ ownerId: auth.user!._id, title: title.slice(0, 120), mode: series.mode, format: "9x16", targetMs: 60000, language: "en", voiceId: "elevenlabs:alice", styleId: "chalk-and-chai@1", keepPrivate: false, badge: "draft", seriesId: series._id, episodeNumber, castIds: series.castIds }], { session });
+      const [project] = await Project.create([{ ownerId: auth.user!._id, title: title.slice(0, 120), mode: series.mode, format: prefs.defaultFormat ?? "9x16", targetMs: Math.max(60000, prefs.defaultTargetMs ?? 60000), language: prefs.defaultLanguage ?? "en", voiceId: prefs.defaultVoiceId ?? "elevenlabs:alice", styleId: "chalk-and-chai@1", keepPrivate: false, badge: "draft", seriesId: series._id, seriesVersion: frozen.version, episodeNumber, castIds: frozenCast.length ? frozenCast : series.castIds }], { session });
       await Draft.create([{ ownerId: auth.user!._id, projectId: project._id, idea: { topic: parsed.data.topic, mustInclude: [] } }], { session });
       projectId = String(project._id);
     });

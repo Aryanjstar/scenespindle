@@ -2,10 +2,15 @@ import { createHmac } from "node:crypto";
 import { appEnv } from "../config/app";
 import { RateLimit } from "./db";
 
-function clientIp(request: Request): string {
-  // Behind Vercel or Azure Front Door the platform sets the first hop. Locally there is none.
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return forwarded || request.headers.get("x-real-ip") || "local";
+/**
+ * The client address as seen by our own proxy. X-Forwarded-For is a list the client can prefill,
+ * so only the entries appended by trusted proxies count: with TRUST_PROXY_HOPS=1 (Azure Container
+ * Apps ingress) that is the rightmost entry. With 0 (local), forwarded headers are ignored.
+ */
+export function clientIp(request: Request, hops = Number(process.env.TRUST_PROXY_HOPS ?? (process.env.NODE_ENV === "production" ? 1 : 0))): string {
+  if (!Number.isInteger(hops) || hops <= 0) return "local";
+  const chain = (request.headers.get("x-forwarded-for") ?? "").split(",").map((part) => part.trim()).filter(Boolean);
+  return chain[chain.length - hops] ?? "unknown";
 }
 
 function hashed(value: string): string {
@@ -28,6 +33,7 @@ export async function limit(request: Request, bucket: string, max: number, windo
     return row.count <= max;
   } catch {
     // A limiter outage must not lock creators out; the request still needs valid credentials.
+    console.error("rate-limit-unavailable", bucket);
     return true;
   }
 }

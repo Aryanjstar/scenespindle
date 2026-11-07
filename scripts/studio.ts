@@ -8,6 +8,7 @@ import { mkdirSync, copyFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { VOICES, voiceEntry, voiceUnavailable } from '../src/config/providers.js';
 import { loadEnv } from '../src/config/env.js';
+import { STAGE_ACTIONS, STAGE_SETS, STAGE_SHOTS } from '../src/compiler/stage.js';
 
 function commandAvailable(command: string, versionFlag = '--version'): boolean {
   return spawnSync(command, [versionFlag], { stdio: 'ignore', timeout: 5000 }).status === 0;
@@ -25,7 +26,8 @@ async function main(args: string[]) {
     case 'capabilities': {
       const env = loadEnv();
       return {
-        schemaVersion: 1, modes: ['explainer', 'code_lab'], languages: ['en', 'hi', 'hinglish'], formats: ['9x16', '16x9', '1x1'],
+        schemaVersion: 1, modes: ['explainer', 'code_lab', 'audio', 'story', 'cartoon', 'lyrics', 'montage'], languages: ['en', 'hi', 'hinglish'], formats: ['9x16', '16x9', '1x1'],
+        story: { looks: ['stage', 'illustrated'], sets: STAGE_SETS, actions: STAGE_ACTIONS, shots: STAGE_SHOTS, illustratedNeeds: 'AZURE_IMAGE_ENDPOINT and AZURE_IMAGE_KEY' },
         voices: VOICES.map(voice => ({ id: voice.id, timing: voice.timing, commercial: voice.commercial, available: !voiceUnavailable(voice, env), reason: voiceUnavailable(voice, env) ?? undefined })),
         render: { renderer: 'hyperframes@0.8.176', output: 'mp4 1080x1920 30fps h264/aac, -14 LUFS, srt, vtt, thumbnail, contact sheet' },
         note: 'Explainer, Code Lab, Audio, Story, Cartoon, Lyrics and Montage render. Story and Cartoon perform on a 3D stage.',
@@ -58,6 +60,7 @@ async function main(args: string[]) {
         format: (flag('--format') ?? '9x16') as '9x16' | '16x9' | '1x1',
         targetMs: Number(flag('--seconds') ?? 45) * 1000,
         mode: trace ? 'code_lab' : (['story', 'cartoon', 'audio'] as const).find((item) => item === flag('--mode')) ?? (rest.includes('--audio') ? 'audio' : 'explainer'),
+        look: flag('--look') === 'illustrated' ? 'illustrated' : 'stage',
         voiceId: flag('--voice') ?? 'elevenlabs:alice',
         brief: flag('--script') ? { exactScript: await readFile(flag('--script')!, 'utf8') } : null,
         trace: trace ? { entry: trace.entry, input: trace.input, returned: trace.returned, code: trace.code, states: keyStates(trace.steps) } : null,

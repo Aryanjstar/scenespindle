@@ -5,7 +5,7 @@ import { authed, busy, json } from "../../../server/guard";
 import { enqueue } from "../../../server/jobs";
 import { imageConfig } from "../../../server/providers/images";
 import { characterAllowed } from "../../../server/studio";
-import { characterJson } from "../../../server/characters";
+import { characterJson, stageLookSchema } from "../../../server/characters";
 
 const createSchema = z.object({
   name: z.string().trim().min(2).max(40),
@@ -15,6 +15,7 @@ const createSchema = z.object({
   rights: z.enum(["own", "licensed", "original-generated"]).default("own"),
   rightsNote: z.string().trim().max(280).default(""),
   draw: z.boolean().default(true),
+  look: stageLookSchema.optional(),
 }).strict();
 
 export async function GET() {
@@ -22,7 +23,7 @@ export async function GET() {
   if ("error" in auth && auth.error) return auth.error;
   const items = await Character.find({ ownerId: auth.user!._id }).sort({ updatedAt: -1 }).limit(60);
   const versions = await CharacterVersion.find({ ownerId: auth.user!._id, characterId: { $in: items.map((item) => item._id) } }).sort({ version: -1 }).select("characterId version sheetAssetId createdAt");
-  return json({ items: items.map((item) => ({ ...characterJson(item), versions: versions.filter((v) => String(v.characterId) === String(item._id)).map((v) => ({ version: v.version, sheetUrl: `/api/assets/${String(v.sheetAssetId)}/file`, createdAt: v.createdAt })) })), imagesAvailable: Boolean(imageConfig()) });
+  return json({ items: items.map((item, index) => ({ ...characterJson(item, index), versions: versions.filter((v) => String(v.characterId) === String(item._id)).map((v) => ({ version: v.version, sheetUrl: `/api/assets/${String(v.sheetAssetId)}/file`, createdAt: v.createdAt })) })), imagesAvailable: Boolean(imageConfig()) });
 }
 
 /** Create an original character, optionally from your own reference image, and draw its sheet. */
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
   if (characterAllowed(body.name)) return apiError(422, "VALIDATION", "PROTECTED_CHARACTER", "That character is not allowed. Use an original character.");
   if (await Character.exists({ ownerId: auth.user!._id, name: body.name })) return apiError(409, "CONFLICT", "CHARACTER_NAME_TAKEN", "You already have a character with that name.");
   if (body.referenceAssetId && !(await Asset.exists({ _id: body.referenceAssetId, ownerId: auth.user!._id, kind: "image" }))) return apiError(404, "NOT_FOUND", "NOT_FOUND", "That reference image is not in your library.");
-  const character = await Character.create({ ownerId: auth.user!._id, name: body.name, description: body.description, style: body.style, referenceAssetId: body.referenceAssetId, rights: body.rights, rightsNote: body.rightsNote, state: body.draw && imageConfig() ? "drawing" : "draft" });
+  const character = await Character.create({ ownerId: auth.user!._id, name: body.name, description: body.description, style: body.style, referenceAssetId: body.referenceAssetId, rights: body.rights, rightsNote: body.rightsNote, look: body.look, state: body.draw && imageConfig() ? "drawing" : "draft" });
   let jobId: string | undefined;
   if (body.draw && imageConfig()) {
     try {

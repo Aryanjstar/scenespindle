@@ -12,17 +12,19 @@ export async function ownBriefProject(ownerId: mongoose.Types.ObjectId, id: stri
   return Project.findOne({ _id: id, ownerId });
 }
 
-async function contextFor(project: { _id: mongoose.Types.ObjectId; mode: string; format: string; language: string; targetMs: number }, ownerId: mongoose.Types.ObjectId) {
-  const draft = await Draft.findOne({ ownerId, projectId: project._id }).select('idea.audience');
+export type BriefScope = { _id: mongoose.Types.ObjectId; scope?: 'project' | 'series'; mode: string; format: string; language: string; targetMs: number };
+
+async function contextFor(project: BriefScope, ownerId: mongoose.Types.ObjectId) {
+  const draft = project.scope === 'series' ? null : await Draft.findOne({ ownerId, projectId: project._id }).select('idea.audience');
   return { projectId: String(project._id), mode: project.mode, format: project.format, language: project.language, targetMs: project.targetMs, inheritedAudience: draft?.idea?.audience };
 }
 
-export async function refineProjectBrief(project: { _id: mongoose.Types.ObjectId; mode: string; format: string; language: string; targetMs: number }, ownerId: mongoose.Types.ObjectId, expectedRevision: number, rawInput: unknown) {
+export async function refineProjectBrief(project: BriefScope, ownerId: mongoose.Types.ObjectId, expectedRevision: number, rawInput: unknown) {
   const input = briefInputSchema.parse(rawInput);
   const result = refineBrief(input, await contextFor(project, ownerId));
   if (expectedRevision === 0) {
     try {
-      return await Brief.create({ ownerId, projectId: project._id, revision: 1, version: 0, input, result, state: result.state });
+      return await Brief.create({ ownerId, projectId: project._id, scope: project.scope ?? 'project', revision: 1, version: 0, input, result, state: result.state });
     } catch (error) {
       if (error instanceof mongoose.mongo.MongoServerError && error.code === 11000) {
         const current = await Brief.findOne({ ownerId, projectId: project._id }).select('revision');
@@ -41,7 +43,7 @@ export async function refineProjectBrief(project: { _id: mongoose.Types.ObjectId
   throw new BriefConflict(current?.revision ?? 0);
 }
 
-export async function answerProjectBrief(project: { _id: mongoose.Types.ObjectId; mode: string; format: string; language: string; targetMs: number }, ownerId: mongoose.Types.ObjectId, expectedRevision: number, choice: 'clear' | 'story' | 'visual') {
+export async function answerProjectBrief(project: BriefScope, ownerId: mongoose.Types.ObjectId, expectedRevision: number, choice: 'clear' | 'story' | 'visual') {
   const current = await Brief.findOne({ ownerId, projectId: project._id, revision: expectedRevision });
   if (!current) {
     const latest = await Brief.findOne({ ownerId, projectId: project._id }).select('revision');
@@ -63,7 +65,9 @@ export async function approveProjectBrief(projectId: mongoose.Types.ObjectId, ow
         return { briefVersionId: String(prior._id), version: prior.version, contentHash: prior.contentHash };
       }
       if (current.state !== 'ready_for_review' || current.result.state !== 'ready_for_review') throw new BriefIncomplete();
-      const snapshot = current.result;
+      // Research (when run) travels with the approved snapshot, labelled with its sources and dates.
+      const research = current.research?.status === 'done' ? current.research : null;
+      const snapshot = { ...current.result, ...(research ? { research: { mode: current.result.research?.mode ?? 'auto', status: 'done', note: research.summary, sources: research.sources, retrievedAt: research.at } } : {}) };
       const promptBundle = compileBriefPrompts(snapshot);
       const version = current.version + 1;
       const updated = await Brief.updateOne({ _id: current._id, ownerId, revision: expectedRevision }, { $set: { state: 'approved', approvedAt: new Date() }, $inc: { version: 1 } }, { session });

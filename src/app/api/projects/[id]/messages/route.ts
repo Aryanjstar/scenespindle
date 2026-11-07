@@ -1,9 +1,10 @@
 import { Draft, Message } from "../../../../../server/db";
 import { apiError } from "../../../../../server/http";
 import { authed, busy, json } from "../../../../../server/guard";
-import { ownProject, startJob } from "../../../../../server/studio";
-
-export const maxDuration = 60;
+import { z } from "zod";
+import { enqueue } from "../../../../../server/jobs";
+import { limit } from "../../../../../server/rate-limit";
+import { ownProject } from "../../../../../server/studio";
 
 export async function GET(_request: Request, ctx: { params: Promise<{ id: string }> }) {
   const auth = await authed();
@@ -24,50 +25,26 @@ export async function GET(_request: Request, ctx: { params: Promise<{ id: string
   });
 }
 
+const body = z.object({ text: z.string().trim().min(1).max(4000), sceneIds: z.array(z.string().regex(/^s\d{1,2}$/)).max(40).default([]) }).strict();
+
+/** Ask the copilot. The user's note is saved now; the worker posts the reply and proposal. */
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
   const auth = await authed(request);
   if ("error" in auth && auth.error) return auth.error;
   const { id } = await ctx.params;
   const project = await ownProject(auth.user!._id, id);
   if (!project) return apiError(404, "NOT_FOUND", "NOT_FOUND", "That project is not here.");
-  const body = (await request.json().catch(() => null)) as { text?: string; sceneIds?: string[] } | null;
-  const text = body?.text?.trim() ?? "";
-  if (!text) return apiError(400, "VALIDATION", "VALIDATION", "Write a note for the copilot.");
+  const parsed = body.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return apiError(400, "VALIDATION", "VALIDATION", "Write a note for the copilot.");
+  if (!(await limit(request, "plan", 20, 10 * 60_000, String(auth.user!._id)))) return apiError(429, "RATE_LIMITED", "RATE_LIMITED", "That is a lot of changes in a short time. Wait a few minutes.");
   const draft = await Draft.findOne({ projectId: project._id, ownerId: auth.user!._id });
   if (!draft) return apiError(404, "NOT_FOUND", "NOT_FOUND", "That project is not here.");
-  const updated = await Draft.findOneAndUpdate({ _id: draft._id, ownerId: auth.user!._id }, { $inc: { messageSeq: 1 } }, { new: true });
-  if (!updated) return apiError(404, "NOT_FOUND", "NOT_FOUND", "That project is not here.");
-  const seq = updated.messageSeq;
-  const userMessage = await Message.create({
-    ownerId: auth.user!._id,
-    projectId: project._id,
-    seq,
-    role: "user",
-    text: text.slice(0, 4000),
-    sceneIds: body?.sceneIds ?? [],
-  });
   try {
-    const job = await startJob({
-      ownerId: auth.user!._id,
-      projectId: project._id,
-      type: "revise",
-      input: { text, messageId: userMessage._id, draftRevision: draft.revision, sceneIds: Array.isArray(body?.sceneIds) ? body.sceneIds.filter((id): id is string => typeof id === "string").slice(0, 40) : [] },
-      stages: [{ name: "revise", state: "running" }],
-    });
-    const candidate = job?.result?.candidate;
-    const after = await Draft.findOneAndUpdate({ _id: draft._id, ownerId: auth.user!._id }, { $inc: { messageSeq: 1 } }, { new: true });
-    if (!after) return apiError(404, "NOT_FOUND", "NOT_FOUND", "That project is not here.");
-    const assistant = await Message.create({
-      ownerId: auth.user!._id,
-      projectId: project._id,
-      seq: after.messageSeq,
-      role: "assistant",
-      text: candidate?.summary || job?.error?.message || "I could not make that change.",
-      jobId: job?._id,
-      candidate,
-    });
-    return json({ message: { id: String(assistant._id) }, jobId: String(job?._id) }, 202);
+    const jobId = await enqueue({ ownerId: auth.user!._id, scopeId: project._id, type: "revise", input: { text: parsed.data.text, draftRevision: draft.revision, sceneIds: parsed.data.sceneIds }, stages: ["revise"] });
+    const updated = await Draft.findOneAndUpdate({ _id: draft._id, ownerId: auth.user!._id }, { $inc: { messageSeq: 1 } }, { new: true });
+    const message = await Message.create({ ownerId: auth.user!._id, projectId: project._id, seq: updated!.messageSeq, role: "user", text: parsed.data.text, sceneIds: parsed.data.sceneIds, jobId });
+    return json({ message: { id: String(message._id) }, jobId }, 202);
   } catch (error) {
-    return busy(error) ?? apiError(500, "FAILED", "FAILED", error instanceof Error ? error.message : "The copilot failed.");
+    return busy(error) ?? apiError(500, "FAILED", "FAILED", "The copilot could not start.");
   }
 }

@@ -43,6 +43,14 @@ export type RenderResult = {
   warnings: string[];
   voiceModel: string;
   providerChars: number;
+  /** Scene and line times of the final film, for edit decision exports (OTIO, package). */
+  edl: Edl;
+};
+
+export type Edl = {
+  durationMs: number;
+  scenes: { id: string; startMs: number; durationMs: number }[];
+  lines: { sceneId: string; lineId: string; text: string; startMs: number; durationMs: number }[];
 };
 
 type Clip = { sceneId: string; lineId: string; text: string; audioFile: string; durationMs: number; words: WordTiming[] };
@@ -81,6 +89,13 @@ export function songTimeline(plan: Plan, lines: SongLine[], songMs: number): Tim
  * Narrate every line. Clips are cached by voice + text, so a retry or a re-render
  * of unchanged lines never calls the provider again.
  */
+export type VoiceMeta = { ext: "mp3" | "wav"; words: WordTiming[]; timing: "aligned" | "estimated"; model: string };
+/** get() downloads `${key}.${ext}` into dir and returns its meta; put() uploads it from dir. */
+export type VoiceCacheStore = {
+  get: (key: string, dir: string) => Promise<VoiceMeta | null>;
+  put: (key: string, dir: string, meta: VoiceMeta) => Promise<void>;
+};
+
 export async function narratePlan(opts: {
   plan: Plan;
   voice: VoiceEntry;
@@ -89,6 +104,8 @@ export async function narratePlan(opts: {
   assetsDir: string;
   /** Called with the character count before each uncached provider call. Throw to stop. */
   beforeCall?: (chars: number) => Promise<void>;
+  /** Shared cache (object storage) so narration survives restarts and is shared across workers. */
+  shared?: VoiceCacheStore;
 }): Promise<{ clips: Clip[]; timing: "aligned" | "estimated"; model: string; providerChars: number }> {
   mkdirSync(opts.cacheDir, { recursive: true });
   mkdirSync(opts.assetsDir, { recursive: true });
@@ -106,6 +123,11 @@ export async function narratePlan(opts: {
         meta = JSON.parse(readFileSync(metaFile, "utf8"));
         if (!existsSync(resolve(opts.cacheDir, `${key}.${meta!.ext}`))) meta = null;
       }
+      if (!meta && opts.shared) {
+        // Pull a clip another worker (or an earlier container) already paid for.
+        const hit = await opts.shared.get(key, opts.cacheDir).catch(() => null);
+        if (hit) { meta = hit; writeFileSync(metaFile, JSON.stringify(meta)); }
+      }
       if (!meta) {
         await opts.beforeCall?.(spoken.length);
         const take = await speak(opts.voice, spoken, opts.keys, opts.plan.language);
@@ -116,6 +138,7 @@ export async function narratePlan(opts: {
         writeFileSync(resolve(opts.cacheDir, `${key}.${take.ext}`), take.audio);
         meta = { ext: take.ext, words: take.words, timing: take.timing, model: take.model };
         writeFileSync(metaFile, JSON.stringify(meta));
+        if (opts.shared && opts.voice.provider !== "test") await opts.shared.put(key, opts.cacheDir, meta).catch(() => console.error("voice-cache-upload-failed"));
       }
       const audioName = `vo-${scene.id}-${line.id}.${meta.ext}`;
       const target = resolve(opts.assetsDir, audioName);
@@ -130,7 +153,7 @@ export async function narratePlan(opts: {
   return { clips, timing, model, providerChars };
 }
 
-function hyperframesBin(): string {
+export function hyperframesBin(): string {
   const require = createRequire(import.meta.url);
   const pkg = require.resolve("hyperframes/package.json");
   return resolve(dirname(pkg), "bin/hyperframes.mjs");
@@ -198,6 +221,9 @@ export async function renderFilm(opts: {
   trace?: CompileTrace;
   images?: Record<string, string>;
   song?: { file: string; lines: SongLine[] };
+  voiceCache?: VoiceCacheStore;
+  /** Cinematic profile: renders the 3D stage offline and returns the video file to lay under the film. */
+  stageRenderer?: (args: { plan: Plan; timeline: Timeline; workDir: string; signal?: AbortSignal }) => Promise<string | null>;
 }): Promise<RenderResult> {
   const project = resolve(opts.workDir, "project");
   const out = resolve(opts.workDir, "out");
@@ -220,14 +246,15 @@ export async function renderFilm(opts: {
     warnings.push("Line times come from your lyric file; word times inside a line are spread evenly.");
     await opts.onStage?.("timeline");
   } else {
-    voiced = await narratePlan({ plan: opts.plan, voice: opts.voice, keys: opts.keys, cacheDir: opts.cacheDir, assetsDir: resolve(project, "assets"), beforeCall: opts.beforeCall });
+    voiced = await narratePlan({ plan: opts.plan, voice: opts.voice, keys: opts.keys, cacheDir: opts.cacheDir, assetsDir: resolve(project, "assets"), beforeCall: opts.beforeCall, shared: opts.voiceCache });
     if (voiced.timing === "estimated") warnings.push("Caption times are estimated from measured line lengths; this voice returns no word timestamps.");
     if (opts.voice.provider === "test") warnings.push("Narration is a test tone, not speech.");
     if (!opts.voice.commercial) warnings.push("This voice is licensed for non-commercial use only.");
     await opts.onStage?.("timeline");
     timeline = buildTimeline(plan, voiced.clips);
   }
-  compileProject({ plan, timeline, outDir: project, trace: opts.trace, images: opts.images, audioTrack });
+  const stageVideo = opts.stageRenderer ? await opts.stageRenderer({ plan, timeline, workDir: resolve(opts.workDir, "stage"), signal: opts.signal }) : null;
+  compileProject({ plan, timeline, outDir: project, trace: opts.trace, images: opts.images, audioTrack, stageVideo: stageVideo ?? undefined });
 
   await opts.onStage?.("frames");
   const raw = resolve(out, "raw.mp4");
@@ -258,5 +285,10 @@ export async function renderFilm(opts: {
   await opts.onStage?.("qa");
   const layout = LAYOUTS[plan.format];
   const qa = await probeVideo(mp4, timeline.durationMs, { width: layout.w, height: layout.h });
-  return { mp4, thumb, sheet, srt, vtt, durationMs: qa.durationMs, timing: voiced.timing, qa, warnings, voiceModel: voiced.model, providerChars: voiced.providerChars };
+  const edl: Edl = {
+    durationMs: timeline.durationMs,
+    scenes: timeline.scenes.map((scene) => ({ id: scene.id, startMs: scene.startMs, durationMs: scene.durationMs })),
+    lines: timeline.lines.map((line) => ({ sceneId: line.sceneId, lineId: line.lineId, text: line.text, startMs: line.startMs, durationMs: line.durationMs })),
+  };
+  return { mp4, thumb, sheet, srt, vtt, durationMs: qa.durationMs, timing: voiced.timing, qa, warnings, voiceModel: voiced.model, providerChars: voiced.providerChars, edl };
 }

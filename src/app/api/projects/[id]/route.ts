@@ -17,7 +17,21 @@ const patchSchema = z.object({
   language: z.enum(LANGUAGES).optional(),
   targetMs: z.number().int().min(15000).max(180000).optional(),
   castIds: z.array(z.string().regex(/^[a-f0-9]{24}$/)).max(6).optional(),
+  look: z.enum(["stage", "illustrated"]).optional(),
+  executionTarget: z.enum(["hosted", "paired-agent"]).optional(),
+  renderProfile: z.enum(["realtime-3d", "cinematic-3d"]).optional(),
+  recap: z.string().trim().max(600).optional(),
 }).strict();
+
+function projectJson(project: { _id: unknown; title: string; mode: string; format: string; targetMs: number; language: string; voiceId: string; styleId: string; badge: string; updatedAt?: Date; castIds?: unknown[]; seriesId?: unknown; seriesVersion?: number; episodeNumber?: number; lyrics?: { songAssetId?: unknown; lrc?: string } | null; look?: string; executionTarget?: string; renderProfile?: string; recap?: string; montage?: unknown }) {
+  return {
+    id: String(project._id), title: project.title, mode: project.mode, format: project.format, targetMs: project.targetMs, language: project.language,
+    voiceId: project.voiceId, styleId: project.styleId, badge: project.badge, updatedAt: project.updatedAt, castIds: (project.castIds ?? []).map(String),
+    seriesId: project.seriesId ? String(project.seriesId) : null, seriesVersion: project.seriesVersion ?? null, episodeNumber: project.episodeNumber ?? null,
+    lyrics: project.lyrics?.songAssetId ? { songAssetId: String(project.lyrics.songAssetId), lrc: project.lyrics.lrc ?? "" } : null,
+    look: project.look ?? "stage", executionTarget: project.executionTarget ?? "hosted", renderProfile: project.renderProfile ?? "realtime-3d", recap: project.recap ?? "", montage: project.montage ?? null,
+  };
+}
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -44,22 +58,7 @@ export async function GET(_request: Request, ctx: Ctx) {
       : await Video.findOne({ projectId: project._id, ownerId: user._id, state: { $in: ["preview", "ready"] } }).sort({ version: -1 }).select("-previewHtml");
     const activeJob = await Job.findOne({ projectId: project._id, ownerId: user._id, activeSlot: true }).select("_id type state input.output");
     return NextResponse.json({
-      project: {
-        id: String(project._id),
-        title: project.title,
-        mode: project.mode,
-        format: project.format,
-        targetMs: project.targetMs,
-        language: project.language,
-        voiceId: project.voiceId,
-        styleId: project.styleId,
-        badge: project.badge,
-        updatedAt: project.updatedAt,
-        castIds: (project.castIds ?? []).map(String),
-        seriesId: project.seriesId ? String(project.seriesId) : null,
-        episodeNumber: project.episodeNumber ?? null,
-        lyrics: project.lyrics?.songAssetId ? { songAssetId: String(project.lyrics.songAssetId), lrc: project.lyrics.lrc ?? "" } : null,
-      },
+      project: projectJson(project),
       draft: draft
         ? {
             id: String(draft._id),
@@ -70,10 +69,11 @@ export async function GET(_request: Request, ctx: Ctx) {
             planValid: draft.planValid,
             issues: draft.issues ?? (draft.plan != null ? validatePlan(draft.plan).issues : []),
             traceId: draft.traceId ? String(draft.traceId) : undefined,
+            briefVersionId: draft.briefVersionId ? String(draft.briefVersionId) : null,
           }
         : null,
       video: video ? videoJson(video, project.currentVideoId) : null,
-      activeJob: activeJob ? { id: String(activeJob._id), state: activeJob.state, output: activeJob.input?.output === "mp4" ? "mp4" : "preview" } : null,
+      activeJob: activeJob ? { id: String(activeJob._id), type: activeJob.type, state: activeJob.state, output: activeJob.type !== "render" ? activeJob.type : activeJob.input?.output === "mp4" ? "mp4" : activeJob.input?.output === "montage" ? "montage" : "preview" } : null,
     });
   } catch {
     return apiError(503, "UNAVAILABLE", "DB_DOWN", "The studio database is not reachable.");
@@ -92,7 +92,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   if (!mongoose.isValidObjectId(id)) return missing();
   const parsed = patchSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success || !Object.keys(parsed.data).length) return apiError(400, "VALIDATION", "INVALID_BODY", "Send a title or a narrator.");
+  if (!parsed.success || !Object.keys(parsed.data).length) return apiError(400, "VALIDATION", "INVALID_BODY", parsed.success ? "Send at least one setting to change." : `Check ${parsed.error.issues[0]?.path.join(".") || "the settings"}: ${parsed.error.issues[0]?.message ?? "invalid"}.`);
   const before = await Project.findOne({ _id: id, ownerId: user._id });
   if (!before) return missing();
   if (parsed.data.voiceId) {
@@ -121,7 +121,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
     }
   }
   return NextResponse.json({
-    project: { id: String(project._id), title: project.title, voiceId: project.voiceId, format: project.format, language: project.language, targetMs: project.targetMs, castIds: (project.castIds ?? []).map(String) },
+    project: projectJson(project),
     draftRevision,
   });
 }

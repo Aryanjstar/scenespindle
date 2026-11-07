@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { findProtected } from "../config/protected";
+import { ACCESSORIES, BUILDS, HAIR_STYLES, OUTFITS, STAGE_ACTIONS, STAGE_LOOKS, STAGE_SETS, STAGE_SHOTS } from "../compiler/stage";
 
 export const PURPOSES = ["hook", "setup", "explain", "example", "recap", "cta"] as const;
 export const LANGUAGES = ["en", "hi", "hinglish"] as const;
@@ -100,6 +101,21 @@ export const planSchema = z.object({
   styleId: z.literal("chalk-and-chai@1"),
   voiceId: z.string().min(3).max(80),
   songAssetId: z.string().regex(/^[a-f0-9]{24}$/).optional(),
+  /** Story and Cartoon: who performs on the 3D stage, in order. Scenes refer to them by index. */
+  cast: z.array(z.object({
+    characterId: z.string().regex(/^[a-f0-9]{24}$/).optional(),
+    name: z.string().min(1).max(40),
+    look: z.object({
+      skin: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+      hair: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+      hairStyle: z.enum(HAIR_STYLES),
+      top: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+      bottom: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+      outfit: z.enum(OUTFITS),
+      build: z.enum(BUILDS),
+      accessory: z.enum(ACCESSORIES),
+    }).strict(),
+  }).strict()).max(3).optional(),
   scenes: z.array(
     z.object({
       id: z.string().regex(/^s([1-9]|[1-3][0-9]|40)$/),
@@ -147,6 +163,7 @@ function screenStrings(plan: Plan): { path: string; value: string }[] {
   const out: { path: string; value: string }[] = [
     { path: "title", value: plan.title },
     { path: "logline", value: plan.logline },
+    ...(plan.cast ?? []).map((member, c) => ({ path: `cast.${c}.name`, value: member.name })),
   ];
   plan.scenes.forEach((scene, s) => {
     scene.lines.forEach((line, l) => {
@@ -226,19 +243,19 @@ export function validatePlan(input: unknown): { plan: Plan | null; issues: PlanI
         }
       }
       if (layer.component === "stage.perform@1") {
-        const { action, look, rigs, set } = layer.props as { action?: unknown; look?: unknown; rigs?: unknown; set?: unknown };
-        if (action !== "talk" && action !== "walk" && action !== "turn" && action !== "wave" && action !== "hold") {
-          issues.push({ path: `scenes.${s}.layers.${i}.props.action`, message: "Stage action must be talk, walk, turn, wave or hold" });
+        const { action, look, rigs, set, shot, on, speaker } = layer.props as Record<string, unknown>;
+        const path = `scenes.${s}.layers.${i}.props`;
+        const performers = Math.max(1, plan.cast?.length ?? 2);
+        if (!(STAGE_ACTIONS as readonly unknown[]).includes(action)) issues.push({ path: `${path}.action`, message: `Stage action must be one of ${STAGE_ACTIONS.join(", ")}` });
+        if (!(STAGE_LOOKS as readonly unknown[]).includes(look)) issues.push({ path: `${path}.look`, message: "Stage look must be storybook or cartoon" });
+        // Older plans carry rigs (1 or 2) and may have no set or shot; the compiler fills defaults.
+        if (rigs !== undefined && rigs !== 1 && rigs !== 2) issues.push({ path: `${path}.rigs`, message: "A stage has one or two performers" });
+        if (set !== undefined && !(STAGE_SETS as readonly unknown[]).includes(set)) issues.push({ path: `${path}.set`, message: `Stage set must be one of ${STAGE_SETS.join(", ")}` });
+        if (shot !== undefined && !(STAGE_SHOTS as readonly unknown[]).includes(shot)) issues.push({ path: `${path}.shot`, message: "Shot must be wide, medium or close" });
+        if (on !== undefined && (!Array.isArray(on) || on.length < 1 || on.length > 3 || on.some((n) => !Number.isInteger(n) || n < 0 || n >= performers) || new Set(on).size !== on.length)) {
+          issues.push({ path: `${path}.on`, message: "on lists one to three different cast positions" });
         }
-        if (look !== "storybook" && look !== "cartoon") {
-          issues.push({ path: `scenes.${s}.layers.${i}.props.look`, message: "Stage look must be storybook or cartoon" });
-        }
-        if (rigs !== 1 && rigs !== 2) {
-          issues.push({ path: `scenes.${s}.layers.${i}.props.rigs`, message: "A stage has one or two performers" });
-        }
-        if (set !== "home" && set !== "bank" && set !== "lane") {
-          issues.push({ path: `scenes.${s}.layers.${i}.props.set`, message: "Stage set must be home, bank or lane" });
-        }
+        if (speaker !== undefined && (!Number.isInteger(speaker) || (speaker as number) < -1 || (speaker as number) >= performers)) issues.push({ path: `${path}.speaker`, message: "speaker is a cast position or -1" });
       }
       if (layer.component === "image.still@1") {
         const { prompt, assetId, characterIds } = layer.props as { prompt?: unknown; assetId?: unknown; characterIds?: unknown };

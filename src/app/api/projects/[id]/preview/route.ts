@@ -1,10 +1,9 @@
 import { Draft } from "../../../../../server/db";
 import { apiError } from "../../../../../server/http";
+import { PREVIEW_CSP, signPreviewImages } from "../../../../../server/signed";
 import { authed } from "../../../../../server/guard";
 import { ownProject, previewHtml } from "../../../../../server/studio";
 import { validatePlan } from "../../../../../contracts/plan";
-
-const CSP = "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; media-src data:; font-src data:; frame-ancestors 'self'";
 
 export async function GET(_request: Request, ctx: { params: Promise<{ id: string }> }) {
   const auth = await authed();
@@ -16,10 +15,10 @@ export async function GET(_request: Request, ctx: { params: Promise<{ id: string
   const checked = validatePlan(draft?.plan);
   if (!checked.plan) return apiError(422, "VALIDATION", "PLAN_INVALID", "The storyboard is not valid yet.");
   const html = previewHtml(checked.plan);
-  return new Response(html, {
+  return new Response(signPreviewImages(html), {
     headers: {
       "content-type": "text/html; charset=utf-8",
-      "content-security-policy": CSP,
+      "content-security-policy": PREVIEW_CSP,
       "x-content-type-options": "nosniff",
     },
   });

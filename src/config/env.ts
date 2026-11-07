@@ -15,7 +15,12 @@ function parseFile(path: string): Map<string, string> {
     if (!trimmed || trimmed.startsWith("#")) continue;
     const i = trimmed.indexOf("=");
     if (i < 0) continue;
-    map.set(trimmed.slice(0, i).trim(), trimmed.slice(i + 1).trim());
+    let value = trimmed.slice(i + 1).trim();
+    // Quoted values keep everything inside the quotes; unquoted values drop an inline " # comment".
+    const quoted = value.match(/^(["'])(.*)\1$/);
+    if (quoted) value = quoted[2];
+    else value = value.replace(/\s+#.*$/, "").trim();
+    map.set(trimmed.slice(0, i).trim(), value);
   }
   return map;
 }

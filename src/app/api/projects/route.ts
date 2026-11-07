@@ -5,8 +5,8 @@ import { connectDb, Draft, Project } from "../../../server/db";
 import { apiError, originOk } from "../../../server/http";
 import { currentUser } from "../../../server/session";
 
-const MODES = new Set(["explainer", "code_lab", "story", "audio", "cartoon", "montage", "lyrics"]);
-const OPEN = new Set(["explainer", "code_lab", "audio", "montage", "story", "cartoon", "lyrics"]);
+const MODES = new Set(["explainer", "code_lab", "story", "audio", "cartoon", "montage", "lyrics", "reel"]);
+const OPEN = MODES;
 
 export async function GET(request: Request) {
   try {

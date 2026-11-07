@@ -70,6 +70,8 @@ const userSchema = new Schema(
     passwordChangedAt: { type: Date, required: true },
     prefs: { type: new Schema(prefs, { _id: false }), default: () => ({}) },
     pronunciations: { type: [{ written: String, spoken: String }], default: [] },
+    /** Owner-set monthly caps per provider for this creator. Missing means only the studio cap. */
+    allowances: { type: Schema.Types.Mixed, default: undefined },
   },
   { timestamps: true },
 );
@@ -95,7 +97,7 @@ const projectSchema = new Schema(
   {
     ownerId: { type: Schema.Types.ObjectId, required: true, index: true },
     title: { type: String, required: true, maxlength: 120 },
-    mode: { type: String, required: true, enum: ["explainer", "code_lab", "story", "audio", "cartoon", "montage", "lyrics"] },
+    mode: { type: String, required: true, enum: ["explainer", "code_lab", "story", "audio", "cartoon", "montage", "lyrics", "reel"] },
     seriesId: { type: Schema.Types.ObjectId },
     episodeNumber: { type: Number },
     castIds: { type: [Schema.Types.ObjectId], default: [] },
@@ -110,6 +112,19 @@ const projectSchema = new Schema(
     storyboardVersion: { type: Number, default: 0 },
     videoVersion: { type: Number, default: 0 },
     currentVideoId: { type: Schema.Types.ObjectId },
+    /** Story and Cartoon: a performed 3D stage, or illustrated stills with camera moves. */
+    look: { type: String, enum: ["stage", "illustrated"], default: "stage" },
+    /** Episodes plan from this frozen series snapshot. */
+    seriesVersion: { type: Number },
+    /** Where renders run: the hosted worker, or the creator's paired PC. */
+    executionTarget: { type: String, enum: ["hosted", "paired-agent"], default: "hosted" },
+    /** Story/Cartoon renderer: the real-time Three.js stage or Blender (paired PC only). */
+    renderProfile: { type: String, enum: ["realtime-3d", "cinematic-3d"], default: "realtime-3d" },
+    /** Montage: style preset and the creator's own edit instructions. */
+    montage: { type: Schema.Types.Mixed },
+    duplicatedFrom: { type: Schema.Types.ObjectId },
+    /** Episode continuity: what happened, for later episodes to build on. */
+    recap: { type: String, maxlength: 600 },
     deletedAt: Date,
   },
   { timestamps: true },
@@ -142,6 +157,7 @@ const draftSchema = new Schema(
     traceId: { type: Schema.Types.ObjectId },
     messageSeq: { type: Number, required: true, default: 0 },
     approvalFence: { type: String },
+    briefVersionId: { type: Schema.Types.ObjectId },
   },
   { timestamps: true, minimize: false },
 );
@@ -150,7 +166,11 @@ const jobSchema = new Schema(
   {
     ownerId: { type: Schema.Types.ObjectId, required: true, index: true },
     projectId: { type: Schema.Types.ObjectId, required: true, index: true },
-    type: { type: String, required: true, enum: ["brainstorm", "plan", "revise", "scene_regen", "render", "image", "cleanup", "publish"] },
+    type: { type: String, required: true, enum: ["brainstorm", "plan", "revise", "scene_regen", "render", "image", "cleanup", "publish", "caption", "brief_refine", "analysis", "export", "tool"] },
+    /** Execution target for renders; paired-agent jobs are only claimed by that creator's agent. */
+    target: { type: String, enum: ["hosted", "paired-agent"], default: "hosted" },
+    agentId: { type: Schema.Types.ObjectId },
+    startedAt: Date,
     state: { type: String, required: true, enum: ["queued", "running", "waiting_quota", "succeeded", "failed", "cancelled"], default: "queued" },
     activeSlot: { type: Boolean },
     input: { type: Schema.Types.Mixed, required: true },
@@ -180,6 +200,7 @@ const storyboardSchema = new Schema(
     traceId: Schema.Types.ObjectId,
     origin: { type: String, required: true, enum: ["approve", "revision", "restore"] },
     seriesVersion: Number,
+    briefVersionId: Schema.Types.ObjectId,
     plannerModel: String,
     approvedAt: { type: Date, required: true },
   },
@@ -212,6 +233,10 @@ const videoSchema = new Schema(
       }, { _id: false }),
     },
     qa: { type: Schema.Types.Mixed },
+    /** Scene/line times (films) or cut times (montages), for OTIO and package exports. */
+    edl: { type: Schema.Types.Mixed },
+    /** Export files made later: audio, package, otio. */
+    exports: { type: Schema.Types.Mixed },
     commercialSafe: { type: Boolean, default: true },
   },
   { timestamps: true },
@@ -255,7 +280,10 @@ const traceSchema = new Schema(
     tracerVersion: { type: String, required: true },
     code: { type: String, maxlength: 8000 },
     returned: { type: Schema.Types.Mixed },
-    steps: { type: [Schema.Types.Mixed], required: true },
+    steps: { type: [Schema.Types.Mixed], default: [] },
+    /** Large step lists live in storage, not in the document. */
+    stepsKey: String,
+    stepCount: Number,
   },
   { timestamps: true },
 );
@@ -300,6 +328,8 @@ const characterSchema = new Schema(
     version: { type: Number, default: 0 },
     sheetAssetId: { type: Schema.Types.ObjectId },
     state: { type: String, enum: ["draft", "drawing", "ready", "failed"], default: "draft" },
+    /** How the character looks on the 3D stage: hair, skin, outfit colours, build. */
+    look: { type: Schema.Types.Mixed },
   },
   { timestamps: true },
 );
@@ -323,7 +353,7 @@ const seriesSchema = new Schema({
   logline: { type: String, default: "", maxlength: 400 },
   mode: { type: String, enum: ["story", "cartoon"], default: "story" },
   style: { type: String, enum: ["flat", "cartoon", "storybook", "clay"], default: "storybook" },
-  bible: { type: new Schema({ world: { type: String, default: "", maxlength: 2000 }, tone: { type: String, default: "", maxlength: 400 }, rules: { type: [String], default: [] } }, { _id: false }), default: () => ({}) },
+  bible: { type: new Schema({ world: { type: String, default: "", maxlength: 2000 }, tone: { type: String, default: "", maxlength: 400 }, rules: { type: [String], default: [] }, continuity: { type: String, default: "", maxlength: 2000 }, locations: { type: [String], default: [] } }, { _id: false }), default: () => ({}) },
   castIds: { type: [Schema.Types.ObjectId], default: [] },
   revision: { type: Number, default: 1 },
   version: { type: Number, default: 0 },
@@ -352,7 +382,9 @@ const apiTokenSchema = new Schema({
 const assetSchema = new Schema(
   {
     ownerId: { type: Schema.Types.ObjectId, required: true, index: true },
-    kind: { type: String, required: true, enum: ["image", "audio", "video"] },
+    kind: { type: String, required: true, enum: ["image", "audio", "video", "mask"] },
+    bytes: Number,
+    sha256: String,
     name: { type: String, required: true, maxlength: 120 },
     path: { type: String, required: true },
     mime: { type: String, required: true },
@@ -360,6 +392,7 @@ const assetSchema = new Schema(
     source: { type: String, required: true, enum: ["system", "mine", "generated"], default: "mine" },
     provenance: { type: Schema.Types.Mixed },
     projectId: { type: Schema.Types.ObjectId },
+    deletedAt: Date,
   },
   { timestamps: true },
 );
@@ -382,6 +415,9 @@ const briefSchema = new Schema({
   input: { type: Schema.Types.Mixed, required: true },
   result: { type: Schema.Types.Mixed, required: true },
   state: { type: String, required: true, enum: ['needs_input', 'ready_for_review', 'approved'] },
+  /** project or series. Series briefs store the series id in projectId (ids are unique across collections). */
+  scope: { type: String, enum: ['project', 'series'], default: 'project' },
+  research: { type: Schema.Types.Mixed },
   approvedAt: Date,
 }, { timestamps: true });
 
@@ -396,6 +432,54 @@ const briefVersionSchema = new Schema({
   approvedAt: { type: Date, required: true },
 }, { timestamps: true });
 briefVersionSchema.index({ briefId: 1, version: 1 }, { unique: true });
+
+/** A creator's paired PC. The agent token is shown once and stored as an HMAC. */
+const agentSchema = new Schema({
+  ownerId: { type: Schema.Types.ObjectId, required: true, index: true },
+  name: { type: String, required: true, maxlength: 60 },
+  tokenHash: { type: String, unique: true, sparse: true },
+  pairingHash: { type: String, unique: true, sparse: true },
+  pairingExpiresAt: Date,
+  scopes: { type: [String], default: ["render"] },
+  capabilities: { type: Schema.Types.Mixed, default: () => ({}) },
+  expiresAt: { type: Date, required: true },
+  revokedAt: Date,
+  lastSeenAt: Date,
+}, { timestamps: true });
+
+/** A resumable upload in progress: parts land in storage, then are joined and checked. */
+const uploadSchema = new Schema({
+  ownerId: { type: Schema.Types.ObjectId, required: true, index: true },
+  name: { type: String, required: true, maxlength: 120 },
+  size: { type: Number, required: true },
+  parts: { type: Number, required: true },
+  received: { type: [Number], default: [] },
+  rights: { type: String, enum: ["own", "licensed", "unknown"], default: "own" },
+  kind: { type: String, enum: ["auto", "mask"], default: "auto" },
+  expiresAt: { type: Date, required: true },
+  assetId: Schema.Types.ObjectId,
+}, { timestamps: true });
+uploadSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+/** Idempotency records: a repeated request with the same key returns the first result. */
+const idempotencySchema = new Schema({
+  key: { type: String, required: true, unique: true },
+  requestHash: { type: String, required: true },
+  status: { type: Number, required: true },
+  body: { type: Schema.Types.Mixed },
+  expiresAt: { type: Date, required: true },
+});
+idempotencySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+/** A montage style learned from the creator's uploaded reference clips. */
+const styleSchema = new Schema({
+  ownerId: { type: Schema.Types.ObjectId, required: true, index: true },
+  name: { type: String, required: true, maxlength: 80 },
+  base: { type: String, required: true },
+  spec: { type: Schema.Types.Mixed, required: true },
+  sourceAssetIds: { type: [Schema.Types.ObjectId], default: [] },
+  state: { type: String, enum: ["analyzing", "ready", "failed"], default: "analyzing" },
+}, { timestamps: true, minimize: false });
 
 export const User = mongoose.models.User || mongoose.model("User", userSchema);
 export const Session = mongoose.models.Session || mongoose.model("Session", sessionSchema);
@@ -423,3 +507,7 @@ export const RateLimit = mongoose.models.RateLimit || mongoose.model("RateLimit"
 export const Reset = mongoose.models.Reset || mongoose.model("Reset", resetSchema, "resets");
 
 export type UserDoc = InferSchemaType<typeof userSchema> & { _id: mongoose.Types.ObjectId };
+export const Agent = mongoose.models.Agent || mongoose.model("Agent", agentSchema, "agents");
+export const Idempotency = mongoose.models.Idempotency || mongoose.model("Idempotency", idempotencySchema, "idempotency");
+export const Style = mongoose.models.Style || mongoose.model("Style", styleSchema, "styles");
+export const Upload = mongoose.models.Upload || mongoose.model("Upload", uploadSchema, "uploads");

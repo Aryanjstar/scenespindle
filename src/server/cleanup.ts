@@ -1,4 +1,5 @@
-import { Brief, BriefVersion, Draft, Job, Message, Project, ShareLink, Storyboard, Trace, Video } from "./db";
+import { Asset, Brief, BriefVersion, Draft, Job, Message, Project, ShareLink, Storyboard, Trace, Video } from "./db";
+import { assetUses } from "./asset-refs";
 import { removePrefix } from "./storage";
 
 export const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -23,6 +24,13 @@ export async function sweepDeleted(now = new Date()): Promise<number> {
       Job.deleteMany(filter), Trace.deleteMany(filter), Brief.deleteMany(filter), BriefVersion.deleteMany(filter), ShareLink.deleteMany(filter),
     ]);
     await Project.deleteOne({ _id: project._id, ownerId: project.ownerId }, { withDeleted: true });
+  }
+  // Library files deleted more than seven days ago, if nothing came to use them meanwhile.
+  const files = await Asset.find({ deletedAt: { $lte: cutoff } }).limit(50).select("_id ownerId path");
+  for (const asset of files) {
+    if ((await assetUses(asset.ownerId, String(asset._id))).length) { await Asset.updateOne({ _id: asset._id }, { $unset: { deletedAt: 1 } }); continue; }
+    await removePrefix(asset.path).catch(() => {});
+    await Asset.deleteOne({ _id: asset._id });
   }
   return due.length;
 }

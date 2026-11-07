@@ -10,7 +10,7 @@ import { editImage, generateImage, imageConfig, sizeFor } from "./providers/imag
 import { ProviderError } from "./providers/errors";
 import { hashPlan } from "./studio";
 import { fetchToFile, putBuffer } from "./storage";
-import { reserve } from "./usage";
+import { meter } from "./usage";
 
 const MODEL = () => `azure:${process.env.AZURE_IMAGE_DEPLOYMENT || "gpt-image"}`;
 
@@ -40,15 +40,22 @@ function requireImages() {
 }
 
 /** Turn the creator's reference image into a clean character sheet, saved as a new immutable version. */
-export async function drawCharacter(ownerId: unknown, characterId: unknown): Promise<{ version: number; sheetAssetId: string }> {
+export async function drawCharacter(ownerId: unknown, characterId: unknown, signal?: AbortSignal): Promise<{ version: number; sheetAssetId: string }> {
   const cfg = requireImages();
   const character = await Character.findOne({ _id: characterId, ownerId });
   if (!character) throw new Error("That character is not here.");
   const reference = await assetBytes(ownerId, character.referenceAssetId);
   const prompt = `Character sheet for an original ${character.style} character named ${character.name}. Full body, front view, relaxed neutral pose, centered, plain light background. ${reference ? "Keep the key features from the reference image: face shape, hair, skin tone, clothing and colours, redrawn in the chosen style." : ""} ${character.description} Original artwork, no text, no letters, no logos.`;
-  const settle = await reserve("images", 1);
-  await settle();
-  const image = reference ? await editImage(cfg, prompt, [reference], "1024x1536") : await generateImage(cfg, prompt, "1024x1536");
+  if (signal?.aborted) throw new Error("STOP");
+  const usage = await meter("images", 1, ownerId);
+  let image: Buffer;
+  try {
+    image = reference ? await editImage(cfg, prompt, [reference], "1024x1536") : await generateImage(cfg, prompt, "1024x1536");
+    await usage.settle();
+  } catch (error) {
+    await usage.release();
+    throw error;
+  }
   const asset = await saveGenerated(ownerId, `${character.name} sheet`, image, { kind: "character-sheet", characterId: String(character._id), referenceAssetId: character.referenceAssetId ? String(character.referenceAssetId) : null, prompt });
   const updated = await Character.findOneAndUpdate({ _id: character._id, ownerId }, { $inc: { version: 1 }, $set: { sheetAssetId: asset._id, state: "ready" } }, { new: true });
   await CharacterVersion.create({ ownerId, characterId: character._id, version: updated!.version, sheetAssetId: asset._id, referenceAssetId: character.referenceAssetId, style: character.style, description: character.description, model: MODEL() });
@@ -75,7 +82,7 @@ function targets(plan: Plan, sceneIds: string[], redraw: boolean): Target[] {
  * references, then write the new image ids into the draft. Only layers whose
  * description is unchanged since drawing started receive an image.
  */
-export async function drawStills(ownerId: unknown, projectId: unknown, opts: { sceneIds?: string[]; redraw?: boolean; onProgress?: (done: number, total: number) => Promise<void> } = {}): Promise<{ drawn: number }> {
+export async function drawStills(ownerId: unknown, projectId: unknown, opts: { sceneIds?: string[]; redraw?: boolean; signal?: AbortSignal; onProgress?: (done: number, total: number) => Promise<void> } = {}): Promise<{ drawn: number }> {
   const cfg = requireImages();
   const project = await Project.findOne({ _id: projectId, ownerId });
   const draft = await Draft.findOne({ projectId, ownerId });
@@ -94,14 +101,23 @@ export async function drawStills(ownerId: unknown, projectId: unknown, opts: { s
   let done = 0;
   const queue = [...work];
   const size = sizeFor(checked.plan.format);
+  // A failure (or a lost lease) in one lane stops the others, so no more pictures are paid for.
+  let stopped = false;
   async function lane() {
-    while (queue.length) {
+    while (queue.length && !stopped && !opts.signal?.aborted) {
       const item = queue.shift()!;
       const refs = item.characterIds.map((id) => sheets.get(id)).filter((ref): ref is { name: string; bytes: Buffer } => Boolean(ref));
       const prompt = stillPrompt(item.style, item.prompt, refs);
-      const settle = await reserve("images", 1);
-      await settle();
-      const image = refs.length ? await editImage(cfg, prompt, refs.map((ref) => ref.bytes), size) : await generateImage(cfg, prompt, size);
+      const usage = await meter("images", 1, ownerId);
+      let image: Buffer;
+      try {
+        image = refs.length ? await editImage(cfg, prompt, refs.map((ref) => ref.bytes), size) : await generateImage(cfg, prompt, size);
+        await usage.settle();
+      } catch (error) {
+        stopped = true;
+        await usage.release();
+        throw error;
+      }
       const asset = await saveGenerated(ownerId, `${project!.title} ${item.sceneId}`, image, { kind: "story-still", projectId: String(projectId), sceneId: item.sceneId, prompt, characterIds: item.characterIds }, projectId);
       results.push({ sceneId: item.sceneId, layerId: item.layerId, prompt: item.prompt, assetId: String(asset._id) });
       done += 1;
@@ -109,6 +125,7 @@ export async function drawStills(ownerId: unknown, projectId: unknown, opts: { s
     }
   }
   await Promise.all([lane(), lane(), lane()]);
+  if (opts.signal?.aborted) throw new Error("STOP");
   // Merge into the latest draft with a compare-and-swap; retry if the creator saved meanwhile.
   for (let attempt = 0; attempt < 5; attempt++) {
     const latest = await Draft.findOne({ projectId, ownerId });

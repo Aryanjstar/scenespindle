@@ -30,6 +30,7 @@
     "src",
     "scripts",
     "test",
+    "worker",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],

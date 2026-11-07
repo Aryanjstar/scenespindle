@@ -87,11 +87,40 @@ test('story plans perform on a 3D stage instead of a still', async () => {
   assert.equal(result.plan.mode, 'story');
   assert.ok(result.plan.scenes.every((scene) => scene.layers.some((layer) => layer.component === 'stage.perform@1')));
   assert.equal(result.plan.scenes[0].layers[0].props.action, 'walk');
-  assert.equal(result.plan.scenes[0].layers[0].props.rigs, 2);
+  assert.deepEqual(result.plan.scenes[0].layers[0].props.on, [0, 1]);
+  assert.equal(result.plan.cast?.length, 2);
+  assert.equal(result.plan.cast?.[0].name, 'Meera');
   const html = compiled(result.plan);
   assert.match(html, /three\.module\.js/);
   assert.match(html, /id="stage"/);
+  assert.match(html, /buildReady\.stage = new Promise/);
   assert.doesNotMatch(html, /class="still"/);
+});
+
+test('illustrated stories ask for stills with the cast as references', async () => {
+  const script = 'Meera walks to the river. She waves at the paper boat. She turns and holds it close. The boat sails away.';
+  const result = await planProject({ topic: 'Paper boat', language: 'en', format: '9x16', targetMs: 30000, mode: 'story', look: 'illustrated', voiceId: 'test:tone', brief: { exactScript: script }, cast: [{ id: 'a'.repeat(24), name: 'Meera', description: 'A girl' }] });
+  assert.ok(result.plan.scenes.every((scene) => scene.layers.some((layer) => layer.component === 'image.still@1')));
+  assert.deepEqual(result.plan.scenes[0].layers[0].props.characterIds, ['a'.repeat(24)]);
+  assert.equal(result.plan.cast, undefined);
+});
+
+test('old story drafts without a set, shot or cast still validate and compile', () => {
+  const plan = { schemaVersion: 1, mode: 'story', title: 'Old story', logline: 'An older draft.', language: 'en', format: '9x16', targetMs: 30000, styleId: 'chalk-and-chai@1', voiceId: 'test:tone',
+    scenes: [1, 2, 3].map((n) => ({ id: `s${n}`, purpose: 'explain', lines: [{ id: 'l1', text: 'A line of story.' }], background: { kind: 'style' }, layers: [{ id: 'stage', component: 'stage.perform@1', props: { action: 'talk', look: 'storybook', rigs: 2 }, slot: 'full' }], events: [] })) };
+  const checked = validatePlan(plan);
+  assert.ok(checked.plan, JSON.stringify(checked.issues));
+  assert.match(compiled(checked.plan!), /id="stage"/);
+});
+
+test('stage props reject unknown sets and cast positions, and cast names are screened', () => {
+  const base = { schemaVersion: 1, mode: 'story', title: 'A story', logline: 'A story.', language: 'en', format: '9x16', targetMs: 30000, styleId: 'chalk-and-chai@1', voiceId: 'test:tone' };
+  const scene = (props: Record<string, unknown>) => [1, 2, 3].map((n) => ({ id: `s${n}`, purpose: 'explain', lines: [{ id: 'l1', text: 'A line.' }], background: { kind: 'style' }, layers: [{ id: 'stage', component: 'stage.perform@1', props: { action: 'talk', look: 'storybook', ...props }, slot: 'full' }], events: [] }));
+  assert.equal(validatePlan({ ...base, scenes: scene({ set: 'moonbase' }) }).plan, null);
+  assert.equal(validatePlan({ ...base, cast: [{ name: 'Asha', look: { skin: '#eac3a0', hair: '#111111', hairStyle: 'bun', top: '#ff0000', bottom: '#00ff00', outfit: 'saree', build: 'adult', accessory: 'bindi' } }], scenes: scene({ on: [0, 1] }) }).plan, null);
+  assert.equal(validatePlan({ ...base, cast: [{ name: 'Asha', look: { skin: 'red;}', hair: '#111111', hairStyle: 'bun', top: '#ff0000', bottom: '#00ff00', outfit: 'saree', build: 'adult', accessory: 'bindi' } }], scenes: scene({}) }).plan, null);
+  const ok = validatePlan({ ...base, cast: [{ name: 'Asha', look: { skin: '#eac3a0', hair: '#111111', hairStyle: 'bun', top: '#ff0000', bottom: '#00ff00', outfit: 'saree', build: 'adult', accessory: 'bindi' } }], scenes: scene({ set: 'market', shot: 'close', on: [0], speaker: 0 }) });
+  assert.ok(ok.plan, JSON.stringify(ok.issues));
 });
 
 test('lyric films place each line on its sung time over a dark stage', () => {

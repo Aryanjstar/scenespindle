@@ -34,12 +34,14 @@ export async function PATCH(request: Request, ctx: Ctx) {
   if (!mongoose.isValidObjectId(id)) return missing();
   const parsed = z.object({ expectedRevision: z.number().int().positive(), ...Object.fromEntries(Object.entries(seriesBody).map(([key, schema]) => [key, schema.optional()])) }).strict().safeParse(await request.json().catch(() => null));
   if (!parsed.success) return apiError(400, "VALIDATION", "INVALID_BODY", parsed.error.issues[0]?.message ?? "Check the series fields.");
-  const { expectedRevision, world, tone, rules, castIds, ...rest } = parsed.data as Record<string, unknown> & { expectedRevision: number; world?: string; tone?: string; rules?: string[]; castIds?: string[] };
+  const { expectedRevision, world, tone, rules, continuity, locations, castIds, ...rest } = parsed.data as Record<string, unknown> & { expectedRevision: number; world?: string; tone?: string; rules?: string[]; continuity?: string; locations?: string[]; castIds?: string[] };
   if (castIds?.length && (await Character.countDocuments({ _id: { $in: castIds }, ownerId: auth.user!._id })) !== new Set(castIds).size) return apiError(404, "NOT_FOUND", "NOT_FOUND", "A cast member is not in your library.");
   const set: Record<string, unknown> = { ...rest };
   if (world !== undefined) set["bible.world"] = world;
   if (tone !== undefined) set["bible.tone"] = tone;
   if (rules !== undefined) set["bible.rules"] = rules;
+  if (continuity !== undefined) set["bible.continuity"] = continuity;
+  if (locations !== undefined) set["bible.locations"] = locations;
   if (castIds !== undefined) set.castIds = castIds;
   const series = await Series.findOneAndUpdate({ _id: id, ownerId: auth.user!._id, revision: expectedRevision, deletedAt: { $exists: false } }, { $set: set, $inc: { revision: 1 } }, { new: true });
   if (!series) {

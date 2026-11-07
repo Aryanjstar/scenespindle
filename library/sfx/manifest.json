@@ -1,0 +1,46 @@
+{
+  "collection": "sfx",
+  "note": "Every file here must have a row. Regenerate with bash scripts/make-sfx.sh.",
+  "items": [
+    {
+      "file": "swish.wav",
+      "use": "chapter change",
+      "source": "Generated with FFmpeg by scripts/make-sfx.sh (no samples)",
+      "licence": "CC0-1.0",
+      "attribution": null,
+      "commercialUse": true,
+      "sha256": "0fed4c7cb205636a646e2fd0cc56ab4401d68501e443f816d22074cbf4fbba0f",
+      "bytes": 53838
+    },
+    {
+      "file": "click.wav",
+      "use": "cut inside a chapter",
+      "source": "Generated with FFmpeg by scripts/make-sfx.sh (no samples)",
+      "licence": "CC0-1.0",
+      "attribution": null,
+      "commercialUse": true,
+      "sha256": "9f27dd88bff19f34c1056e07d2f676b10e165dee8dbf0d346c61cead82858344",
+      "bytes": 6798
+    },
+    {
+      "file": "pop.wav",
+      "use": "text pops in",
+      "source": "Generated with FFmpeg by scripts/make-sfx.sh (no samples)",
+      "licence": "CC0-1.0",
+      "attribution": null,
+      "commercialUse": true,
+      "sha256": "2be46fd379a12666711c5042d96463580a635c01afc0eda3f40953b128be1117",
+      "bytes": 34638
+    },
+    {
+      "file": "chime.wav",
+      "use": "outro",
+      "source": "Generated with FFmpeg by scripts/make-sfx.sh (no samples)",
+      "licence": "CC0-1.0",
+      "attribution": null,
+      "commercialUse": true,
+      "sha256": "13802ca2330e139a23783988c3784e8f30451f4c73bcd4b4cdf8d4be5d7a7267",
+      "bytes": 230478
+    }
+  ]
+}

@@ -5,7 +5,7 @@ import type { Format, Plan } from "../contracts/plan";
 import type { TraceState } from "../trace/states";
 import { chalkAndChai as ink } from "../catalog/style";
 import { assertSafeId, escapeHtml } from "./escape";
-import { mouthTrack, stageModule, STAGE_ACTIONS, STAGE_LOOKS, STAGE_SETS, type StageScene } from "./stage";
+import { cleanLook, mouthTrack, stageModule, STAGE_ACTIONS, STAGE_LOOKS, STAGE_SETS, STAGE_SHOTS, type StageScene } from "./stage";
 
 export type TimedWord = { text: string; startMs: number; endMs: number };
 
@@ -475,20 +475,27 @@ function lyricsCss(L: Layout): string {
   `;
 }
 
-function performedScenes(plan: Plan, timeline: Timeline): StageScene[] {
+export function performedScenes(plan: Plan, timeline: Timeline): StageScene[] {
   const scenes: StageScene[] = [];
-  for (const scene of plan.scenes) {
+  const castSize = Math.max(1, Math.min(3, plan.cast?.length ?? 2));
+  plan.scenes.forEach((scene, index) => {
     const layer = scene.layers.find((item) => item.component === "stage.perform@1");
-    if (!layer) continue;
+    if (!layer) return;
     const slot = timeline.scenes.find((item) => item.id === scene.id);
     const start = (slot?.startMs ?? 0) / 1000;
     const end = start + (slot?.durationMs ?? 1000) / 1000;
     const action = STAGE_ACTIONS.find((item) => item === layer.props.action) ?? "talk";
     const look = STAGE_LOOKS.find((item) => item === layer.props.look) ?? "storybook";
-    const rigs = layer.props.rigs === 2 ? 2 : 1;
     const set = STAGE_SETS.find((item) => item === layer.props.set) ?? "bank";
-    scenes.push({ start, end, action, look, rigs, set });
-  }
+    // Older plans have no shot: vary framing so beats do not all look the same.
+    const shot = STAGE_SHOTS.find((item) => item === layer.props.shot) ?? (index === 0 ? "wide" : action === "talk" && index % 3 === 2 ? "close" : "medium");
+    const raw = Array.isArray(layer.props.on) ? (layer.props.on as unknown[]) : null;
+    const on = raw
+      ? [...new Set(raw.filter((n): n is number => Number.isInteger(n) && (n as number) >= 0 && (n as number) < castSize))].slice(0, 3)
+      : Array.from({ length: layer.props.rigs === 2 ? Math.min(2, castSize) : 1 }, (_, i) => i);
+    const speaker = Number.isInteger(layer.props.speaker) && (layer.props.speaker as number) >= -1 && (layer.props.speaker as number) < castSize ? (layer.props.speaker as number) : (on[0] ?? 0);
+    scenes.push({ start, end, action, look, set, shot, on: on.length ? on : [0], speaker });
+  });
   return scenes;
 }
 
@@ -504,7 +511,7 @@ function fontFace(): string {
   `;
 }
 
-export function compileProject(opts: { plan: Plan; timeline: Timeline; outDir: string; trace?: CompileTrace; images?: Record<string, string>; audioTrack?: string }): void {
+export function compileProject(opts: { plan: Plan; timeline: Timeline; outDir: string; trace?: CompileTrace; images?: Record<string, string>; audioTrack?: string; stageVideo?: string }): void {
   const dir = opts.outDir;
   const layout = LAYOUTS[opts.plan.format] ?? LAYOUTS["9x16"];
   mkdirSync(resolve(dir, "assets/fonts"), { recursive: true });
@@ -551,10 +558,13 @@ export function compileProject(opts: { plan: Plan; timeline: Timeline; outDir: s
 
   const duration = (opts.timeline.durationMs / 1000).toFixed(3);
   const performed = performedScenes(opts.plan, opts.timeline);
-  if (performed.length) {
+  // Cinematic profile: the stage was rendered offline (Blender) and plays as a video layer.
+  const stageVideo = performed.length && opts.stageVideo ? "assets/stage.mp4" : "";
+  if (stageVideo) copyFileSync(opts.stageVideo!, resolve(dir, stageVideo));
+  if (performed.length && !stageVideo) {
     copyFileSync(resolve(ROOT, "node_modules/three/build/three.module.js"), resolve(dir, "assets/three.module.js"));
     copyFileSync(resolve(ROOT, "node_modules/three/build/three.core.js"), resolve(dir, "assets/three.core.js"));
-    writeFileSync(resolve(dir, "assets/stage.mjs"), stageModule({ width: layout.w, height: layout.h, scenes: performed, mouth: mouthTrack(opts.timeline.lines) }));
+    writeFileSync(resolve(dir, "assets/stage.mjs"), stageModule({ width: layout.w, height: layout.h, scenes: performed, mouth: mouthTrack(opts.timeline.lines), cast: (opts.plan.cast ?? []).map((member, i) => cleanLook(member.look, i)) }));
   }
   const script = `const tweens = ${JSON.stringify(tweens)};
 const tl = gsap.timeline({ paused: true });
@@ -575,18 +585,19 @@ window.__timelines["main"] = tl;`;
   <meta name="viewport" content="width=${layout.w}, height=${layout.h}" />
   <title>${escapeHtml(opts.plan.title)}</title>
   <script src="assets/gsap.min.js"></script>
-  ${performed.length ? `<script type="importmap">{"imports":{"three":"./assets/three.module.js"}}</script>` : ""}
+  ${performed.length && !stageVideo ? `<script type="importmap">{"imports":{"three":"./assets/three.module.js"}}</script>
+  <script>window.__hf = window.__hf || {}; window.__hf.buildReady = window.__hf.buildReady || {}; window.__hf.buildReady.stage = new Promise(function (done) { window.__stageReady = done; });</script>` : ""}
   <style>${fontFace()}${css(layout)}${ILLUSTRATED_MODES.has(opts.plan.mode) ? illustratedCss(layout) : ""}${opts.plan.mode === "lyrics" ? lyricsCss(layout) : ""}${opts.plan.mode === "explainer" || opts.plan.mode === "code_lab" || opts.plan.mode === "audio" ? spokenCss() : ""}</style>
 </head>
 <body>
   <div id="root" data-composition-id="main" data-start="0" data-duration="${duration}" data-width="${layout.w}" data-height="${layout.h}">
     <div class="wash"></div>
-    ${performed.length ? `<canvas id="stage" width="${layout.w}" height="${layout.h}"></canvas>` : ""}
+    ${stageVideo ? `<video id="stage" class="clip" src="${stageVideo}" data-start="0" data-duration="${duration}" data-track-index="0" muted playsinline></video>` : performed.length ? `<canvas id="stage" width="${layout.w}" height="${layout.h}"></canvas>` : ""}
     ${scenes.join("\n")}
     ${captions.join("\n")}
     ${audios.join("\n")}
   </div>
-  ${performed.length ? `<script type="module" src="assets/stage.mjs"></script>` : ""}
+  ${performed.length && !stageVideo ? `<script type="module" src="assets/stage.mjs"></script>` : ""}
   <script>${script}</script>
 </body>
 </html>`;

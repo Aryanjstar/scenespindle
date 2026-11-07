@@ -29,3 +29,9 @@ export function busy(error: unknown) {
 export function json(body: unknown, status = 200) {
   return NextResponse.json(body, { status });
 }
+
+/** The studio owner is the configured OWNER_EMAIL account. */
+export function isOwner(user: { email?: string } | null | undefined): boolean {
+  const owner = (process.env.OWNER_EMAIL || "").toLowerCase();
+  return Boolean(owner) && (user?.email ?? "").toLowerCase() === owner;
+}
