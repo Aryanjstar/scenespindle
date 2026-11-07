@@ -86,7 +86,12 @@ export function traceProgram(source: string, entry: string, input: unknown[]): T
     if (expr.op === "+") return Number(left) + Number(right);
     if (expr.op === "-") return Number(left) - Number(right);
     if (expr.op === "*") return Number(left) * Number(right);
-    if (expr.op === "//") return Math.floor(Number(left) / Number(right));
+    if (expr.op === "//") { if (Number(right) === 0) throw new Error("Division by zero."); return Math.floor(Number(left) / Number(right)); }
+    if (expr.op === "/") { if (Number(right) === 0) throw new Error("Division by zero."); return Number(left) / Number(right); }
+    if (expr.op === "%") { if (Number(right) === 0) throw new Error("Division by zero."); return ((Number(left) % Number(right)) + Number(right)) % Number(right); }
+    if (expr.op === "!=") return Number(left) !== Number(right) ? 1 : 0;
+    if (expr.op === "and") return left && right ? 1 : 0;
+    if (expr.op === "or") return left || right ? 1 : 0;
     if (expr.op === "==") return Number(left) === Number(right) ? 1 : 0;
     if (expr.op === "<=") return Number(left) <= Number(right) ? 1 : 0;
     if (expr.op === ">=") return Number(left) >= Number(right) ? 1 : 0;
@@ -224,6 +229,8 @@ function parseStmt(lines: { n: number; indent: number; text: string }[], start: 
   if (line.indent <= parentIndent) throw new Error(`Line ${line.n}: bad indent.`);
   const ret = line.text.match(/^return\s+(.+)$/);
   if (ret) return { stmt: { kind: "return", expr: parseExpr(ret[1]), line: line.n }, next: start + 1 };
+  const augmented = line.text.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*([+\-*])=\s*(.+)$/);
+  if (augmented) return { stmt: { kind: "assign", name: augmented[1], expr: parseExpr(`${augmented[1]} ${augmented[2]} (${augmented[3]})`), line: line.n }, next: start + 1 };
   const assign = line.text.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/);
   if (assign && !line.text.includes("==")) return { stmt: { kind: "assign", name: assign[1], expr: parseExpr(assign[2]), line: line.n }, next: start + 1 };
   if (line.text.startsWith("while ") && line.text.endsWith(":")) {
@@ -236,32 +243,61 @@ function parseStmt(lines: { n: number; indent: number; text: string }[], start: 
     }
     return { stmt: { kind: "while", test: parseExpr(line.text.slice(6, -1).trim()), body, line: line.n }, next: i };
   }
-  if (line.text.startsWith("if ") && line.text.endsWith(":")) {
-    const yes: Stmt[] = [];
+  if (line.text.startsWith("if ") && line.text.endsWith(":")) return parseIf(lines, start, line.text.slice(3, -1).trim());
+  const loop = line.text.match(/^for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+range\((.+)\):$/);
+  if (loop) {
+    // for i in range(a, b): becomes i = a, then while i < b with i = i + 1 at the end of the body.
+    const parts = loop[2].split(",").map((part) => part.trim());
+    const [from, to] = parts.length === 1 ? ["0", parts[0]] : [parts[0], parts[1]];
+    const body: Stmt[] = [];
     let i = start + 1;
-    while (i < lines.length && lines[i].indent > line.indent && lines[i].text !== "else:") {
+    while (i < lines.length && lines[i].indent > line.indent) {
       const parsed = parseStmt(lines, i, line.indent);
-      yes.push(parsed.stmt);
+      body.push(parsed.stmt);
       i = parsed.next;
     }
-    const no: Stmt[] = [];
-    if (i < lines.length && lines[i].text === "else:" && lines[i].indent === line.indent) {
-      i += 1;
-      while (i < lines.length && lines[i].indent > line.indent) {
-        const parsed = parseStmt(lines, i, line.indent);
-        no.push(parsed.stmt);
-        i = parsed.next;
-      }
-    }
-    return { stmt: { kind: "if", test: parseExpr(line.text.slice(3, -1).trim()), yes, no, line: line.n }, next: i };
+    body.push({ kind: "assign", name: loop[1], expr: parseExpr(`${loop[1]} + 1`), line: line.n });
+    const init: Stmt = { kind: "assign", name: loop[1], expr: parseExpr(from), line: line.n };
+    return { stmt: { kind: "if", test: { kind: "num", value: 1 }, yes: [init, { kind: "while", test: parseExpr(`${loop[1]} < ${to}`), body, line: line.n }], no: [], line: line.n }, next: i };
   }
   return { stmt: { kind: "expr", expr: parseExpr(line.text), line: line.n }, next: start + 1 };
 }
 
+/** if / elif / else chain at one indent; each elif becomes an if inside the else branch. */
+function parseIf(lines: { n: number; indent: number; text: string }[], start: number, test: string): { stmt: Stmt; next: number } {
+  const line = lines[start];
+  const block = (from: number) => {
+    const body: Stmt[] = [];
+    let i = from;
+    while (i < lines.length && lines[i].indent > line.indent) {
+      const parsed = parseStmt(lines, i, line.indent);
+      body.push(parsed.stmt);
+      i = parsed.next;
+    }
+    return { body, next: i };
+  };
+  const yes = block(start + 1);
+  let i = yes.next;
+  let no: Stmt[] = [];
+  if (i < lines.length && lines[i].indent === line.indent) {
+    const elif = lines[i].text.match(/^elif\s+(.+):$/);
+    if (elif) {
+      const nested = parseIf(lines, i, elif[1].trim());
+      no = [nested.stmt];
+      i = nested.next;
+    } else if (lines[i].text === "else:") {
+      const other = block(i + 1);
+      no = other.body;
+      i = other.next;
+    }
+  }
+  return { stmt: { kind: "if", test: parseExpr(test), yes: yes.body, no, line: line.n }, next: i };
+}
+
 function parseExpr(input: string): Expr {
-  const tokens = input.match(/<=|>=|==|\/\/|\d+|[a-zA-Z_][a-zA-Z0-9_]*|[()[\],+\-*/<>]/g) ?? [];
+  const tokens = input.match(/<=|>=|==|!=|\/\/|\d+|[a-zA-Z_][a-zA-Z0-9_]*|[()[\],+\-*/%<>]/g) ?? [];
   let at = 0;
-  const expr = parseAdd();
+  const expr = parseOr();
   if (at !== tokens.length) throw new Error(`Could not read "${input}".`);
   return expr;
 
@@ -271,6 +307,26 @@ function parseExpr(input: string): Expr {
     if (value && token !== value) throw new Error(`Expected ${value} in "${input}".`);
     at += 1;
     return token;
+  }
+  function parseOr(): Expr {
+    let left = parseAnd();
+    while (peek() === "or") { eat(); left = { kind: "bin", op: "or", left, right: parseAnd() }; }
+    return left;
+  }
+  function parseAnd(): Expr {
+    let left = parseNot();
+    while (peek() === "and") { eat(); left = { kind: "bin", op: "and", left, right: parseNot() }; }
+    return left;
+  }
+  function parseNot(): Expr {
+    if (peek() === "not") { eat(); return { kind: "bin", op: "==", left: parseNot(), right: { kind: "num", value: 0 } }; }
+    return parseCmpTop();
+  }
+  // Comparisons bind looser than arithmetic: lo <= hi, arr[mid] == target, a + 1 < b.
+  function parseCmpTop(): Expr {
+    let left = parseAdd();
+    while (["==", "!=", "<=", ">=", "<", ">"].includes(peek())) { const op = eat(); left = { kind: "bin", op, left, right: parseAdd() }; }
+    return left;
   }
   function parseAdd(): Expr {
     let left = parseMul();
@@ -282,7 +338,7 @@ function parseExpr(input: string): Expr {
   }
   function parseMul(): Expr {
     let left = parseCmp();
-    while (peek() === "*" || peek() === "//") {
+    while (peek() === "*" || peek() === "//" || peek() === "/" || peek() === "%") {
       const op = eat();
       left = { kind: "bin", op, left, right: parseCmp() };
     }
@@ -290,10 +346,6 @@ function parseExpr(input: string): Expr {
   }
   function parseCmp(): Expr {
     let left = parsePrimary();
-    while (["==", "<=", ">=", "<", ">"].includes(peek())) {
-      const op = eat();
-      left = { kind: "bin", op, left, right: parsePrimary() };
-    }
     return left;
   }
   function parsePrimary(): Expr {
@@ -304,7 +356,7 @@ function parseExpr(input: string): Expr {
     }
     if (/^\d+$/.test(token)) return { kind: "num", value: Number(token) };
     if (token === "(") {
-      const inner = parseAdd();
+      const inner = parseOr();
       eat(")");
       return inner;
     }
@@ -312,10 +364,10 @@ function parseExpr(input: string): Expr {
       eat("(");
       const args: Expr[] = [];
       if (peek() !== ")") {
-        args.push(parseAdd());
+        args.push(parseOr());
         while (peek() === ",") {
           eat(",");
-          args.push(parseAdd());
+          args.push(parseOr());
         }
       }
       eat(")");
@@ -323,7 +375,7 @@ function parseExpr(input: string): Expr {
     }
     if (peek() === "[") {
       eat("[");
-      const index = parseAdd();
+      const index = parseOr();
       eat("]");
       return { kind: "index", name: token, index };
     }

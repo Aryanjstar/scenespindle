@@ -4,82 +4,60 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StudioBar } from "../../../components/studio/studio-bar";
+import { api, usePending } from "../../../components/ui/client";
+import { Button, Empty, Notice, Panel, timeAgo } from "../../../components/ui/kit";
 
-type SeriesItem = { id: string; title: string; logline: string; mode: string; version: number };
+type Item = { id: string; title: string; logline: string; mode: string; version: number; updatedAt?: string };
 
 export default function SeriesPage() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [items, setItems] = useState<SeriesItem[] | null>(null);
+  const { run, busy } = usePending();
+  const [items, setItems] = useState<Item[] | null>(null);
   const [title, setTitle] = useState("");
   const [logline, setLogline] = useState("");
   const [mode, setMode] = useState("story");
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/auth/session").then(async (response) => {
-      if (!response.ok) { router.replace("/sign-in"); return; }
-      setName((await response.json()).user.name);
-      const list = await fetch("/api/series");
-      if (list.ok) setItems((await list.json()).items || []);
+    void api<{ items: Item[] }>("/api/series").then((res) => { if (!res.ok) setError(res.error); setItems(res.ok ? res.data.items : []); });
+  }, []);
+
+  const create = (event: React.FormEvent) => {
+    event.preventDefault();
+    void run("create", async () => {
+      setError("");
+      const res = await api<{ series: Item }>("/api/series", { body: { title, logline, mode } });
+      if (!res.ok) { setError(res.error); return; }
+      router.push(`/studio/series/${res.data.series.id}`);
     });
-  }, [router]);
+  };
 
   return (
     <main className="app">
-      <StudioBar name={name} />
-      <div className="page-head">
-        <div>
-          <p className="kicker">Series</p>
-          <h1>A cast that stays put</h1>
-          <p className="muted" style={{ margin: "6px 0 0" }}>Approve the bible once. Episodes keep that cast and those rules.</p>
-        </div>
-      </div>
-      {error ? <p className="notice bad" role="alert">{error}</p> : null}
-      <div className="split">
-        <form className="surface panel" onSubmit={async (event) => {
-          event.preventDefault();
-          setError("");
-          const response = await fetch("/api/series", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ title, logline, mode, style: mode === "cartoon" ? "cartoon" : "storybook" }),
-          });
-          const body = await response.json();
-          if (!response.ok) { setError(body?.error?.message || "Could not create that series."); return; }
-          router.push(`/studio/series/${body.series.id}`);
-        }}>
-          <p className="kicker">New</p>
-          <h2>Start a series</h2>
-          <label className="stack-label">Title
-            <input className="field" value={title} onChange={(event) => setTitle(event.target.value)} required minLength={2} aria-label="Series title" />
-          </label>
-          <label className="stack-label">Logline
-            <input className="field" value={logline} onChange={(event) => setLogline(event.target.value)} aria-label="Logline" />
-          </label>
-          <label className="stack-label">Mode
-            <select className="field" aria-label="Series mode" value={mode} onChange={(event) => setMode(event.target.value)}>
-              <option value="story">Story</option>
-              <option value="cartoon">Cartoon</option>
-            </select>
-          </label>
-          <button className="btn" type="submit">Create series</button>
+      <StudioBar />
+      <div className="page-head"><div><p className="kicker">Recurring cast and world</p><h1>Series</h1></div></div>
+      <Panel kicker="New series" title="Start a series">
+        <form onSubmit={create} className="stack-label">
+          <div className="split">
+            <label className="stack-label">Title<input className="field" value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} placeholder="Tikku's town" required minLength={2} /></label>
+            <label className="stack-label">Kind<select className="field" value={mode} onChange={(e) => setMode(e.target.value)}><option value="story">Story</option><option value="cartoon">Cartoon</option></select></label>
+          </div>
+          <label className="stack-label">Logline<input className="field" value={logline} maxLength={400} onChange={(e) => setLogline(e.target.value)} placeholder="A curious boy learns one safety rule each episode" /></label>
+          <Button tone="accent" type="submit" pending={busy("create")} disabled={title.trim().length < 2}>Create series</Button>
         </form>
-        <section className="surface panel" aria-label="Your series">
-          <h2>Your series</h2>
-          {items === null ? <p className="fine">Loading</p> : items.length === 0 ? <p className="fine">None yet.</p> : (
-            <div className="episodes">
-              {items.map((item) => (
-                <Link key={item.id} className="episode" href={`/studio/series/${item.id}`}>
-                  <b>{item.version || 0}</b>
-                  <span><strong>{item.title}</strong><span className="fine">{item.logline || item.mode}</span></span>
-                  <span className="badge">{item.mode}</span>
-                </Link>
-              ))}
-            </div>
-          )}
+        <Notice tone="bad" onClose={() => setError("")}>{error}</Notice>
+      </Panel>
+      {items === null ? <div className="surface panel skeleton" /> : !items.length ? <Empty title="No series yet"><p className="fine">A series keeps one cast, world and tone across numbered episodes.</p></Empty> : (
+        <section className="cards">
+          {items.map((item) => (
+            <Link key={item.id} href={`/studio/series/${item.id}`} className="surface card" data-mode={item.mode}>
+              <div className="card-poster"><span className="poster-glyph">{item.mode === "cartoon" ? "☺" : "★"}</span><span className="sticker tag">{item.mode === "cartoon" ? "Cartoon" : "Story"}</span></div>
+              <div className="card-top"><strong>{item.title}</strong><span className="badge" data-tone={item.version ? "ready" : "draft"}>{item.version ? `v${item.version}` : "draft"}</span></div>
+              <span className="fine">{item.logline || "No logline"} · {timeAgo(item.updatedAt)}</span>
+            </Link>
+          ))}
         </section>
-      </div>
+      )}
     </main>
   );
 }

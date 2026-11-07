@@ -15,13 +15,13 @@ export async function GET(_request: Request, ctx: Ctx) {
   if (!mongoose.isValidObjectId(id)) return missing();
   const series = await Series.findOne({ _id: id, ownerId: auth.user!._id, deletedAt: { $exists: false } });
   if (!series) return missing();
-  const episodes = await Project.find({ ownerId: auth.user!._id, seriesId: series._id }).sort({ episodeNumber: 1 }).select("title episodeNumber badge currentVideoId mode");
+  const episodes = await Project.find({ ownerId: auth.user!._id, seriesId: series._id }).sort({ episodeNumber: 1 }).select("title episodeNumber badge currentVideoId mode recap seriesVersion");
   const versions = await SeriesVersion.find({ ownerId: auth.user!._id, seriesId: series._id }).sort({ version: -1 }).select("version createdAt");
   const cast = await Character.find({ _id: { $in: series.castIds }, ownerId: auth.user!._id }).select("name sheetAssetId state version");
   return json({
     series: seriesJson(series),
     cast: cast.map((member) => ({ id: String(member._id), name: member.name, state: member.state, version: member.version, sheetUrl: member.sheetAssetId ? `/api/assets/${String(member.sheetAssetId)}/file` : null })),
-    episodes: episodes.map((ep) => ({ id: String(ep._id), title: ep.title, episodeNumber: ep.episodeNumber, badge: ep.badge, poster: ep.currentVideoId ? `/api/videos/${String(ep.currentVideoId)}/file/thumb` : null })),
+    episodes: episodes.map((ep) => ({ id: String(ep._id), title: ep.title, episodeNumber: ep.episodeNumber, badge: ep.badge, recap: ep.recap ?? "", seriesVersion: ep.seriesVersion ?? null, poster: ep.currentVideoId ? `/api/videos/${String(ep.currentVideoId)}/file/thumb` : null })),
     versions: versions.map((v) => ({ version: v.version, createdAt: v.createdAt })),
   });
 }
@@ -49,4 +49,15 @@ export async function PATCH(request: Request, ctx: Ctx) {
     return current ? apiError(409, "CONFLICT", "REVISION_CONFLICT", "This series changed. Reload it.", { currentRevision: current.revision }) : missing();
   }
   return json({ series: seriesJson(series) });
+}
+
+/** Delete a series. Its episodes stay as ordinary projects; approved versions are kept for them. */
+export async function DELETE(request: Request, ctx: Ctx) {
+  const auth = await authed(request);
+  if ("error" in auth && auth.error) return auth.error;
+  const { id } = await ctx.params;
+  if (!mongoose.isValidObjectId(id)) return missing();
+  const series = await Series.findOneAndUpdate({ _id: id, ownerId: auth.user!._id, deletedAt: { $exists: false } }, { $set: { deletedAt: new Date() } });
+  if (!series) return missing();
+  return json({ deleted: true });
 }
