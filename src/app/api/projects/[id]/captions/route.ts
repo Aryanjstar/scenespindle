@@ -13,8 +13,8 @@ const bodySchema = z.object({
   assetId: z.string().regex(/^[a-f0-9]{24}$/),
   source: z.enum(["auto", "text"]),
   text: z.string().trim().max(20000).default(""),
-  style: z.enum(["phrase", "punchy"]).default("phrase"),
-  band: z.enum(["auto", "upper", "middle", "lower"]).default("auto"),
+  style: z.enum(["phrase", "punchy", "karaoke"]).default("phrase"),
+  band: z.enum(["auto", "upper", "middle", "lower", "above-head"]).default("auto"),
   language: z.enum(["auto", "en", "hi"]).default("auto"),
 }).strict();
 
@@ -30,7 +30,12 @@ async function handle(request: Request, ctx: { params: Promise<{ id: string }> }
   if (!parsed.success) return apiError(400, "VALIDATION", "INVALID_BODY", "Choose a reel, how to time the captions, and where they go.");
   const body = parsed.data;
   if (body.source === "text" && !body.text) return apiError(400, "VALIDATION", "VALIDATION", "Paste your captions: SRT, LRC or plain lines.");
-  if (body.source === "auto" && !sttAvailable(loadEnv()).available) return apiError(422, "VALIDATION", "CAPABILITY_UNAVAILABLE", sttAvailable(loadEnv()).reason ?? "Automatic timing is not configured.");
+  if (body.style === "karaoke") {
+    if (!body.text.trim()) return apiError(400, "VALIDATION", "LYRICS_MISSING", "Paste the lyrics you sing, one line per row (English letters).");
+    if (/[\u0900-\u097F]/.test(body.text)) return apiError(422, "VALIDATION", "LYRICS_SCRIPT", "Write the lyrics in English letters (romanized), not Devanagari.");
+    if (!/\[\d{1,3}:\d{2}/.test(body.text) && !sttAvailable(loadEnv()).available) return apiError(422, "VALIDATION", "CAPABILITY_UNAVAILABLE", "Word timing needs transcription. Add LRC times to your lyrics, or set up transcription.");
+  }
+  if (body.source === "auto" && body.style !== "karaoke" && !sttAvailable(loadEnv()).available) return apiError(422, "VALIDATION", "CAPABILITY_UNAVAILABLE", sttAvailable(loadEnv()).reason ?? "Automatic timing is not configured.");
   if (!(await Asset.exists({ _id: body.assetId, ownerId: auth.user!._id, kind: "video" }))) return apiError(404, "NOT_FOUND", "NOT_FOUND", "That reel is not in your library.");
   if (!(await limit(request, "render", 10, 60 * 60_000, String(auth.user!._id)))) return apiError(429, "RATE_LIMITED", "RATE_LIMITED", "That is a lot of renders this hour. Try again later.");
   try {

@@ -1,6 +1,22 @@
 # SceneSpindle — project status
 
-**Updated 2026-11-05. Story and Cartoon perform on a free 3D stage. Studio screens cover cast, series, lyrics, tokens and reel captions.**
+**Updated 2026-11-07. v4 pass: every job runs in the worker under a lease; all studio screens rebuilt; remaining release gates built except social publishing. Verified locally end to end; see below.**
+
+## v4 pass (2026-11-07)
+
+**Shipped**
+- Jobs: planning, copilot, stills, renders, reel captions, style learning, exports and tools all run in worker lanes on one lease runner (sweep, cancel, retry for every type). Usage reserved before calls, settled on success, released on failure; per-creator caps set by the owner.
+- Story and Cartoon: per-character stage looks, ten sets, eight actions, shot sizes, speaker-only lip sync; illustrated stills (with cast references) as a look. Cinematic 3D through Blender on a paired PC.
+- New: account and password, sessions, invite resend, duplicate, scene regenerate, storyboard versions and restore, make current, share download toggle, capabilities, voice samples, brief research with dated sources, series briefs, frozen series versions with continuity and places, resumable uploads, asset delete, exports (audio, package zip, OTIO), paired PC agents (`npm run agent`), banners and profile copy, render queue, command palette, Code Lab in JavaScript.
+- Montage styles from the Claude Edits toolkit (day-in-my-life vlog, tutorial, cinematic) with micro-cuts, liveliest-shot pick, ramps, grades, CC0 sound effects, edit notes and styles learned from uploaded references.
+- Caption a reel: word times from the reel (ElevenLabs Scribe, whisper.cpp fallback), placement away from faces and text, and a Karaoke lyrics style built to the creator's lyric-video notes.
+
+**Checked (local, 2026-11-07)**
+- 55 unit tests, typecheck, lint. Three browser journeys pass (`npm run e2e`): two creators at 1280 and 390 px; modes; and every new screen including no sideways scroll at 390 px.
+- Real renders with frame sheets looked at: two-character Story (stage), illustrated Story (Azure stills), Code Lab in JavaScript, vlog montage, lyric video, reel captions (pasted and heard), karaoke lyric video (-17.7 LUFS, peak -4.0 dB), Blender cinematic Story on a paired PC. OTIO files load in OpenTimelineIO 0.17.
+- Live Gemini planning, brainstorm and copilot. ElevenLabs is out of credits on this account; transcription fell back to whisper.cpp as designed.
+
+**Still open**: YouTube/Instagram publishing (needs OAuth apps); Resend mail; a signed-in check on production after deploy.
 
 ## Current verified position
 

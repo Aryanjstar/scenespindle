@@ -22,11 +22,18 @@ RUN mkdir -p /data && chown -R node:node /data
 # Chrome is cached per user, so download it as the user that renders.
 USER node
 # Download the pinned renderer's headless Chrome into the image, then prove the
-# whole film pipeline works with the local test tone (no keys, no network calls).
+# whole film pipeline works with the local test tone (no keys, no network calls), including the
+# WebGL 3D stage: a black stage frame fails the build.
 RUN npx hyperframes browser ensure \
  && SCENESPINDLE_TEST_VOICE=1 STORAGE_DIR=/tmp/smoke VOICE_CACHE_DIR=/tmp/smoke/cache \
     npm run --silent studio -- render examples/plans/why-ice-floats.json --voice test:tone --out /tmp/smoke/out > /tmp/smoke.json \
- && (grep -q '"ready": true' /tmp/smoke.json || (cat /tmp/smoke.json; exit 1)) && rm -rf /tmp/smoke /tmp/smoke.json
+ && (grep -q '"ready": true' /tmp/smoke.json || (cat /tmp/smoke.json; exit 1)) \
+ && SCENESPINDLE_TEST_VOICE=1 STORAGE_DIR=/tmp/smoke VOICE_CACHE_DIR=/tmp/smoke/cache \
+    npm run --silent studio -- render examples/plans/story-stage-offline.json --voice test:tone --out /tmp/smoke/story > /tmp/story.json \
+ && (grep -q '"ready": true' /tmp/story.json || (cat /tmp/story.json; exit 1)) \
+ && Y=$(ffmpeg -ss 2 -i /tmp/smoke/story/film.mp4 -frames:v 1 -vf signalstats,metadata=print:key=lavfi.signalstats.YAVG -f null - 2>&1 | grep -o 'YAVG=[0-9]*' | head -1 | cut -d= -f2) \
+ && echo "3D stage brightness: $Y" && [ "${Y:-0}" -gt 25 ] \
+ && rm -rf /tmp/smoke /tmp/smoke.json /tmp/story.json
 VOLUME ["/data"]
 EXPOSE 3000
 # Default role is the web app. Run the worker with: command ["npm", "run", "worker:prod"]

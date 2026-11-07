@@ -398,19 +398,20 @@ export function LyricsPanel({ project, revision, onBuilt }: { project: ProjectVi
 
 export function ReelPanel({ project, catalog, disabled, onQueued }: { project: ProjectView; catalog: Catalog | null; disabled: boolean; onQueued: (jobId: string) => void }) {
   const { run, busy } = usePending();
-  const saved = (project.montage?.reel ?? {}) as { assetId?: string; source?: "auto" | "text"; text?: string; style?: "phrase" | "punchy"; band?: string; language?: string };
+  const saved = (project.montage?.reel ?? {}) as { assetId?: string; source?: "auto" | "text"; text?: string; style?: "phrase" | "punchy" | "karaoke"; band?: string; language?: string };
   const auto = Boolean(catalog?.captions.transcription);
   const [reel, setReel] = useState<string[]>(saved.assetId ? [saved.assetId] : []);
   const [source, setSource] = useState<"auto" | "text">(saved.source ?? (auto ? "auto" : "text"));
   const [text, setText] = useState(saved.text ?? "");
-  const [style, setStyle] = useState<"phrase" | "punchy">(saved.style ?? "phrase");
+  const [style, setStyle] = useState<"phrase" | "punchy" | "karaoke">(saved.style ?? "phrase");
   const [band, setBand] = useState(saved.band ?? "auto");
   const [language, setLanguage] = useState(saved.language ?? "auto");
   const [error, setError] = useState("");
 
   const go = () => run("go", async () => {
     setError("");
-    const res = await api<{ jobId: string }>(`/api/projects/${project.id}/captions`, { body: { assetId: reel[0], source, text, style, band, language } });
+    const karaoke = style === "karaoke";
+    const res = await api<{ jobId: string }>(`/api/projects/${project.id}/captions`, { body: { assetId: reel[0], source: karaoke ? (auto ? "auto" : "text") : source, text, style, band: karaoke && !["upper", "lower", "above-head"].includes(band) ? "above-head" : band, language: karaoke && language === "auto" ? "hi" : language } });
     if (!res.ok) { setError(res.error); return; }
     onQueued(res.data.jobId);
   });
@@ -419,38 +420,61 @@ export function ReelPanel({ project, catalog, disabled, onQueued }: { project: P
     <Panel kicker="Caption a reel" title="Your reel, with captions that land on the words">
       <AssetPicker kinds={["video"]} value={reel} onChange={(ids) => setReel(ids)} label="Reel (MP4, up to 3 minutes)" uploadLabel="Upload reel" />
       <div className="stack-label">
-        <span className="stack-label-text">Word timing</span>
-        <div className="chips" role="radiogroup" aria-label="Word timing">
-          <button type="button" role="radio" aria-checked={source === "auto"} className={source === "auto" ? "chip is-on" : "chip"} disabled={!auto} title={auto ? undefined : catalog?.captions.reason} onClick={() => setSource("auto")}>Listen to the reel</button>
-          <button type="button" role="radio" aria-checked={source === "text"} className={source === "text" ? "chip is-on" : "chip"} onClick={() => setSource("text")}>I will paste captions</button>
+        <span className="stack-label-text">Kind of captions</span>
+        <div className="chips" role="radiogroup" aria-label="Caption style">
+          <button type="button" role="radio" aria-checked={style === "phrase"} className={style === "phrase" ? "chip is-on" : "chip"} onClick={() => setStyle("phrase")}>Phrases</button>
+          <button type="button" role="radio" aria-checked={style === "punchy"} className={style === "punchy" ? "chip is-on" : "chip"} onClick={() => setStyle("punchy")}>Punchy, 2 to 3 words</button>
+          <button type="button" role="radio" aria-checked={style === "karaoke"} className={style === "karaoke" ? "chip is-on" : "chip"} onClick={() => { setStyle("karaoke"); setBand("above-head"); }}>Karaoke lyrics (singing)</button>
         </div>
-        {!auto ? <p className="fine">{catalog?.captions.reason}</p> : null}
       </div>
-      {source === "text" ? (
-        <label className="stack-label">Captions: SRT, LRC, or plain lines<textarea aria-label="Captions: SRT, LRC, or plain lines" className="field mono" value={text} onChange={(e) => setText(e.target.value)} placeholder={"1\n00:00:00,500 --> 00:00:02,000\nHello there"} style={{ minHeight: 160 }} />
-        </label>
+      {style === "karaoke" ? (
+        <>
+          <label className="stack-label">Lyrics you sing: English letters, one line per row (LRC times optional)
+            <textarea aria-label="Lyrics" className="field mono" value={text} onChange={(e) => setText(e.target.value)} placeholder={"kuch bhi nahin hai ye jahaan\ntu jo nahin to mera kuch nahin hai"} style={{ minHeight: 180 }} />
+          </label>
+          <p className="fine">One small line at a time in Instrument Serif italic with a peach, pink and lilac glow. Unsung words stay dim and light up as you sing them. Your footage gets a warm night grade and a slow push-in; your voice is kept and raised gently. Word times come from your singing{auto ? "" : " (add LRC times, since transcription is not set up)"}; doubtful lines are flagged for you to check.</p>
+          <div className="stack-label">
+            <span className="stack-label-text">Where the lyrics sit</span>
+            <div className="chips" role="radiogroup" aria-label="Lyric position">
+              {[["above-head", "Above my head"], ["upper", "Top"], ["lower", "Bottom"]].map(([id, label]) => (
+                <button key={id} type="button" role="radio" aria-checked={band === id} className={band === id ? "chip is-on" : "chip"} onClick={() => setBand(id)}>{label}</button>
+              ))}
+            </div>
+          </div>
+          <label className="stack-label">Sung language
+            <select aria-label="Sung language" className="field field-sm" value={language === "auto" ? "hi" : language} onChange={(e) => setLanguage(e.target.value)}><option value="hi">Hindi or Hinglish</option><option value="en">English</option></select>
+          </label>
+        </>
       ) : (
-        <label className="stack-label">Spoken language<select aria-label="Spoken language" className="field field-sm" value={language} onChange={(e) => setLanguage(e.target.value)}><option value="auto">Detect</option><option value="en">English</option><option value="hi">Hindi or Hinglish</option></select>
-        </label>
+        <>
+          <div className="stack-label">
+            <span className="stack-label-text">Word timing</span>
+            <div className="chips" role="radiogroup" aria-label="Word timing">
+              <button type="button" role="radio" aria-checked={source === "auto"} className={source === "auto" ? "chip is-on" : "chip"} disabled={!auto} title={auto ? undefined : catalog?.captions.reason} onClick={() => setSource("auto")}>Listen to the reel</button>
+              <button type="button" role="radio" aria-checked={source === "text"} className={source === "text" ? "chip is-on" : "chip"} onClick={() => setSource("text")}>I will paste captions</button>
+            </div>
+            {!auto ? <p className="fine">{catalog?.captions.reason}</p> : null}
+          </div>
+          {source === "text" ? (
+            <label className="stack-label">Captions: SRT, LRC, or plain lines
+              <textarea aria-label="Captions: SRT, LRC, or plain lines" className="field mono" value={text} onChange={(e) => setText(e.target.value)} placeholder={"1\n00:00:00,500 --> 00:00:02,000\nHello there"} style={{ minHeight: 160 }} />
+            </label>
+          ) : (
+            <label className="stack-label">Spoken language
+              <select aria-label="Spoken language" className="field field-sm" value={language} onChange={(e) => setLanguage(e.target.value)}><option value="auto">Detect</option><option value="en">English</option><option value="hi">Hindi or Hinglish</option></select>
+            </label>
+          )}
+          <div className="stack-label">
+            <span className="stack-label-text">Where captions go</span>
+            <div className="chips" role="radiogroup" aria-label="Caption position">
+              {[["auto", "Find a clear spot"], ["upper", "Top"], ["middle", "Middle"], ["lower", "Bottom"]].map(([id, label]) => (
+                <button key={id} type="button" role="radio" aria-checked={band === id} className={band === id ? "chip is-on" : "chip"} disabled={id === "auto" && !catalog?.captions.autoPlacement} onClick={() => setBand(id)}>{label}</button>
+              ))}
+            </div>
+          </div>
+        </>
       )}
-      <div className="split">
-        <div className="stack-label">
-          <span className="stack-label-text">Style</span>
-          <div className="chips" role="radiogroup" aria-label="Caption style">
-            <button type="button" role="radio" aria-checked={style === "phrase"} className={style === "phrase" ? "chip is-on" : "chip"} onClick={() => setStyle("phrase")}>Phrases</button>
-            <button type="button" role="radio" aria-checked={style === "punchy"} className={style === "punchy" ? "chip is-on" : "chip"} onClick={() => setStyle("punchy")}>Punchy, 2 to 3 words</button>
-          </div>
-        </div>
-        <div className="stack-label">
-          <span className="stack-label-text">Where captions go</span>
-          <div className="chips" role="radiogroup" aria-label="Caption position">
-            {[["auto", "Find a clear spot"], ["upper", "Top"], ["middle", "Middle"], ["lower", "Bottom"]].map(([id, label]) => (
-              <button key={id} type="button" role="radio" aria-checked={band === id} className={band === id ? "chip is-on" : "chip"} disabled={id === "auto" && !catalog?.captions.autoPlacement} onClick={() => setBand(id)}>{label}</button>
-            ))}
-          </div>
-        </div>
-      </div>
-      <Button tone="accent" pending={busy("go")} disabled={disabled || !reel[0] || (source === "text" && !text.trim())} onClick={() => void go()}>Caption my reel</Button>
+      <Button tone="accent" pending={busy("go")} disabled={disabled || !reel[0] || ((source === "text" || style === "karaoke") && !text.trim())} onClick={() => void go()}>{style === "karaoke" ? "Make my lyric video" : "Caption my reel"}</Button>
       <p className="fine">The original stays untouched. The result is a new film version you can watch, download and share.</p>
       <Notice tone="bad" onClose={() => setError("")}>{error}</Notice>
     </Panel>

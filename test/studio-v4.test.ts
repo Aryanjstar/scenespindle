@@ -124,3 +124,20 @@ test('punchy reel captions keep 2 to 3 words and never overlap', () => {
   assert.ok(cues.every((c) => c.text.split(' ').length <= 3));
   for (let i = 1; i < cues.length; i++) assert.ok(cues[i].startMs >= cues[i - 1].endMs);
 });
+
+test('karaoke lyrics stay romanized and lowercase, and take their times from the singing', async () => {
+  const { lyricLines, alignLyrics } = await import('../src/pipeline/caption-reel');
+  assert.throws(() => lyricLines('कुछ भी नहीं'), /English letters/);
+  const { lines, timed } = lyricLines('Kuch Bhi Nahin\nTu Jo Nahin');
+  assert.deepEqual(lines, ['kuch bhi nahin', 'tu jo nahin']);
+  assert.equal(timed, null);
+  const heard = ['kuch', 'bhi', 'nahi', 'tu', 'jo', 'nahi'].map((text, i) => ({ text, startMs: 500 + i * 400, endMs: 800 + i * 400 }));
+  const aligned = alignLyrics(lines, timed, heard, 4000);
+  assert.equal(aligned[1].startMs, 1700);
+  assert.equal(aligned[0].words[2].text, 'nahin', 'screen shows the creator\'s words, not the transcript');
+  assert.ok(aligned.every((l) => !l.doubtful));
+  const lrc = lyricLines('[00:01.00] kuch bhi nahin\n[00:03.00] tu jo nahin');
+  const timedLines = alignLyrics(lrc.lines, lrc.timed, [], 5000);
+  assert.equal(timedLines[1].startMs, 3000);
+  assert.equal(timedLines[0].words.length, 3);
+});

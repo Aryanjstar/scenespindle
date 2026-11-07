@@ -1,5 +1,10 @@
 # SceneSpindle: handoff
 
+Updated 2026-11-07. Read `docs/PROJECT_STATUS.md` first: it has the v4 pass (what shipped, how it was checked, what is open). The sections below are the earlier handoff; where they say a screen or feature is missing, PROJECT_STATUS.md is current.
+
+**Run locally**: `npm run dev` and `npm run worker` (MongoDB replica set needed). Optional: `WHISPER_MODEL` for local transcription; Blender on a PC you pair with `npm run agent -- pair <CODE> --url <studio>` then `npm run agent`.
+
+
 Updated 2026-11-04 (night). Read this first on any new machine.
 
 

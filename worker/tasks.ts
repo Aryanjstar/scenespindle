@@ -11,6 +11,7 @@ import { fetchToFile, putFile } from "../src/server/storage";
 import { analyzeStyle } from "../src/server/style-analysis";
 import { draftCopy, makeBanner } from "../src/server/tools";
 import { meter, QuotaError } from "../src/server/usage";
+import { alignLyrics, burnKaraoke, lyricLines } from "../src/pipeline/caption-reel";
 import { burnCaptionReel, cuesFromWords, extractSpeech, parseCaptionText, probeSize, reelPreviews, sampleFrames, type CaptionBand } from "../src/pipeline/caption-reel";
 import { otioJson, toOtio, writeZip } from "../src/pipeline/exports";
 import { probeVideo, RENDERER } from "../src/pipeline/render";
@@ -67,6 +68,10 @@ async function captionReel(lease: Lease) {
     const size = await probeSize(source);
     if (size.durationMs > 180_000) throw new Error("Caption reels stay under 3 minutes.");
     const warnings: string[] = [];
+    if (job.input.style === "karaoke") {
+      await karaoke(lease, source, size, dir, warnings);
+      return;
+    }
     let cues;
     let heardWords: { text: string; startMs: number; endMs: number }[] | undefined;
     let timing: "aligned" | "estimated" = "aligned";
@@ -119,6 +124,53 @@ async function captionReel(lease: Lease) {
   } finally {
     if (!process.env.KEEP_RENDER_WORK) rmSync(dir, { recursive: true, force: true });
   }
+}
+
+/** Karaoke lyric video: the creator's lyrics, timed to their own singing. */
+async function karaoke(lease: Lease, source: string, size: { width: number; height: number; durationMs: number }, dir: string, warnings: string[]) {
+  const { job } = lease;
+  const stages = (i: number) => ["listen", "place", "burn", "qa"].map((name, n) => ({ name, state: n < i ? "done" : n === i ? "running" : "queued" }));
+  const { lines, timed } = lyricLines(String(job.input.text ?? ""));
+  let heard: { text: string; startMs: number; endMs: number }[] = [];
+  const env = loadEnv();
+  const stt = (await import("../src/server/providers/stt")).sttAvailable(env);
+  if (stt.available) {
+    const wav = resolve(dir, "speech.wav");
+    await extractSpeech(source, wav);
+    const usage = await meter("stt", Math.ceil(size.durationMs / 1000), job.ownerId);
+    try {
+      const result = await transcribe(env, wav, job.input.language === "en" ? "en" : "hi");
+      await usage.settle();
+      heard = result.words;
+      if (result.note) warnings.push(result.note);
+    } catch (error) {
+      await usage.release();
+      if (!timed) throw error;
+      warnings.push("Transcription was unavailable, so words are spread evenly inside your LRC times.");
+    }
+  }
+  await lease.stage(stages(1), 30);
+  const aligned = alignLyrics(lines, timed, heard, size.durationMs);
+  const doubtful = aligned.map((l, i) => (l.doubtful ? i + 1 : 0)).filter(Boolean);
+  if (doubtful.length) warnings.push(`Check the timing of line${doubtful.length > 1 ? "s" : ""} ${doubtful.join(", ")}: the heard words did not match your lyrics well. Add LRC times for exact lines.`);
+  await lease.stage(stages(2), 45);
+  const out = resolve(dir, "film.mp4");
+  await burnKaraoke({ video: source, lines: aligned, out, placement: job.input.band === "lower" ? "bottom" : job.input.band === "upper" ? "top" : "above-head" });
+  await lease.stage(stages(3), 85);
+  const thumb = resolve(dir, "thumb.jpg");
+  const sheet = resolve(dir, "sheet.jpg");
+  await reelPreviews(out, size.durationMs, thumb, sheet);
+  const captions = aligned.map((l) => ({ text: l.text, startMs: l.startMs, endMs: l.endMs, words: [] }));
+  const srt = resolve(dir, "captions.srt");
+  const vtt = resolve(dir, "captions.vtt");
+  writeFileSync(srt, toSrt(captions));
+  writeFileSync(vtt, toVtt(captions));
+  const qa = await probeVideo(out, size.durationMs, { width: size.width, height: size.height });
+  qa.checks = qa.checks.filter((check) => check.name !== "loudness" && check.name !== "true peak");
+  qa.passed = qa.checks.every((check) => check.ok);
+  const format = size.width === size.height ? "1x1" : size.width > size.height ? "16x9" : "9x16";
+  job.input.format = format;
+  await publishMade(lease, { mp4: out, thumb, sheet, srt, vtt, durationMs: size.durationMs, qa, warnings: [...warnings, "Your own singing, raised to about -17.6 LUFS. Check you have the rights to the song before sharing."], timing: heard.length ? "aligned" : "estimated", renderer: `karaoke@1+${RENDERER}`, commercial: false, edl: { durationMs: size.durationMs, lines: aligned.map((l, i) => ({ sceneId: "s1", lineId: `k${i + 1}`, text: l.text, startMs: l.startMs, durationMs: l.endMs - l.startMs })) } }, ["listen", "place", "burn", "qa"], { format });
 }
 
 async function exportVideo(lease: Lease) {

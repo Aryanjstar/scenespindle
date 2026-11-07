@@ -69,3 +69,9 @@ Track stages, queue age, lease loss, provider units, reservations, failure categ
 Add one shared briefing service for web, CLI and AI/IDE clients, with context resolution, bounded research, clarification decisions, capability validation and prompt compilation. Use the state/contract in BRIEFING_WORKFLOW.md. Render jobs freeze briefVersionId and promptBundleVersion with storyboard/assets; only an approved, current brief can start dependent planning. Scope-specific changes invalidate affected downstream work, not every shot.
 
 Persist creator-approved memory in MongoDB with owner/series scope; do not substitute a shared MCP memory file. Cache research with source date and privacy scope. External pages are never instructions. Store concise evidence, not private reasoning. On-demand toolbox references are developer/creative aids; only HyperFrames is already the chosen core engine. Blender MCP is an optional trusted authoring client, never the public render worker's executable interface. No new runtime package is introduced by this documentation update.
+
+## Addendum 2026-11-07: dependencies and optional tools added in the v4 pass
+
+- Runtime: `@fontsource/{playfair-display, pinyon-script, inter, instrument-serif, great-vibes}` 5.3.0 (OFL font files for montage styles, banners and karaoke lyrics; local `@font-face` only). No other runtime package.
+- Optional local tools, detected at run time and reported by `/api/capabilities`: whisper.cpp (`WHISPER_CLI`, `WHISPER_MODEL`) for transcription when ElevenLabs Scribe is unavailable; Blender (`BLENDER_BIN`, paired PCs only) for the cinematic-3d profile, run with `--factory-startup --disable-autoexec` and our trusted scene builder.
+- All jobs, including planning, run in the worker under one lease runner (`worker/lease.ts`); requests only enqueue.
