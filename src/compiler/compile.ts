@@ -329,8 +329,8 @@ function captionPages(line: TimedLine, chars: number): { html: string; tweens: T
         const id = assertSafeId(`cap-${line.sceneId}-${line.lineId}-p${p}w${n}`);
         const at = (line.startMs + word.startMs) / 1000;
         const dur = Math.max(0.16, (word.endMs - word.startMs) / 1000);
-        tweens.push(tween({ target: id, from: { opacity: 0.62 }, to: { opacity: 1 }, at, duration: 0.06, ease: "power2.out" }));
-        tweens.push(tween({ target: id, from: { opacity: 1 }, to: { opacity: 0.62 }, at: at + Math.max(0.08, dur - 0.06), duration: 0.06, ease: "power2.out" }));
+        tweens.push(tween({ target: id, from: { scale: 1 }, to: { scale: 1.06 }, at, duration: 0.06, ease: "power2.out" }));
+        tweens.push(tween({ target: id, from: { scale: 1.06 }, to: { scale: 1 }, at: at + Math.max(0.08, dur - 0.06), duration: 0.06, ease: "power2.out" }));
         return `<span id="${id}" class="word">${escapeHtml(word.text)} </span>`;
       }).join("");
       return `<p class="cap-line">${spans}</p>`;
@@ -448,13 +448,18 @@ function spokenCss(): string {
     radial-gradient(ellipse at 18% 0%, rgba(242,159,5,.32), transparent 44%),
     radial-gradient(ellipse at 88% 18%, rgba(14,156,143,.3), transparent 48%),
     #1b2433; }
-  .kicker { color: #f2c14e; }
-  .title, .slam, .cap p, .kword { color: #fff6e8; }
-  .kword.strong { color: #f2c14e; }
-  .note { color: #f2c14e; }
-  .underline { background: #f29f05; }
+  .kicker { color: #ffb020; }
+  .title, .slam, .cap p, .kword, .word {
+    color: #ffb020;
+    font-weight: 800;
+    text-shadow: -3px 0 0 #141820, 3px 0 0 #141820, 0 -3px 0 #141820, 0 3px 0 #141820, -3px -3px 0 #141820, 3px 3px 0 #141820, -3px 3px 0 #141820, 3px -3px 0 #141820;
+  }
+  .kword.strong { color: #ffb020; }
+  .word { display: inline-block; opacity: 1; margin-right: 0.28em; transform-origin: 50% 70%; }
+  .note { color: #ffb020; }
+  .underline { background: #ffb020; }
   .cell { background: #fffaf3; }
-  .bullets span, .bullets em { color: #fff6e8; }
+  .bullets span, .bullets em { color: #fff4d2; }
   .code { background: #10151f; }
   `;
 }

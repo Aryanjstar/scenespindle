@@ -45,7 +45,7 @@ export const films: Film[] = [
     id: "explainer",
     title: "Why ice floats",
     kind: "Explainer",
-    length: "29s",
+    length: "36s",
     audio: true,
     src: "/films/explainer-v4.mp4",
     poster: "/films/explainer-v4.jpg",
