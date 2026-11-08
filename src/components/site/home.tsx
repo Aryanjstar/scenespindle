@@ -9,8 +9,7 @@ const modes = films.map((film) => ({
   title: film.kind,
   copy: film.detail,
   state: "In the studio",
-  src: film.src,
-  poster: film.poster,
+  film,
 }));
 
 const steps = [
@@ -29,47 +28,76 @@ const stack = [
   ["Trace", "Code Lab reads an execution trace. The model does not invent the steps."],
 ];
 
+/**
+ * Every film on the page plays only when clicked, with sound, once to the end. Starting one film
+ * pauses whichever was playing. Nothing downloads until a film is clicked (the poster shows first),
+ * so the page stays light on a slow connection.
+ */
+function Reel({ film, className = "", autoStart = false }: { film: Film; className?: string; autoStart?: boolean }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [state, setState] = useState<"idle" | "loading" | "playing" | "paused" | "ended">("idle");
+
+  const start = () => {
+    const node = ref.current;
+    if (!node) return;
+    if (node.ended) node.currentTime = 0;
+    node.muted = false;
+    setState("loading");
+    void node.play().catch(() => setState("paused"));
+  };
+
+  useEffect(() => {
+    if (autoStart) start();
+    // Starts once when a film is chosen from the strip (a click), never on page load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const started = state !== "idle";
+  return (
+    <div className={`reel ${className}`} data-state={state}>
+      <video
+        ref={ref}
+        src={film.src}
+        poster={film.poster}
+        playsInline
+        preload="none"
+        controls={started && state !== "ended"}
+        onPlaying={() => setState("playing")}
+        onWaiting={() => setState("loading")}
+        onPause={(e) => { if (!e.currentTarget.ended) setState("paused"); }}
+        onEnded={() => setState("ended")}
+        aria-label={`${film.title}, ${film.kind}`}
+      />
+      {state === "idle" || state === "ended" ? (
+        <button type="button" className="reel-play" onClick={start} aria-label={`${state === "ended" ? "Play again" : "Play"}: ${film.title}`}>
+          <span className="reel-icon" aria-hidden="true">{state === "ended" ? "↻" : "▶"}</span>
+          <span className="reel-label">{state === "ended" ? "Play again" : `Play · ${film.length}`}</span>
+        </button>
+      ) : null}
+      {state === "loading" ? <span className="reel-spin" aria-hidden="true" /> : null}
+    </div>
+  );
+}
+
 export function HomePage() {
   const [open, setOpen] = useState(false);
   const [activeId, setActiveId] = useState(films[1].id);
-  const [sound, setSound] = useState(false);
-  const stageRef = useRef<HTMLVideoElement>(null);
-  const heroRef = useRef<HTMLVideoElement>(null);
+  const [picked, setPicked] = useState(false);
   const hero = films[0];
   const active = films.find((film) => film.id === activeId) ?? hero;
 
+  // One film at a time: any film that starts pauses every other film on the page.
   useEffect(() => {
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const hero = heroRef.current;
-    if (!hero || reduced) return;
-    hero.muted = true;
-    void hero.play().catch(() => undefined);
+    const onPlay = (event: Event) => {
+      document.querySelectorAll("video").forEach((video) => { if (video !== event.target && !video.paused) video.pause(); });
+    };
+    document.addEventListener("play", onPlay, true);
+    return () => document.removeEventListener("play", onPlay, true);
   }, []);
-
-  useEffect(() => {
-    const node = stageRef.current;
-    if (!node) return;
-    node.muted = !(sound && active.audio);
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) {
-      node.pause();
-      return;
-    }
-    void node.play().catch(() => undefined);
-  }, [active, sound]);
 
   function choose(film: Film) {
     setActiveId(film.id);
-    if (!film.audio) setSound(false);
-  }
-
-  function toggleSound() {
-    const node = stageRef.current;
-    if (!active.audio || !node) return;
-    const next = !sound;
-    setSound(next);
-    node.muted = !next;
-    void node.play().catch(() => undefined);
+    setPicked(true);
   }
 
   return (
@@ -102,19 +130,11 @@ export function HomePage() {
             <Link className="btn accent lg" href="/sign-in">Open the studio</Link>
             <a className="btn ghost lg" href="#films">Watch the films</a>
           </div>
-          <p className="fine">Made in this studio. It starts muted; open it below for sound.</p>
+          <p className="fine">Made in this studio. Tap a film to play it with sound.</p>
         </div>
         <figure className="hero-phone">
           <div className="phone">
-            <video
-              ref={heroRef}
-              src={hero.src}
-              poster={hero.poster}
-              muted
-              loop
-              playsInline
-              preload="metadata"
-            />
+            <Reel film={hero} />
           </div>
           <figcaption>
             <strong>{hero.title}</strong>
@@ -128,28 +148,16 @@ export function HomePage() {
         <div className="block-head">
           <p className="kicker">Rendered here</p>
           <h2>Eight new films, one for every mode.</h2>
-          <p>Each one was rendered by this studio. The old showreel is not on this page. Open a tile to hear it.</p>
+          <p>Each one was rendered by this studio. The old showreel is not on this page. Pick one to play it.</p>
         </div>
         <div className="stage">
           <div className="phone phone-lg">
-            <video
-              key={active.id}
-              ref={stageRef}
-              src={active.src}
-              poster={active.poster}
-              loop
-              playsInline
-              controls
-              preload="metadata"
-            />
+            <Reel key={active.id} film={active} autoStart={picked} />
           </div>
           <div className="stage-copy">
             <p className="kicker">{active.kind} · {active.length}{active.audio ? " · with voice" : " · silent"}</p>
             <h3>{active.title}</h3>
             <p>{active.detail}</p>
-            <button className="btn ghost" type="button" onClick={toggleSound} disabled={!active.audio}>
-              {active.audio ? (sound ? "Mute" : "Play with sound") : "No voice in this file"}
-            </button>
           </div>
         </div>
         <div className="strip">
@@ -174,12 +182,12 @@ export function HomePage() {
         <div className="block-head">
           <p className="kicker">What it makes</p>
           <h2>One pipeline. Every mode you can open in the studio.</h2>
-          <p>Each tile plays a different film. Story and Cartoon perform on a 3D stage. Lyrics sit on the sung line.</p>
+          <p>Tap any tile to play its film. Story and Cartoon perform on a 3D stage. Lyrics sit on the sung line.</p>
         </div>
         <div className="bento">
           {modes.map((mode) => (
             <article key={mode.title} className="tile">
-              <video src={mode.src} poster={mode.poster} muted loop playsInline preload="metadata" autoPlay />
+              <Reel film={mode.film} />
               <h3>{mode.title}</h3>
               <p>{mode.copy}</p>
               <span className="badge" data-tone="ready">{mode.state}</span>

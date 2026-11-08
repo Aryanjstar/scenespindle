@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["hyperframes", "puppeteer-core", "sharp"],
   async headers() {
     return [{
+      // Site films and posters never change in place (new cuts get new names), so browsers and
+      // proxies may keep them for a year.
+      source: "/films/:file*",
+      headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+    }, {
       source: "/:path*",
       headers: [
         { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },

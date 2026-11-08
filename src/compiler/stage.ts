@@ -192,7 +192,8 @@ function actor(look) {
   mouth.position.set(0, -0.12, 0.28);
   parts.push(eyeL, eyeR, mouth);
   if (look.accessory === "glasses") { const rim = mat(0x111111, 0.3); for (const x of [-0.11, 0.11]) { const r = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.012, 6, 16), rim); r.position.set(x, 0.04, 0.32); parts.push(r); } }
-  if (look.accessory === "cap") { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.38, 0.14, 20), bottom); c.position.set(0, 0.28, 0); parts.push(c, box(0.4, 0.03, 0.3, hex(look.bottom), 0, 0.22, 0.28)); }
+  // Cap sits on the crown with the brim above the brows, so the eyes stay visible from the camera.
+  if (look.accessory === "cap") { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.355, 0.13, 20), bottom); c.position.set(0, 0.33, -0.02); const brim = box(0.34, 0.025, 0.2, hex(look.bottom), 0, 0.28, 0.27); brim.rotation.x = -0.25; parts.push(c, brim); }
   if (look.accessory === "bindi") { const b = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), mat(0xc81e3a, 0.3)); b.position.set(0, 0.15, 0.335); parts.push(b); }
   if (look.accessory === "scarf") { const s = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.06, 8, 20), bottom); s.rotation.x = Math.PI / 2; s.position.set(0, 0.36, 0); body.add(s); }
   head.add(...parts);
