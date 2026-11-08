@@ -211,8 +211,8 @@ function layerHtml(plan: Plan, sceneIndex: number, startSec: number, durationSec
           const wid = assertSafeId(`${id}-l${li}w${n}`);
           const at0 = (line.startMs + word.startMs) / 1000;
           const until = (line.startMs + (words[n + 1]?.startMs ?? word.endMs)) / 1000;
-          tweens.push(tween({ target: wid, from: { opacity: 0.4, scale: 0.92 }, to: { opacity: 1, scale: 1.08 }, at: at0, duration: 0.08, ease: "power2.out" }));
-          tweens.push(tween({ target: wid, from: { opacity: 1, scale: 1.08 }, to: { opacity: 0.72, scale: 1 }, at: Math.max(at0 + 0.08, until - 0.02), duration: 0.06, ease: "none" }));
+          tweens.push(tween({ target: wid, from: { scale: 1 }, to: { scale: 1.12 }, at: at0, duration: 0.08, ease: "power2.out" }));
+          tweens.push(tween({ target: wid, from: { scale: 1.12 }, to: { scale: 1 }, at: Math.max(at0 + 0.08, until - 0.02), duration: 0.06, ease: "none" }));
           return `<span id="${wid}" class="lyric-word">${escapeHtml(word.text)}</span>`;
         }).join(" ");
         const lid = assertSafeId(`${id}-line${li}`);
@@ -384,8 +384,8 @@ function css(L: Layout): string {
   .bullets em { font-style: normal; font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: 48px; color: ${ink.teal}; }
   .bullets span { font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: 48px; color: ${ink.ink}; }
   .cap { left: ${L.cap.left}px; width: ${L.cap.width}px; top: ${L.cap.top}px; text-align: center; }
-  .cap p { margin: 0; font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: ${L.cap.size}px; line-height: 1.2; color: ${ink.ink}; text-shadow: -3px 0 0 ${ink.paper}, 3px 0 0 ${ink.paper}, 0 -3px 0 ${ink.paper}, 0 3px 0 ${ink.paper}; }
-  .word { display: inline; opacity: 0.62; }
+  .cap p { margin: 0; font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: ${L.cap.size}px; line-height: 1.25; color: #ffb020; text-shadow: -3px 0 0 #141820, 3px 0 0 #141820, 0 -3px 0 #141820, 0 3px 0 #141820, -3px -3px 0 #141820, 3px 3px 0 #141820, -3px 3px 0 #141820, 3px -3px 0 #141820; }
+  .word { display: inline-block; opacity: 1; margin-right: 0.28em; color: #ffb020; transform-origin: 50% 70%; }
   .word.on { color: ${ink.teal}; }
   .slot-full { position: absolute; inset: 0; overflow: hidden; background: ${ink.ink}; }
   .still { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform-origin: 50% 45%; }
@@ -432,9 +432,8 @@ function illustratedCss(L: Layout): string {
   return `
   .slot-top { top: ${kickerTop}px; left: 56px; right: 56px; }
   .cap { top: ${capTop}px; left: 56px; width: ${L.w - 112}px; }
-  .cap p { color: #ffffff; text-shadow: ${o(4)}, 0 6px 18px rgba(0,0,0,.35); font-size: ${Math.round((portrait ? 46 : 40) * L.type)}px; }
-  .word { opacity: 0.78; }
-  .word.on, .cap p .word[style*="opacity: 1"] { color: #ffd166; }
+  .cap p { color: #ffb020; text-shadow: -3px 0 0 #141820, 3px 0 0 #141820, 0 -3px 0 #141820, 0 3px 0 #141820, -3px -3px 0 #141820, 3px 3px 0 #141820, -3px 3px 0 #141820, 3px -3px 0 #141820; font-size: ${Math.round((portrait ? 46 : 40) * L.type)}px; }
+  .word { opacity: 1; color: #ffb020; }
   .kicker { display: inline-block; padding: 4px 14px 8px; border-radius: 12px; background: ${ink.moon}; color: ${ink.ink}; border: 3px solid ${ink.ink}; font-size: ${portrait ? 34 : 28}px; transform: rotate(-2deg); box-shadow: 4px 4px 0 ${ink.ink}; }
   .still-shade { height: 22%; background: linear-gradient(to top, rgba(20,16,28,.45), rgba(20,16,28,0)); }
 `;
@@ -488,7 +487,7 @@ function lyricsCss(L: Layout): string {
   .slot-hero.lyric { top: ${Math.round(L.h * 0.36)}px; left: 64px; right: 64px; height: auto; display: grid; place-items: center; }
   .slot-bottom { top: ${Math.round(L.h * 0.78)}px; }
   .lyric-line { margin: 0; grid-area: 1 / 1; text-align: center; max-width: 92%; }
-  .lyric-word { display: inline-block; margin: 0 0.14em; font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: ${Math.round(72 * L.type)}px; line-height: 1.15; color: #fff8ee; text-shadow: -3px 0 0 #120d18, 3px 0 0 #120d18, 0 -3px 0 #120d18, 0 3px 0 #120d18; }
+  .lyric-word { display: inline-block; margin: 0 0.16em; font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: ${Math.round(72 * L.type)}px; line-height: 1.2; color: #ffb020; text-shadow: -3px 0 0 #141820, 3px 0 0 #141820, 0 -3px 0 #141820, 0 3px 0 #141820, -3px -3px 0 #141820, 3px 3px 0 #141820, -3px 3px 0 #141820, 3px -3px 0 #141820; }
   .pulse i { background: #ff5fa2; }
   .kicker { color: #fff8ee; }
   `;
