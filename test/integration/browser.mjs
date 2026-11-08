@@ -62,6 +62,7 @@ try {
     await page.getByPlaceholder('A topic, in one sentence').fill('Local example ' + width);
     await page.getByRole('button', { name: 'Start', exact: true }).click();
     await expect(page.getByLabel('Topic', { exact: true })).toHaveValue('Local example ' + width);
+    await page.getByRole('button', { name: 'Customize', exact: true }).click();
     await page.getByLabel('Title', { exact: true }).fill('Renamed ' + width);
     await page.getByRole('button', { name: 'Rename', exact: true }).click();
     await expect(page.getByText('Project renamed', { exact: true })).toBeVisible();
@@ -69,6 +70,7 @@ try {
     await page.getByRole('button', { name: 'Save', exact: true }).first().click();
     await expect(page.getByText('Saved', { exact: true })).toBeVisible();
     await page.reload();
+    await page.getByRole('button', { name: 'Customize', exact: true }).click();
     await expect(page.getByPlaceholder('Audience')).toHaveValue('New readers');
     await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Renamed ' + width);
     await page.getByRole('textbox', { name: 'What should this video do?' }).fill('Explain a useful idea clearly for new readers');
@@ -80,6 +82,7 @@ try {
     await page.getByRole('button', { name: 'Approve brief' }).click();
     await expect(page.getByText('Brief approved and saved as version 1.', { exact: true })).toBeVisible();
     await page.reload();
+    await page.getByRole('button', { name: 'Customize', exact: true }).click();
     await expect(page.getByText('approved v1', { exact: true })).toBeVisible();
     const approved = await mongoose.connection.db.collection('briefversions').findOne({ projectId: new mongoose.Types.ObjectId(new URL(page.url()).pathname.split('/').pop()) });
     assert.equal(approved.version, 1);
@@ -138,6 +141,7 @@ try {
     const { page, id } = projects[0];
     const other = projects[1].page;
     await page.getByRole('button', { name: 'Idea', exact: true }).click();
+    await page.getByRole('button', { name: 'Customize', exact: true }).click();
     const unconfigured = await page.evaluate(async id => (await fetch('/api/projects/' + id, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ voiceId: 'elevenlabs:alice' }) })).status, id);
     assert.equal(unconfigured, 422, 'An unconfigured narrator cannot be chosen');
     await page.getByLabel('Narrator').selectOption('test:tone');

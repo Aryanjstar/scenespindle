@@ -27,7 +27,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       const last = await Project.findOne({ ownerId: auth.user!._id, seriesId: series._id }, null, { withDeleted: true }).sort({ episodeNumber: -1 }).select("episodeNumber").session(session);
       episodeNumber = (last?.episodeNumber ?? 0) + 1;
       const title = parsed.data.title || `${series.title}: Episode ${episodeNumber}`;
-      const [project] = await Project.create([{ ownerId: auth.user!._id, title: title.slice(0, 120), mode: series.mode, format: prefs.defaultFormat ?? "9x16", targetMs: Math.max(60000, prefs.defaultTargetMs ?? 60000), language: prefs.defaultLanguage ?? "en", voiceId: prefs.defaultVoiceId ?? "elevenlabs:alice", styleId: "chalk-and-chai@1", keepPrivate: false, badge: "draft", seriesId: series._id, seriesVersion: frozen.version, episodeNumber, castIds: frozenCast.length ? frozenCast : series.castIds }], { session });
+      const [project] = await Project.create([{ ownerId: auth.user!._id, title: title.slice(0, 120), mode: series.mode, format: prefs.defaultFormat ?? "9x16", targetMs: Math.max(60000, prefs.defaultTargetMs ?? 60000), language: prefs.defaultLanguage ?? "en", voiceId: prefs.defaultVoiceId ?? "azure:neerja", styleId: "chalk-and-chai@1", keepPrivate: false, badge: "draft", seriesId: series._id, seriesVersion: frozen.version, episodeNumber, castIds: frozenCast.length ? frozenCast : series.castIds }], { session });
       await Draft.create([{ ownerId: auth.user!._id, projectId: project._id, idea: { topic: parsed.data.topic, mustInclude: [] } }], { session });
       projectId = String(project._id);
     });

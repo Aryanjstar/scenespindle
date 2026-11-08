@@ -6,6 +6,7 @@ import { creatorUsage, period, usageSummary } from "../../../server/usage";
 
 const PROVIDERS = [
   { id: "gemini", label: "Planner (Gemini)", unit: "calls", key: "geminiApiKey" },
+  { id: "azure", label: "Voice (Azure Speech)", unit: "characters", key: "azureSpeechKey" },
   { id: "elevenlabs", label: "Voice (ElevenLabs)", unit: "characters", key: "elevenLabsApiKey" },
   { id: "sarvam", label: "Voice (Sarvam)", unit: "characters", key: "sarvamApiKey" },
   { id: "images", label: "Pictures (Azure image)", unit: "images", key: "" },

@@ -59,6 +59,7 @@ const dims = qa => qa.checks.find(check => check.name === 'dimensions').detail;
 
 /** The narrator lives in the project settings on the first step. */
 async function chooseTestVoice(page) {
+  await page.getByRole('button', { name: 'Customize', exact: true }).click();
   await page.getByRole('button', { name: /^\d?(Idea|Song)$/ }).first().click();
   await page.getByLabel('Narrator').selectOption('test:tone');
   await expect(page.getByLabel('Narrator')).toHaveValue('test:tone');
@@ -89,6 +90,7 @@ try {
 
   // Audio film from an approved exact script, planned offline, rendered with the test voice.
   const audioId = await createProject(page, 'audio', 'Why leaves change colour');
+  await page.getByRole('button', { name: 'Customize', exact: true }).click();
   await page.getByLabel('Narrator').waitFor({ state: 'detached' }).catch(() => {});
   await page.getByRole('textbox', { name: 'Exact script, if you have one' }).fill(SCRIPT);
   await page.getByRole('button', { name: 'Refine brief' }).click();
@@ -121,6 +123,7 @@ try {
 
   // Code Lab: browser trace, offline plan from the trace, square film.
   const codeId = await createProject(page, 'code_lab', 'How binary search finds 21');
+  await page.getByRole('button', { name: 'Customize', exact: true }).click();
   await page.getByLabel('Format').selectOption('1x1');
   await expect(page.getByLabel('Format')).toHaveValue('1x1');
   await page.getByRole('button', { name: 'Trace', exact: true }).click();
@@ -141,6 +144,7 @@ try {
 
   // Montage: upload generated demo media, cut on beats, landscape.
   const montageId = await createProject(page, 'montage', 'Demo montage');
+  await page.getByRole('button', { name: 'Customize', exact: true }).click();
   await page.getByLabel('Format').selectOption('16x9');
   await expect(page.getByLabel('Format')).toHaveValue('16x9');
   const files = ['clip-testcard.mp4', 'photo-gradient-a.png', 'clip-mandelbrot.mp4', 'photo-gradient-b.jpg'].map(name => resolve('examples/media', name));
@@ -177,6 +181,7 @@ try {
 
   // Story performs on the 3D stage. Offline planning needs an exact script.
   const storyId = await createProject(page, 'story', 'Paper boat');
+  await page.getByRole('button', { name: 'Customize', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Who is in it' })).toBeVisible();
   await page.getByRole('textbox', { name: 'Exact script, if you have one' }).fill('Meera walks to the river. She waves at the boat. She turns toward home.');
   await page.getByRole('button', { name: 'Refine brief' }).click();

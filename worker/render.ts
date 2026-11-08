@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import mongoose from "mongoose";
 import { validatePlan } from "../src/contracts/plan";
 import { loadEnv } from "../src/config/env";
-import { voiceEntry, voiceUnavailable } from "../src/config/providers";
+import { voiceCandidates, voiceEntry, voiceUnavailable } from "../src/config/providers";
 import { renderMontage } from "../src/pipeline/montage";
 import { RENDERER, renderFilm, type QaReport } from "../src/pipeline/render";
 import { Asset, Job, Project, Storyboard, Video } from "../src/server/db";
@@ -109,7 +109,7 @@ export async function renderJob(lease: Lease): Promise<void> {
       const songMode = checked.plan.mode === "lyrics";
       const voice = songMode ? { ...voiceEntry("test:tone")!, id: "song", label: "Song", commercial: false } : voiceEntry(String(job.input.voiceId ?? ""));
       if (!voice) throw new ProviderError("invalid", "Unknown voice");
-      if (!songMode && voiceUnavailable(voice, env, checked.plan.language)) throw new ProviderError("auth", "Voice not configured");
+      if (!songMode && voiceCandidates(voice.id, checked.plan.language, env).length === 0) throw new ProviderError("auth", voiceUnavailable(voice, env, checked.plan.language) ?? "No narrator is configured for this language.");
       const images = await resolveStills(job.ownerId, checked.plan, resolve(workDir, "in"));
       let song: { file: string; lines: ReturnType<typeof songLines> } | undefined;
       if (songMode) {
@@ -131,15 +131,15 @@ export async function renderJob(lease: Lease): Promise<void> {
         images,
         song,
         voiceCache: storageVoiceCache,
-        beforeCall: async (chars) => {
+        beforeCall: async (chars, speaking) => {
           if (abort.signal.aborted) throw new Stop();
           // Speech is billed when requested, so the units count once the call is made.
-          const settle = await reserve(voice.provider, chars, job.ownerId);
+          const settle = await reserve(speaking.provider, chars, job.ownerId);
           await settle();
         },
         onStage: (stage) => onStage(stage),
       });
-      made = { ...result, voiceId: songMode ? undefined : voice.id, renderer: RENDERER, commercial: voice.commercial, storyboardId: storyboard._id, edl: result.edl };
+      made = { ...result, voiceId: songMode ? undefined : result.voiceId, renderer: RENDERER, commercial: result.voiceCommercial, storyboardId: storyboard._id, edl: result.edl };
       if (songMode) made.warnings.push("Check that you have the rights to the song before sharing.");
       if (Object.keys(images).length) made.warnings.push("Pictures were generated from your descriptions and character sheets. Review them before sharing.");
     }

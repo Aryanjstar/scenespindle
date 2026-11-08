@@ -15,7 +15,7 @@ test('environment variables take precedence over local file values, including an
     process.env.GEMINI_API_KEY = 'process-value';
     process.env.SARVAM_API_KEY = '';
     delete process.env.ELEVENLABS_API_KEY;
-    assert.deepEqual(loadEnv(dir), { geminiApiKey: 'process-value', sarvamApiKey: '', elevenLabsApiKey: 'file-voice' });
+    assert.deepEqual(loadEnv(dir), { geminiApiKey: 'process-value', sarvamApiKey: '', elevenLabsApiKey: 'file-voice', azureSpeechKey: '', azureSpeechRegion: 'eastus2' });
   } finally {
     for (const [key, value] of Object.entries({ GEMINI_API_KEY: oldGemini, SARVAM_API_KEY: oldSarvam, ELEVENLABS_API_KEY: oldEleven })) {
       if (value === undefined) delete process.env[key]; else process.env[key] = value;

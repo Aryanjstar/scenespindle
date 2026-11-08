@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ProviderKeys, type VoiceEntry, voiceUnavailable } from "../../config/providers";
+import { azureSpeak } from "./azure-speech";
 import { listVoices, synthesize, type WordTiming } from "./elevenlabs";
 import { ProviderError } from "./errors";
 import { sarvamSpeak } from "./sarvam";
@@ -80,6 +81,13 @@ function toneTake(text: string): Take {
 export async function speak(entry: VoiceEntry, text: string, keys: ProviderKeys, language: "en" | "hi" | "hinglish" = "en"): Promise<Take> {
   const blocked = voiceUnavailable(entry, keys, language);
   if (blocked) throw new ProviderError("auth", blocked);
+  if (entry.provider === "azure") {
+    const lang = language === "hi" ? "hi-IN" : "en-IN";
+    const take = await azureSpeak({ key: keys.azureSpeechKey ?? "", region: keys.azureSpeechRegion ?? "centralindia", voice: entry.ref, text, lang });
+    if (take.words.length) return { audio: take.audio, ext: "mp3", words: take.words, timing: "aligned", model: take.model };
+    const ms = measureMs(take.audio, "mp3");
+    return { audio: take.audio, ext: "mp3", words: estimateWords(text, ms), timing: "estimated", model: take.model };
+  }
   if (entry.provider === "elevenlabs") {
     const voiceId = await elevenVoiceId(keys.elevenLabsApiKey, entry.ref);
     const take = await synthesize({ apiKey: keys.elevenLabsApiKey, voiceId, text });

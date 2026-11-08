@@ -61,7 +61,7 @@ async function main(args: string[]) {
         targetMs: Number(flag('--seconds') ?? 45) * 1000,
         mode: trace ? 'code_lab' : (['story', 'cartoon', 'audio'] as const).find((item) => item === flag('--mode')) ?? (rest.includes('--audio') ? 'audio' : 'explainer'),
         look: flag('--look') === 'illustrated' ? 'illustrated' : 'stage',
-        voiceId: flag('--voice') ?? 'elevenlabs:alice',
+        voiceId: flag('--voice') ?? 'azure:neerja',
         brief: flag('--script') ? { exactScript: await readFile(flag('--script')!, 'utf8') } : null,
         trace: trace ? { entry: trace.entry, input: trace.input, returned: trace.returned, code: trace.code, states: keyStates(trace.steps) } : null,
       }, { apiKey: rest.includes('--offline') ? undefined : env.geminiApiKey || undefined });

@@ -53,7 +53,7 @@ const prefs = {
   defaultFormat: { type: String, default: "9x16" },
   defaultTargetMs: { type: Number, default: 45000 },
   defaultLanguage: { type: String, default: "en" },
-  defaultVoiceId: { type: String, default: "elevenlabs:alice" },
+  defaultVoiceId: { type: String, default: "azure:neerja" },
   defaultStyleId: { type: String, default: "chalk-and-chai@1" },
   timezone: { type: String, default: "Asia/Kolkata" },
   glass: { type: String, default: "tinted" },

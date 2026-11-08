@@ -67,7 +67,7 @@ export async function POST(request: Request) {
       format: user.prefs?.defaultFormat || "9x16",
       targetMs: user.prefs?.defaultTargetMs || 45000,
       language: user.prefs?.defaultLanguage || "en",
-      voiceId: user.prefs?.defaultVoiceId || "elevenlabs:alice",
+      voiceId: user.prefs?.defaultVoiceId || "azure:neerja",
       styleId: user.prefs?.defaultStyleId || "chalk-and-chai@1",
       keepPrivate: false,
       badge: "draft",

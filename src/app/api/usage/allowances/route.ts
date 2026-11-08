@@ -5,7 +5,7 @@ import { apiError } from "../../../../server/http";
 import { authed, isOwner, json } from "../../../../server/guard";
 import { creatorUsage } from "../../../../server/usage";
 
-const PROVIDERS = ["gemini", "elevenlabs", "sarvam", "images", "stt"] as const;
+const PROVIDERS = ["gemini", "azure", "elevenlabs", "sarvam", "images", "stt"] as const;
 
 /** Owner only: every creator with their caps and this month's use. */
 export async function GET() {

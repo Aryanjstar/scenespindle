@@ -265,6 +265,12 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--ink); width: 1
 .composer { background: var(--marigold); }
 .composer h2 { font-family: var(--font-display), sans-serif; font-weight: 800; font-size: clamp(28px, 3.6vw, 40px); letter-spacing: -0.03em; }
 .composer .field { border-color: var(--ink); }
+.mode-guide { display: grid; gap: 6px; padding: 4px 2px 2px; max-width: 46rem; }
+.mode-guide p { margin: 0; }
+.mode-guide ol { margin: 0; padding-left: 1.2rem; display: grid; gap: 2px; color: var(--ink-2); font-size: 14px; }
+.draft { display: grid; gap: 8px; }
+.draft h3 { margin: 0; font-family: var(--font-display), sans-serif; font-weight: 800; }
+.draft ol { margin: 0; padding-left: 1.2rem; display: grid; gap: 6px; }
 .composer-row { display: flex; gap: 10px; }
 .composer-row .field { flex: 1; min-height: 50px; font-size: 16px; }
 .cards { margin-top: 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }

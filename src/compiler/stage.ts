@@ -197,10 +197,20 @@ function actor(look) {
   if (look.accessory === "bindi") { const b = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), mat(0xc81e3a, 0.3)); b.position.set(0, 0.15, 0.335); parts.push(b); }
   if (look.accessory === "scarf") { const s = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.06, 8, 20), bottom); s.rotation.x = Math.PI / 2; s.position.set(0, 0.36, 0); body.add(s); }
   head.add(...parts);
-  const armGeo = new THREE.CapsuleGeometry(0.07, 0.42, 4, 8);
   const sleeve = look.outfit === "kurta" || look.outfit === "saree" ? top : skin;
-  const armL = new THREE.Mesh(armGeo, sleeve); armL.position.set(-0.4, 0.05, 0);
-  const armR = new THREE.Mesh(armGeo, sleeve); armR.position.set(0.4, 0.05, 0);
+  // Each arm hangs from its own shoulder. One hand sphere, so a swing cannot read as a third limb.
+  const arm = (side) => {
+    const pivot = new THREE.Group();
+    pivot.position.set(side * 0.34, 0.22, 0);
+    const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.26, 4, 8), sleeve);
+    upper.position.y = -0.16;
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.065, 12, 10), skin);
+    hand.position.y = -0.32;
+    pivot.add(upper, hand);
+    return pivot;
+  };
+  const armL = arm(-1);
+  const armR = arm(1);
   const legGeo = new THREE.CapsuleGeometry(0.08, 0.36, 4, 8);
   const legMat = look.outfit === "pants" || look.outfit === "kurta" ? bottom : skin;
   const legL = new THREE.Mesh(legGeo, legMat); legL.position.set(-0.14, 0.28, 0);
@@ -225,7 +235,7 @@ function pose(a, action, local, span, open, x, facing) {
   a.group.rotation.set(0, facing, 0);
   a.body.position.y = 1.15; a.body.rotation.set(0, 0, 0);
   a.head.rotation.set(0, 0, 0);
-  a.armL.rotation.set(0, 0, 0.18); a.armR.rotation.set(0, 0, -0.18);
+  a.armL.rotation.set(0.15, 0, 0.2); a.armR.rotation.set(0.15, 0, -0.2);
   a.legL.rotation.set(0, 0, 0); a.legR.rotation.set(0, 0, 0);
   a.mouth.scale.y = 0.18 + open * 1.15;
   if (action === "walk") {

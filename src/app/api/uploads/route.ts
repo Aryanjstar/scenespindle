@@ -2,8 +2,7 @@ import { z } from "zod";
 import { Upload } from "../../../server/db";
 import { apiError } from "../../../server/http";
 import { authed, json } from "../../../server/guard";
-
-export const PART_BYTES = 8 * 1024 * 1024;
+import { PART_BYTES } from "../../../server/upload-parts";
 
 /** Start a resumable upload (up to 500 MB). Send parts with PUT, then complete. */
 export async function POST(request: Request) {

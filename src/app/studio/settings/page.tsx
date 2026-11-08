@@ -48,7 +48,7 @@ export default function SettingsPage() {
 function AccountPanel({ account, voices, onSaved }: { account: Account; voices: Voice[]; onSaved: (a: Account) => void }) {
   const { run, busy } = usePending();
   const [name, setName] = useState(account.name);
-  const [prefs, setPrefs] = useState({ defaultMode: account.prefs.defaultMode ?? "explainer", defaultFormat: account.prefs.defaultFormat ?? "9x16", defaultLanguage: account.prefs.defaultLanguage ?? "en", defaultTargetMs: account.prefs.defaultTargetMs ?? 45000, defaultVoiceId: account.prefs.defaultVoiceId ?? "elevenlabs:alice" });
+  const [prefs, setPrefs] = useState({ defaultMode: account.prefs.defaultMode ?? "explainer", defaultFormat: account.prefs.defaultFormat ?? "9x16", defaultLanguage: account.prefs.defaultLanguage ?? "en", defaultTargetMs: account.prefs.defaultTargetMs ?? 45000, defaultVoiceId: account.prefs.defaultVoiceId ?? "azure:neerja" });
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const save = () => run("save", async () => {

@@ -5,6 +5,8 @@ export type Env = {
   geminiApiKey: string;
   sarvamApiKey: string;
   elevenLabsApiKey: string;
+  azureSpeechKey: string;
+  azureSpeechRegion: string;
 };
 
 function parseFile(path: string): Map<string, string> {
@@ -32,6 +34,8 @@ export function loadEnv(root = process.cwd()): Env {
     geminiApiKey: pick("GEMINI_API_KEY"),
     sarvamApiKey: pick("SARVAM_API_KEY"),
     elevenLabsApiKey: pick("ELEVENLABS_API_KEY"),
+    azureSpeechKey: pick("AZURE_SPEECH_KEY"),
+    azureSpeechRegion: pick("AZURE_SPEECH_REGION") || "eastus2",
   };
 }
 

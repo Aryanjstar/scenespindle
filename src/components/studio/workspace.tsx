@@ -45,6 +45,7 @@ export function Workspace() {
   const [title, setTitle] = useState("");
   const savedPlan = useRef("");
   const [savedIdea, setSavedIdea] = useState("{}");
+  const [depth, setDepth] = useState<"short" | "full">("short");
 
   const loadVideos = useCallback(async () => {
     const res = await api<{ items: VideoItem[] }>(`/api/projects/${params.id}/videos`);
@@ -156,6 +157,25 @@ export function Workspace() {
     void load();
   });
 
+  const makeFilm = () => run("make", async () => {
+    setError("");
+    setStatus("Analyzing, filling the gaps.");
+    if (!(await saveIdea())) return;
+    const res = await api<{ jobId: string }>(`/api/projects/${params.id}/plan`, { body: {} });
+    if (!res.ok) { setError(res.error); if (res.details?.activeJobId) void follow(String(res.details.activeJobId)); return; }
+    const planned = await waitForJob(res.data.jobId);
+    if (!planned || planned.state !== "succeeded") { setError(planned?.error?.message ?? "The draft did not finish."); setStatus(""); return; }
+    const data = await load();
+    const hash = data?.draft?.planValid ? data.draft.planHash ?? "" : "";
+    const rev = data?.draft?.revision;
+    if (!hash || !rev) { setError("The draft was not ready to film. Open Customize to fix it."); setDepth("full"); setStep("storyboard"); setStatus(""); return; }
+    setStatus("Draft ready. Making the video.");
+    const approved = await api<{ jobId: string }>(`/api/projects/${params.id}/approve`, { body: { draftRevision: rev, planHash: hash, output: "mp4" }, idempotencyKey: newKey() });
+    if (!approved.ok) { setError(approved.error); setStatus("Draft ready"); if (approved.details?.activeJobId) void follow(String(approved.details.activeJobId)); return; }
+    void follow(approved.data.jobId);
+    void load();
+  });
+
   const approve = async (output: "mp4" | "preview") => {
     setError("");
     const res = await api<{ jobId: string }>(`/api/projects/${params.id}/approve`, { body: { draftRevision: revision, planHash, output }, idempotencyKey: newKey() });
@@ -223,6 +243,7 @@ export function Workspace() {
             {title !== project.title ? <Button tone="ghost" size="sm" type="submit" pending={busy("rename")}>Rename</Button> : null}
             <span className="badge" data-tone={project.badge}>{project.badge}</span>
           </form>
+          <Button tone={depth === "full" ? "ghost" : "accent"} size="sm" aria-pressed={depth === "full"} onClick={() => setDepth("full")}>Customize</Button>
           <nav className="steps-nav" aria-label="Project steps">
             {steps.map((item, index) => (
               <button key={item.id} className={step === item.id ? "is-on" : ""} type="button" aria-current={step === item.id ? "step" : undefined} onClick={() => setStep(item.id)}>
@@ -250,7 +271,38 @@ export function Workspace() {
 
       <div className={planned ? "studio-grid" : "studio-grid single"}>
         <section className="ws-main">
-          {step === "idea" ? (
+          {step === "idea" && depth === "short" ? (
+            <>
+              {planned ? (
+                <Panel kicker={MODE_LABEL[mode]} title={plan ? "Final draft" : "Make the film"}>
+                  <label className="stack-label">Topic
+                    <textarea className="field" aria-label="Topic" value={idea.topic ?? ""} onChange={(e) => setIdea({ ...idea, topic: e.target.value })} placeholder="One or two sentences" maxLength={2000} />
+                  </label>
+                  <p className="fine">{plan ? "This is the draft. The video starts from these lines. Cancel above if you want to stop." : "Write one line. We fill the gaps, show the draft, and make the video."}</p>
+                  {plan ? (
+                    <div className="draft" aria-label="Final draft">
+                      <h3>{plan.title}</h3>
+                      <p className="fine">Narrator: {voice?.label ?? "the available voice"}{voice && !voice.available ? ". If that voice is out of credits, another one reads it and the film says who." : ""}</p>
+                      <ol>
+                        {plan.scenes.map((scene) => <li key={scene.id}>{scene.lines.map((line) => line.text).join(" ")}</li>)}
+                      </ol>
+                    </div>
+                  ) : null}
+                  <div className="row-actions">
+                    {plan && !busyJob ? <Button tone="accent" pending={busy("render-draft")} onClick={() => void run("render-draft", () => approve("mp4"))}>Make the video</Button> : null}
+                    {!plan ? <Button tone="accent" pending={busy("make")} disabled={busyJob || !idea.topic?.trim() || (mode === "code_lab" && !hasTrace)} onClick={() => void makeFilm()}>Make the film</Button> : null}
+                  </div>
+                  {mode === "code_lab" && !hasTrace ? <p className="fine">Trace your code below first. The film only shows what really ran.</p> : null}
+                </Panel>
+              ) : null}
+              {mode === "code_lab" ? <CodePanel projectId={project.id} onTraced={(rev) => { setHasTrace(true); if (rev) setRevision(rev); }} /> : null}
+              {mode === "lyrics" ? <LyricsPanel project={project} revision={revision} onBuilt={async () => { await load(); setStep("storyboard"); }} /> : null}
+              {mode === "montage" ? <MontagePanel project={project} catalog={catalog} disabled={busyJob} onQueued={(id) => { setStatus("Rendering the montage"); void follow(id); void load(); }} /> : null}
+              {mode === "reel" ? <ReelPanel project={project} catalog={catalog} disabled={busyJob} onQueued={(id) => { setStatus("Captioning your reel"); void follow(id); void load(); }} /> : null}
+            </>
+          ) : null}
+
+          {step === "idea" && depth === "full" ? (
             <>
               {planned ? (
                 <Panel kicker={MODE_LABEL[mode]} title={mode === "code_lab" ? "What should the film teach?" : mode === "audio" ? "What will be said?" : "What is this film about?"}>

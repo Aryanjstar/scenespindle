@@ -13,7 +13,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { homedir, platform } from "node:os";
 import { resolve } from "node:path";
 import { loadEnv } from "../src/config/env";
-import { voiceEntry, voiceUnavailable } from "../src/config/providers";
+import { voiceCandidates, voiceEntry, voiceUnavailable } from "../src/config/providers";
 import { renderFilm, RENDERER } from "../src/pipeline/render";
 import { renderMontage } from "../src/pipeline/montage";
 import { songLines } from "../src/pipeline/lyrics";
@@ -90,14 +90,14 @@ async function work(cfg: Config, job: Claimed) {
       const songMode = plan.mode === "lyrics";
       const voice = songMode ? { ...voiceEntry("test:tone")!, id: "song", label: "Song", commercial: false } : voiceEntry(String(i.voiceId ?? ""));
       if (!voice) throw new Error("Unknown narrator.");
-      const blocked = songMode ? null : voiceUnavailable(voice, env, plan.language);
+      const blocked = songMode || voiceCandidates(voice.id, plan.language, env).length ? null : voiceUnavailable(voice, env, plan.language) ?? "No narrator is configured for this language.";
       if (blocked) throw new Error(`This PC cannot use that narrator: ${blocked}`);
       const song = songMode && i.song ? { file: await download(i.song, resolve(dir, "in", "song.mp3")), lines: songLines(plan) } : undefined;
       const common = { plan, voice, keys: env, workDir: resolve(dir, "work"), cacheDir: resolve(process.cwd(), ".data", "cache", "voice"), images, song, trace: i.trace ?? undefined, onStage: stagesOf(["voice", "timeline", "frames", "mix", "qa"]) };
       const result = i.profile === "cinematic-3d" ? await renderCinematic(common) : await renderFilm(common);
       made = result;
-      voiceId = songMode ? undefined : voice.id;
-      commercial = voice.commercial;
+      voiceId = songMode ? undefined : result.voiceId;
+      commercial = result.voiceCommercial;
       renderer = i.profile === "cinematic-3d" ? `blender-eevee+${RENDERER}` : RENDERER;
     }
     if (lost) throw new Error("STOP");

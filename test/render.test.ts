@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { filmCaptions, toSrt, toVtt } from '../src/pipeline/subtitles.js';
 import { estimateWords } from '../src/server/providers/voice.js';
 import { keyPath, putFile, streamFile } from '../src/server/storage.js';
-import { VOICES, voiceEntry, voiceUnavailable } from '../src/config/providers.js';
+import { VOICES, voiceCandidates, voiceEntry, voiceSwitchNotice, voiceUnavailable } from '../src/config/providers.js';
 import { videoJson } from '../src/server/videos.js';
 
 const timeline = {
@@ -95,16 +95,30 @@ test('stored files stream with byte ranges and reject bad ranges', async () => {
   }
 });
 
-test('voices never fall back: unknown ids are undefined and unconfigured voices say why', () => {
+test('voices say why they are missing, and a credit miss names the voice that speaks instead', () => {
   assert.equal(voiceEntry('elevenlabs:nobody'), undefined);
   const alice = voiceEntry('elevenlabs:alice')!;
-  assert.match(voiceUnavailable(alice, { elevenLabsApiKey: '', sarvamApiKey: '' })!, /ElevenLabs key/);
-  assert.equal(voiceUnavailable(alice, { elevenLabsApiKey: 'k', sarvamApiKey: '' }), null);
+  const keys = { elevenLabsApiKey: '', sarvamApiKey: '', azureSpeechKey: '' };
+  assert.match(voiceUnavailable(alice, keys)!, /ElevenLabs key/);
+  assert.equal(voiceUnavailable(alice, { ...keys, elevenLabsApiKey: 'k' }), null);
   const previous = process.env.SCENESPINDLE_TEST_VOICE;
   delete process.env.SCENESPINDLE_TEST_VOICE;
-  assert.ok(voiceUnavailable(voiceEntry('test:tone')!, { elevenLabsApiKey: 'k', sarvamApiKey: 'k' }));
+  assert.ok(voiceUnavailable(voiceEntry('test:tone')!, { ...keys, elevenLabsApiKey: 'k' }));
   if (previous !== undefined) process.env.SCENESPINDLE_TEST_VOICE = previous;
   assert.ok(VOICES.every((voice) => voice.timing === 'aligned' || voice.note.length > 0));
+  assert.ok(VOICES.some((voice) => voice.id === 'azure:neerja' && voice.gender === 'female'));
+  assert.ok(VOICES.some((voice) => voice.id === 'azure:prabhat' && voice.gender === 'male'));
+
+  const azureOnly = { elevenLabsApiKey: '', sarvamApiKey: '', azureSpeechKey: 'key', azureSpeechRegion: 'centralindia' };
+  const order = voiceCandidates('elevenlabs:alice', 'en', azureOnly).map((voice) => voice.id);
+  assert.deepEqual(order, ['azure:neerja', 'azure:prabhat']);
+  const hindi = voiceCandidates('azure:neerja', 'hi', azureOnly).map((voice) => voice.id);
+  assert.deepEqual(hindi, ['azure:swara', 'azure:madhur']);
+  assert.equal(voiceSwitchNotice(alice, voiceEntry('azure:neerja')!), 'Alice had no credits left, so Neerja read this.');
+  assert.equal(voiceSwitchNotice(alice, alice), undefined);
+  process.env.SCENESPINDLE_TEST_VOICE = '1';
+  assert.equal(voiceCandidates('test:tone', 'en', keys)[0]?.id, 'test:tone');
+  if (previous === undefined) delete process.env.SCENESPINDLE_TEST_VOICE; else process.env.SCENESPINDLE_TEST_VOICE = previous;
 });
 
 test('legacy HTML-only "ready" videos are reported as previews, never as films', () => {

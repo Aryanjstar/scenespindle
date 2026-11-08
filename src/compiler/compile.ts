@@ -459,6 +459,20 @@ function spokenCss(): string {
   `;
 }
 
+/** Code Lab sits on the night stage, but the code and the words use the paper theme so they stay readable. */
+function codeLabCss(): string {
+  const edge = [[-2, 0], [2, 0], [0, -2], [0, 2], [-2, -2], [2, 2], [-2, 2], [2, -2]].map(([x, y]) => `${x}px ${y}px 0 #1d1a24`).join(", ");
+  return `
+  .code { background: #fff6e8; color: #1d1a24; border: 4px solid #1d1a24; box-shadow: 6px 6px 0 #1d1a24; }
+  .code b { color: #7a7283; opacity: 1; }
+  .code li.hl { background: #ffb020; color: #1d1a24; }
+  .cell { background: #fff6e8; border-color: #1d1a24; }
+  .cell span, .cell i, .vars, .stack li { color: #1d1a24; }
+  .title, .slam, .cap p, .kword { color: #ffb020; text-shadow: ${edge}; }
+  .kword.strong { color: #fff6e8; }
+  `;
+}
+
 function lyricsCss(L: Layout): string {
   return `
   html, body, #root { background: #120d18; }
@@ -587,7 +601,7 @@ window.__timelines["main"] = tl;`;
   <script src="assets/gsap.min.js"></script>
   ${performed.length && !stageVideo ? `<script type="importmap">{"imports":{"three":"./assets/three.module.js"}}</script>
   <script>window.__hf = window.__hf || {}; window.__hf.buildReady = window.__hf.buildReady || {}; window.__hf.buildReady.stage = new Promise(function (done) { window.__stageReady = done; });</script>` : ""}
-  <style>${fontFace()}${css(layout)}${ILLUSTRATED_MODES.has(opts.plan.mode) ? illustratedCss(layout) : ""}${opts.plan.mode === "lyrics" ? lyricsCss(layout) : ""}${opts.plan.mode === "explainer" || opts.plan.mode === "code_lab" || opts.plan.mode === "audio" ? spokenCss() : ""}</style>
+  <style>${fontFace()}${css(layout)}${ILLUSTRATED_MODES.has(opts.plan.mode) ? illustratedCss(layout) : ""}${opts.plan.mode === "lyrics" ? lyricsCss(layout) : ""}${opts.plan.mode === "explainer" || opts.plan.mode === "code_lab" || opts.plan.mode === "audio" ? spokenCss() : ""}${opts.plan.mode === "code_lab" ? codeLabCss() : ""}</style>
 </head>
 <body>
   <div id="root" data-composition-id="main" data-start="0" data-duration="${duration}" data-width="${layout.w}" data-height="${layout.h}">

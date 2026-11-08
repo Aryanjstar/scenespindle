@@ -8,7 +8,7 @@ import { authed, busy, json } from "../../../../../server/guard";
 import { hashPlan, ownProject } from "../../../../../server/studio";
 import { validatePlan } from "../../../../../contracts/plan";
 import { loadEnv } from "../../../../../config/env";
-import { voiceEntry, voiceUnavailable } from "../../../../../config/providers";
+import { voiceCandidates, voiceEntry, voiceUnavailable } from "../../../../../config/providers";
 import { missingStills } from "../../../../../server/stills";
 import { Agent, SeriesVersion } from "../../../../../server/db";
 import { limit } from "../../../../../server/rate-limit";
@@ -34,8 +34,9 @@ async function handle(request: Request, ctx: { params: Promise<{ id: string }> }
   const song = project.mode === "lyrics";
   const voice = song ? { id: "song" } as ReturnType<typeof voiceEntry> : voiceEntry(project.voiceId);
   if (body.output === "mp4" && !song) {
-    const blocked = !voice ? "Choose a narrator in project settings." : voiceUnavailable(voice, loadEnv());
-    if (blocked) return apiError(422, "VALIDATION", "CAPABILITY_UNAVAILABLE", blocked);
+    const env = loadEnv();
+    const any = voice && (["en", "hi", "hinglish"] as const).some((language) => voiceCandidates(voice.id, language, env).length > 0);
+    if (!voice || !any) return apiError(422, "VALIDATION", "CAPABILITY_UNAVAILABLE", !voice ? "Choose a narrator in project settings." : voiceUnavailable(voice, env) ?? "No narrator is available.");
   }
   const session = await mongoose.startSession();
   let jobId: mongoose.Types.ObjectId | undefined;
@@ -54,7 +55,7 @@ async function handle(request: Request, ctx: { params: Promise<{ id: string }> }
       const checked = validatePlan(draft.plan);
       if (!checked.plan) throw new ApprovalError("PLAN_INVALID");
       if (checked.plan.mode !== project.mode) throw new ApprovalError("MODE_MISMATCH");
-      if (body.output === "mp4" && !song && voice && voiceUnavailable(voice, loadEnv(), checked.plan.language)) throw new ApprovalError("VOICE_LANGUAGE");
+      if (body.output === "mp4" && !song && voice && voiceCandidates(voice.id, checked.plan.language, loadEnv()).length === 0) throw new ApprovalError("VOICE_LANGUAGE");
       if (missingStills(checked.plan).length) throw new ApprovalError("STILLS_MISSING");
       if (checked.plan.mode === "code_lab" && !draft.traceId) throw new ApprovalError("TRACE_MISSING");
       const hash = hashPlan(checked.plan);

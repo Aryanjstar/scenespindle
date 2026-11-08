@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StudioBar } from "../../components/studio/studio-bar";
 import { api, newKey, usePending } from "../../components/ui/client";
+import { MODE_GUIDES } from "../../catalog/mode-guides";
 import { Button, Empty, MODE_LABEL, Notice, timeAgo } from "../../components/ui/kit";
 
 type Card = { id: string; title: string; mode: string; format: string; badge: string; targetMs?: number; updatedAt?: string; poster?: string; deletedAt?: string };
@@ -115,7 +116,7 @@ export default function StudioPage() {
             </button>
           ))}
         </div>
-        {selected?.note ? <p className="mode-note">{selected.note}</p> : null}
+        {selected ? <ModeGuide id={selected.id} note={selected.note} /> : null}
         <div className="composer-row">
           <input className="field" value={topic} onChange={(event) => setTopic(event.target.value)} placeholder={mode === "montage" || mode === "reel" || mode === "lyrics" ? "Give it a name" : "A topic, in one sentence"} aria-label="Topic or name for the new project" maxLength={2000} />
           <Button tone="accent" size="lg" type="submit" pending={busy("create")}>Start</Button>
@@ -181,5 +182,21 @@ export default function StudioPage() {
         </section>
       ) : null}
     </main>
+  );
+}
+
+function ModeGuide({ id, note }: { id: string; note?: string }) {
+  const guide = MODE_GUIDES[id];
+  if (!guide && !note) return null;
+  return (
+    <div className="mode-guide" aria-label="How this kind of film works">
+      <p>{guide?.what ?? note}</p>
+      {guide ? <p className="fine">You need: {guide.need}</p> : null}
+      {guide ? (
+        <ol>
+          {guide.steps.map((step) => <li key={step}>{step}</li>)}
+        </ol>
+      ) : null}
+    </div>
   );
 }

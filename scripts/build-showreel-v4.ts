@@ -10,6 +10,7 @@ import { voiceEntry } from "../src/config/providers";
 import { renderFilm } from "../src/pipeline/render";
 
 const voiceId = process.argv[2] ?? "sarvam:priya";
+const only = process.argv[3];
 const meera = { name: "Meera", look: { skin: "#d9a477", hair: "#2b1a12", hairStyle: "ponytail", top: "#e07a3d", bottom: "#e07a3d", outfit: "dress", build: "child", accessory: "none" } };
 const dadi = { name: "Dadi", look: { skin: "#c18a5c", hair: "#d8d8d8", hairStyle: "bun", top: "#7b2d8e", bottom: "#7b2d8e", outfit: "saree", build: "elder", accessory: "glasses" } };
 const tikku = { name: "Tikku", look: { skin: "#c18a5c", hair: "#1a1410", hairStyle: "short", top: "#2a9d8f", bottom: "#33415c", outfit: "pants", build: "child", accessory: "cap" } };
@@ -43,7 +44,13 @@ const films = {
     ["He stops at the edge, and looks left, then right.", "lane", "turn", "medium", [0], -1, "Stop and look"],
     ["A bus rumbles past, so Tikku waits.", "lane", "hold", "medium", [0], -1, "Wait"],
     ["Now the road is clear. He walks across. He does not run.", "lane", "walk", "wide", [0], -1, "Walk, don't run"],
-    ["Mango in hand, Tikku waves. Stop, look, then cross!", "market", "wave", "close", [0], 0, "Stop, look, cross"],
+    ["Tikku waves from the other side. Stop, look, then cross.", "market", "wave", "close", [0], 0, "Stop, look, cross"],
+  ]),
+  "series-v4": plan("story", "Meera and Tikku", "storybook", [meera, tikku], [
+    ["Meera and Tikku stand at the door.", "home", "talk", "wide", [0, 1], -1],
+    ["They walk to the river together.", "lane", "walk", "wide", [0, 1], -1, "To the river"],
+    ["Meera sets the boat on the water.", "bank", "hold", "medium", [0, 1], 0, "Gently"],
+    ["Tikku waves. The boat sails.", "bank", "wave", "medium", [0, 1], 1, "It sails"],
   ]),
 };
 
@@ -51,6 +58,7 @@ const env = loadEnv();
 const voice = voiceEntry(voiceId);
 if (!voice) throw new Error(`Unknown voice ${voiceId}`);
 for (const [name, raw] of Object.entries(films)) {
+  if (only && name !== only) continue;
   const checked = validatePlan(raw);
   if (!checked.plan) throw new Error(`${name}: ${JSON.stringify(checked.issues)}`);
   const workDir = resolve(".data", "showreel-v4", name);

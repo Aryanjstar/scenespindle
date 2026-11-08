@@ -3,7 +3,7 @@ import { Upload } from "../../../../server/db";
 import { apiError } from "../../../../server/http";
 import { authed, json } from "../../../../server/guard";
 import { putBuffer } from "../../../../server/storage";
-import { PART_BYTES } from "../route";
+import { PART_BYTES } from "../../../../server/upload-parts";
 
 /** Send one part: PUT /api/uploads/{id}?part=N with the raw bytes. Re-sending a part replaces it. */
 export async function PUT(request: Request, ctx: { params: Promise<{ id: string }> }) {
