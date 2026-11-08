@@ -15,6 +15,8 @@ Finishes and fixes the studio after the Nov 5 work. Audit of `dbbe4d7` found pro
 
 **Screens**: studio home, workspace, library (files, characters, styles), series, tools, queue, settings, command palette; every action has a pending state and a visible error.
 
+**Home page**: every film is click-to-play with sound, plays once, and pauses any other film; nothing downloads before a click; films re-encoded at 720p fast start and cached for a year; new Paper boat and Tikku films; spindle favicon.
+
 ## How it was checked
 - 55 unit tests, typecheck, lint.
 - `npm run e2e`: three journeys pass (two creators at 1280 and 390 px; all modes; every new screen, including no sideways scroll at 390 px).

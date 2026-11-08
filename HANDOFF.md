@@ -1,10 +1,10 @@
 # SceneSpindle: handoff
 
-Updated 2026-11-07 (v4). Read this first on any machine. Status detail: `docs/PROJECT_STATUS.md`.
+Updated 2026-11-08 (v4). Read this first on any machine. Status detail: `docs/PROJECT_STATUS.md`.
 
 ## 0. What is in this folder
 
-- A full git checkout of `Aryanjstar/scenespindle` with branch **`finish-and-qa`** checked out: 6 commits on top of `main` (`dbbe4d7`). Nothing is pushed yet: the account on the build machine had no write access.
+- A full git checkout of `Aryanjstar/scenespindle` with branch **`finish-and-qa`** checked out: 7 commits on top of `main` (`dbbe4d7`). Nothing is pushed yet: the account on the build machine had no write access.
 - Production on Azure **already runs this branch** (image tag = latest commit). Merge it so `main` matches production.
 - Not included on purpose: `node_modules`, `.next`, `.env.local` (keys), `.data` (local database files, renders, password files). Make `.env.local` from `.env.example`.
 
@@ -85,6 +85,7 @@ App: `APP_ORIGIN`, `OWNER_EMAIL`, `AUTH_TOKEN_PEPPER`, `MONGODB_URI`, `MONGODB_D
 - **Caption a reel**: timing heard from the reel (ElevenLabs Scribe, whisper.cpp fallback) or pasted SRT/LRC; placement away from faces; **Karaoke lyrics** style built to the creator's lyric-video notes (romanized lowercase line above the head, Instrument Serif italic gradient, words lit as sung, push-in, night grade, -17.6 LUFS).
 - **More**: account and password, sessions, invite resend, duplicate, scene regenerate, storyboard versions and restore, make current, share download toggle, voice samples, brief research with dated sources, series briefs with frozen versions, continuity and places, resumable uploads, asset delete, exports (audio, package zip, OTIO), banners and profile copy, render queue, command palette (Cmd/Ctrl+K), Code Lab in JavaScript.
 - **Screens**: every page rebuilt on one API client; every button has a pending state and visible errors; phone width checked.
+- **Home page** (2026-11-08): films play only when clicked, with sound, once to the end; starting one pauses the others; nothing downloads before a click. Films re-encoded at 720p with fast start (0.5 to 2 MB) and cached for a year. New Paper boat (Meera and Dadi, six beats) and Tikku (stop, look, cross). Favicon is the spindle mark.
 - Editing preferences (fonts, vlog, karaoke): `skills/scenespindle-edit-style/SKILL.md`. Toolkit mapping: `docs/reference/CLAUDE_EDITS_TOOLKIT.md`.
 
 ## 6. Verified (2026-11-07)
