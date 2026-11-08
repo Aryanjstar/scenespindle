@@ -4,7 +4,7 @@ Updated 2026-11-08 (v4). Read this first on any machine. Status detail: `docs/PR
 
 ## 0. What is in this folder
 
-- A full git checkout of `Aryanjstar/scenespindle` with branch **`finish-and-qa`** checked out: 7 commits on top of `main` (`dbbe4d7`). Nothing is pushed yet: the account on the build machine had no write access.
+- A full git checkout of `Aryanjstar/scenespindle` with branch **`finish-and-qa`** checked out: the v4 commits on top of `main` (`dbbe4d7`). Nothing is pushed yet: the account on the build machine had no write access.
 - Production on Azure **already runs this branch** (image tag = latest commit). Merge it so `main` matches production.
 - Not included on purpose: `node_modules`, `.next`, `.env.local` (keys), `.data` (local database files, renders, password files). Make `.env.local` from `.env.example`.
 
