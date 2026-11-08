@@ -186,6 +186,10 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--ink); width: 1
 .phone:hover { transform: rotate(0deg) translateY(-6px) !important; }
 .phone video, .phone img { width: 100%; height: 100%; object-fit: contain; border-radius: 23px; background: #120d18; }
 .phone-lg { width: min(320px, 100%); }
+.hero-phone { display: grid; justify-items: center; gap: 36px; margin: 0; }
+.hero-phone figcaption { display: grid; gap: 4px; justify-items: center; text-align: center; margin: 0; max-width: 280px; color: var(--ink); }
+.hero-phone figcaption strong { display: block; font-family: var(--font-display), sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.03em; line-height: 1.15; }
+.hero-phone figcaption span { display: block; color: var(--ink-2); font-size: 14px; }
 
 .marquee { overflow: hidden; border-block: 1.5px solid var(--ink); background: var(--ink); color: var(--paper); padding: 14px 0; margin: 48px calc(50% - 50vw) 0; }
 .marquee-track { display: flex; gap: 40px; width: max-content; animation: marquee 34s linear infinite; font-family: var(--font-display), sans-serif; font-weight: 800; font-size: 28px; letter-spacing: -0.02em; }
@@ -249,9 +253,9 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--ink); width: 1
 .site-foot { margin-top: 110px; padding: 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; border-radius: var(--r-panel); background: var(--paper-2); color: var(--ink); border: 1.5px solid var(--line); }
 .site-foot .brand { color: var(--ink); }
 .site-foot p { margin: 0; color: var(--muted); }
-.marks { display: flex; align-items: center; gap: 4px; }
-.mark { display: grid; place-items: center; width: 38px; height: 38px; color: var(--paper); border-radius: 50%; }
-.mark:hover { background: var(--night-2); }
+.marks { display: flex; align-items: center; gap: 8px; }
+.mark { display: grid; place-items: center; width: 40px; height: 40px; color: var(--ink); border-radius: 50%; border: 1.5px solid var(--ink); background: var(--card); }
+.mark:hover { background: var(--ink); color: var(--paper); }
 .mark svg { width: 20px; height: 20px; }
 
 /* Studio */
@@ -468,7 +472,7 @@ input[type="color"] { width: 46px; height: 34px; border: 1.5px solid var(--ink);
   .hero-reel .phone { width: 170px; }
   .hero-reel .phone:nth-child(2) { width: 190px; }
   .block { padding-top: 64px; }
-  .stage { padding: 18px; gap: 20px; justify-items: center; }
+  .stage { padding: 18px; gap: 36px; justify-items: center; }
   .studio-grid { grid-template-columns: 1fr; }
   .dock { position: static; }
   .menu { display: inline-block; }
