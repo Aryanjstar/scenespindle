@@ -142,6 +142,23 @@ try {
   const reelVideos = await json(page, '/api/projects/' + reel + '/videos');
   assert.equal(reelVideos.body.items[0].state, 'ready');
 
+  // Karaoke: times are optional. A finished caption opens the Film step, so go back to the reel
+  // form. When the studio can listen, an empty box still enables the button. Otherwise the words
+  // are required, and a plain line (no [mm:ss]) is enough.
+  const canListen = Boolean((await json(page, '/api/catalog')).body.captions?.transcription);
+  await page.getByRole('button', { name: 'Reel', exact: true }).click();
+  await page.getByRole('radio', { name: 'Karaoke lyrics (singing)' }).click();
+  const lyricButton = page.getByRole('button', { name: 'Make my lyric video' });
+  await page.getByLabel('Lyrics').fill('');
+  if (canListen) await expect(lyricButton).toBeEnabled();
+  else await expect(lyricButton).toBeDisabled();
+  await page.getByLabel('Lyrics').fill('kuch bhi nahin hai ye jahaan');
+  await expect(lyricButton).toBeEnabled();
+  await page.getByLabel('Lyrics').fill('');
+  if (canListen) await expect(lyricButton).toBeEnabled();
+  else await expect(lyricButton).toBeDisabled();
+  await page.getByRole('radio', { name: 'Phrases' }).click();
+
   // Exports: package and OTIO are made in the worker and downloadable by the owner only.
   const vid = reelVideos.body.items[0].id;
   for (const kind of ['otio', 'package', 'audio']) {

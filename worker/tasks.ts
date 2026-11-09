@@ -11,7 +11,7 @@ import { fetchToFile, putFile } from "../src/server/storage";
 import { analyzeStyle } from "../src/server/style-analysis";
 import { draftCopy, makeBanner } from "../src/server/tools";
 import { meter, QuotaError } from "../src/server/usage";
-import { alignLyrics, burnKaraoke, lyricLines } from "../src/pipeline/caption-reel";
+import { alignLyrics, burnKaraoke, linesFromHeard, lyricLines } from "../src/pipeline/caption-reel";
 import { burnCaptionReel, cuesFromWords, extractSpeech, parseCaptionText, probeSize, reelPreviews, sampleFrames, type CaptionBand } from "../src/pipeline/caption-reel";
 import { otioJson, toOtio, writeZip } from "../src/pipeline/exports";
 import { probeVideo, RENDERER } from "../src/pipeline/render";
@@ -130,7 +130,10 @@ async function captionReel(lease: Lease) {
 async function karaoke(lease: Lease, source: string, size: { width: number; height: number; durationMs: number }, dir: string, warnings: string[]) {
   const { job } = lease;
   const stages = (i: number) => ["listen", "place", "burn", "qa"].map((name, n) => ({ name, state: n < i ? "done" : n === i ? "running" : "queued" }));
-  const { lines, timed } = lyricLines(String(job.input.text ?? ""));
+  const pasted = String(job.input.text ?? "").trim();
+  let lines: string[] = [];
+  let timed: { startMs: number; text: string }[] | null = null;
+  if (pasted) ({ lines, timed } = lyricLines(pasted));
   let heard: { text: string; startMs: number; endMs: number }[] = [];
   const env = loadEnv();
   const stt = (await import("../src/server/providers/stt")).sttAvailable(env);
@@ -149,7 +152,13 @@ async function karaoke(lease: Lease, source: string, size: { width: number; heig
       warnings.push("Transcription was unavailable, so words are spread evenly inside your LRC times.");
     }
   }
+  if (!lines.length) {
+    lines = linesFromHeard(heard);
+    if (!lines.length) throw new Error("No singing was heard in the reel. Paste the words, one line per row.");
+    warnings.push("The words on screen are what was heard in the reel. Paste your own lines if you want those instead.");
+  }
   await lease.stage(stages(1), 30);
+  if (!heard.length && !timed) warnings.push("No singing times were available, so your lines are spread evenly across the reel. Add [00:12.00] times for exact starts.");
   const aligned = alignLyrics(lines, timed, heard, size.durationMs);
   const doubtful = aligned.map((l, i) => (l.doubtful ? i + 1 : 0)).filter(Boolean);
   if (doubtful.length) warnings.push(`Check the timing of line${doubtful.length > 1 ? "s" : ""} ${doubtful.join(", ")}: the heard words did not match your lyrics well. Add LRC times for exact lines.`);

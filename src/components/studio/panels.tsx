@@ -429,10 +429,10 @@ export function ReelPanel({ project, catalog, disabled, onQueued }: { project: P
       </div>
       {style === "karaoke" ? (
         <>
-          <label className="stack-label">Lyrics you sing: English letters, one line per row (LRC times optional)
-            <textarea aria-label="Lyrics" className="field mono" value={text} onChange={(e) => setText(e.target.value)} placeholder={"kuch bhi nahin hai ye jahaan\ntu jo nahin to mera kuch nahin hai"} style={{ minHeight: 180 }} />
+          <label className="stack-label">Lyrics you sing, one line per row. Times are optional.
+            <textarea aria-label="Lyrics" className="field mono" value={text} onChange={(e) => setText(e.target.value)} placeholder={auto ? "Leave this empty and we listen to the reel.\nOr paste the words, one line per row." : "kuch bhi nahin hai ye jahaan\ntu jo nahin to mera kuch nahin hai"} style={{ minHeight: 180 }} />
           </label>
-          <p className="fine">One small line at a time in Instrument Serif italic with a peach, pink and lilac glow. Unsung words stay dim and light up as you sing them. Your footage gets a warm night grade and a slow push-in; your voice is kept and raised gently. Word times come from your singing{auto ? "" : " (add LRC times, since transcription is not set up)"}; doubtful lines are flagged for you to check.</p>
+          <p className="fine">{auto ? "Paste the words if you want those exact lines. Leave the box empty and the studio listens to the reel. Add [00:12.00] only when a line must start at that moment." : "Paste the words, one line per row. Add [00:12.00] times if you want a line to start at that moment. Transcription is not set up, so the words are required."} The line sits in gold with a dark edge. Unsung words stay readable and brighten as they are sung.</p>
           <div className="stack-label">
             <span className="stack-label-text">Where the lyrics sit</span>
             <div className="chips" role="radiogroup" aria-label="Lyric position">
@@ -474,7 +474,7 @@ export function ReelPanel({ project, catalog, disabled, onQueued }: { project: P
           </div>
         </>
       )}
-      <Button tone="accent" pending={busy("go")} disabled={disabled || !reel[0] || ((source === "text" || style === "karaoke") && !text.trim())} onClick={() => void go()}>{style === "karaoke" ? "Make my lyric video" : "Caption my reel"}</Button>
+      <Button tone="accent" pending={busy("go")} disabled={disabled || !reel[0] || (style === "karaoke" ? !text.trim() && !auto : source === "text" && !text.trim())} onClick={() => void go()}>{style === "karaoke" ? "Make my lyric video" : "Caption my reel"}</Button>
       <p className="fine">The original stays untouched. The result is a new film version you can watch, download and share.</p>
       <Notice tone="bad" onClose={() => setError("")}>{error}</Notice>
     </Panel>

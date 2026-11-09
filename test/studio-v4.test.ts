@@ -136,6 +136,22 @@ test('karaoke lyrics stay romanized and lowercase, and take their times from the
   assert.equal(aligned[1].startMs, 1700);
   assert.equal(aligned[0].words[2].text, 'nahin', 'screen shows the creator\'s words, not the transcript');
   assert.ok(aligned.every((l) => !l.doubtful));
+  const { linesFromHeard, lyricVideoReady } = await import('../src/pipeline/caption-reel');
+  const heardLines = linesFromHeard([
+    { text: "Drop", startMs: 0, endMs: 200 },
+    { text: "an", startMs: 220, endMs: 400 },
+    { text: "ice", startMs: 1400, endMs: 1700 },
+    { text: "cube", startMs: 1720, endMs: 2000 },
+  ]);
+  assert.deepEqual(heardLines, ["drop an", "ice cube"]);
+  assert.equal(lyricVideoReady({ hasReel: true, text: "", canListen: true }), true);
+  assert.equal(lyricVideoReady({ hasReel: true, text: "one line", canListen: false }), true);
+  assert.equal(lyricVideoReady({ hasReel: true, text: "", canListen: false }), false);
+  assert.equal(lyricVideoReady({ hasReel: false, text: "one line", canListen: true }), false);
+  const spread = alignLyrics(['one two', 'three'], null, [], 4000);
+  assert.equal(spread[0].startMs, 0);
+  assert.equal(spread[1].startMs, 2000);
+  assert.equal(spread[1].endMs, 4000);
   const lrc = lyricLines('[00:01.00] kuch bhi nahin\n[00:03.00] tu jo nahin');
   const timedLines = alignLyrics(lrc.lines, lrc.timed, [], 5000);
   assert.equal(timedLines[1].startMs, 3000);

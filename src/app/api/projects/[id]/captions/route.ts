@@ -31,9 +31,9 @@ async function handle(request: Request, ctx: { params: Promise<{ id: string }> }
   const body = parsed.data;
   if (body.source === "text" && !body.text) return apiError(400, "VALIDATION", "VALIDATION", "Paste your captions: SRT, LRC or plain lines.");
   if (body.style === "karaoke") {
-    if (!body.text.trim()) return apiError(400, "VALIDATION", "LYRICS_MISSING", "Paste the lyrics you sing, one line per row (English letters).");
+    const canListen = sttAvailable(loadEnv()).available;
     if (/[\u0900-\u097F]/.test(body.text)) return apiError(422, "VALIDATION", "LYRICS_SCRIPT", "Write the lyrics in English letters (romanized), not Devanagari.");
-    if (!/\[\d{1,3}:\d{2}/.test(body.text) && !sttAvailable(loadEnv()).available) return apiError(422, "VALIDATION", "CAPABILITY_UNAVAILABLE", "Word timing needs transcription. Add LRC times to your lyrics, or set up transcription.");
+    if (!body.text.trim() && !canListen) return apiError(400, "VALIDATION", "LYRICS_MISSING", "Paste the words you sing, one line per row. Times are optional.");
   }
   if (body.source === "auto" && body.style !== "karaoke" && !sttAvailable(loadEnv()).available) return apiError(422, "VALIDATION", "CAPABILITY_UNAVAILABLE", sttAvailable(loadEnv()).reason ?? "Automatic timing is not configured.");
   if (!(await Asset.exists({ _id: body.assetId, ownerId: auth.user!._id, kind: "video" }))) return apiError(404, "NOT_FOUND", "NOT_FOUND", "That reel is not in your library.");

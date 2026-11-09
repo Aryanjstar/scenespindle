@@ -188,10 +188,34 @@ export function lyricLines(input: string): { lines: string[]; timed: { startMs: 
   return { lines, timed: null };
 }
 
+/** Heard words become lyric lines when the creator did not paste any. A pause or a full line starts the next row. */
+export function linesFromHeard(heard: KaraokeWord[]): string[] {
+  const lines: string[] = [];
+  let row: string[] = [];
+  let lastEnd = 0;
+  for (const word of heard) {
+    const text = word.text.toLowerCase().replace(/[^\p{L}\p{N}' ]/gu, "").trim();
+    if (!text) continue;
+    if (row.length && (word.startMs - lastEnd > 700 || row.length >= 7)) {
+      lines.push(row.join(" "));
+      row = [];
+    }
+    row.push(text);
+    lastEnd = word.endMs;
+  }
+  if (row.length) lines.push(row.join(" "));
+  return lines.slice(0, 120);
+}
+
+/** The lyric-video button is ready once a reel is chosen. Pasted words are optional when the studio can listen. */
+export function lyricVideoReady(opts: { hasReel: boolean; text: string; canListen: boolean }): boolean {
+  return opts.hasReel && (opts.text.trim().length > 0 || opts.canListen);
+}
+
 /**
  * Give each lyric line and word its time. With LRC times, lines keep them and words take the heard
- * words inside the line (or spread evenly). Without, lines follow the heard-word sequence in order.
- * The text on screen is always the creator's lyrics; only times come from the audio.
+ * words inside the line (or spread evenly). Without times, lines follow the heard words. With neither
+ * a transcript nor LRC times, the lines are spread evenly across the reel.
  */
 export function alignLyrics(lines: string[], timed: { startMs: number }[] | null, heard: KaraokeWord[], durationMs: number): KaraokeLine[] {
   const words = lines.map((l) => l.split(" ").filter(Boolean));
@@ -208,7 +232,15 @@ export function alignLyrics(lines: string[], timed: { startMs: number }[] | null
     });
     return out;
   }
-  if (!heard.length) throw new Error("No singing was heard in the reel. Add LRC times to your lyrics instead.");
+  if (!heard.length) {
+    const slice = Math.max(1, durationMs / Math.max(1, lines.length));
+    lines.forEach((text, i) => {
+      const start = Math.round(slice * i);
+      const end = Math.round(i === lines.length - 1 ? durationMs : slice * (i + 1));
+      out.push({ text, startMs: start, endMs: end, words: spread(words[i], start, end), doubtful: false });
+    });
+    return out;
+  }
   const total = words.reduce((n, w) => n + w.length, 0);
   let used = 0;
   lines.forEach((text, i) => {

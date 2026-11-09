@@ -1,5 +1,7 @@
 # SceneSpindle — project status
 
+**Updated 2026-11-10. Caption a reel, karaoke: with transcription on, Make my lyric video turns on as soon as a reel is chosen. Pasted lines do not need LRC times. If nothing is heard and no times are given, the lines are spread across the reel. Checked: 56 unit tests, signed-in browser, modes, and screens journeys.**
+
 **Updated 2026-11-08. A prompt can make a film on its own. Customize still opens the full editor. If a voice is out of credits, another configured voice reads the whole film and the job says who. Homepage story, cartoon, series and Code Lab films were rendered again: two arms each, and the code sits on a paper card.**
 
 **Updated 2026-11-07. v4 pass: every job runs in the worker under a lease; all studio screens rebuilt; remaining release gates built except social publishing. Verified locally end to end; see below.**
