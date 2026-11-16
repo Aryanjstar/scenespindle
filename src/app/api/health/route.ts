@@ -20,5 +20,5 @@ export async function GET() {
             ? "timeout"
             : "other";
   }
-  return NextResponse.json({ ok: true, db, ...(reason ? { reason } : {}), version: "0.1.0" });
+  return NextResponse.json({ ok: db === "up", db, ...(reason ? { reason } : {}), version: "0.1.0" }, { status: db === "up" ? 200 : 503 });
 }

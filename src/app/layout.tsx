@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
-import { Anek_Devanagari, Bricolage_Grotesque, Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-display" });
-const body = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body" });
-const hindi = Anek_Devanagari({ subsets: ["devanagari", "latin"], variable: "--font-hindi" });
+const display = localFont({ src: "../../node_modules/@fontsource/bricolage-grotesque/files/bricolage-grotesque-latin-700-normal.woff2", variable: "--font-display", weight: "700", display: "swap" });
+const body = localFont({ src: [
+  { path: "../../node_modules/@fontsource/bricolage-grotesque/files/bricolage-grotesque-latin-400-normal.woff2", weight: "400" },
+  { path: "../../node_modules/@fontsource/bricolage-grotesque/files/bricolage-grotesque-latin-700-normal.woff2", weight: "700" },
+], variable: "--font-body", display: "swap" });
+const hindi = localFont({ src: "../../node_modules/@fontsource/kalam/files/kalam-devanagari-700-normal.woff2", variable: "--font-hindi", weight: "700", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Leela",
+  title: "SceneSpindle",
   description: "Any idea, at play. A studio that turns a topic, notes, or code into a short narrated film.",
 };
 

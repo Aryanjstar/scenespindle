@@ -1,6 +1,14 @@
 # SceneSpindle — project status
 
-**Updated 2026-11-04. Implementation in progress; no full product release yet.**
+**Updated 2026-11-16. Implementation in progress; no full product release yet.**
+
+## 2026-11-16 — Portable preview and release checks
+
+- Added `studio preview <plan.json> --output <preview.html>`: a free offline visual review path with no provider calls. It refuses overwrites and labels output silent/estimated.
+- Web and CLI share an in-memory preview compiler with embedded runtime/fonts, explicit scene/caption visibility, deterministic seeking and viewport fitting. Rendering compositions keep framework-owned visibility.
+- Removed Google Fonts build fetches in favor of installed fonts; corrected SceneSpindle branding and database health HTTP status.
+- Added runnable ESLint configuration; pinned TypeScript 6.0.3 for parser compatibility; updated locked Mongoose/follow-redirects to remove the two reported high-severity advisories. Eight moderate tooling advisories and five lint warnings remain.
+- Verification: 21 unit tests, typecheck, lint (zero errors), production build and disposable MongoDB/Chrome desktop/390 px journeys, including loaded preview fonts and seek visibility. Free alternatives and limits are documented in RESEARCH_2026-11-16.md. This does not complete the open release gates below.
 
 ## Current verified position
 

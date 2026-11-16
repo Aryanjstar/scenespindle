@@ -18,6 +18,8 @@ export default function LibraryPage() {
     if (characterResponse.ok) setCharacters((await characterResponse.json()).items || []);
   }
 
+  // reload awaits fetch before updating state.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void reload(); }, []);
 
   async function createCharacter(event: React.FormEvent) {

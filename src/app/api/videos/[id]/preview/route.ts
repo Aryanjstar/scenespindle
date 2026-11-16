@@ -13,7 +13,7 @@ export async function GET(_request: Request, ctx: { params: Promise<{ id: string
   return new Response(video.previewHtml, {
     headers: {
       "content-type": "text/html; charset=utf-8",
-      "content-security-policy": "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; media-src data:; frame-ancestors 'self'",
+      "content-security-policy": "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; media-src data:; font-src data:; frame-ancestors 'self'",
       "x-content-type-options": "nosniff",
     },
   });

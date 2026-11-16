@@ -237,15 +237,7 @@ function fontFace(): string {
   `;
 }
 
-export function compileProject(opts: { plan: Plan; timeline: Timeline; outDir: string }): void {
-  const dir = opts.outDir;
-  mkdirSync(resolve(dir, "assets/fonts"), { recursive: true });
-  copyFileSync(resolve(ROOT, "node_modules/gsap/dist/gsap.min.js"), resolve(dir, "assets/gsap.min.js"));
-  copyFileSync(resolve(ROOT, "node_modules/@fontsource/bricolage-grotesque/files/bricolage-grotesque-latin-700-normal.woff2"), resolve(dir, "assets/fonts/bricolage.woff2"));
-  copyFileSync(resolve(ROOT, "node_modules/@fontsource/kalam/files/kalam-devanagari-700-normal.woff2"), resolve(dir, "assets/fonts/kalam-deva.woff2"));
-  copyFileSync(resolve(ROOT, "node_modules/@fontsource/kalam/files/kalam-latin-700-normal.woff2"), resolve(dir, "assets/fonts/kalam-latin.woff2"));
-  copyFileSync(resolve(ROOT, "node_modules/@fontsource/caveat/files/caveat-latin-600-normal.woff2"), resolve(dir, "assets/fonts/caveat.woff2"));
-
+export function compileHtml(opts: { plan: Plan; timeline: Timeline }): string {
   const tweens: Tween[] = [];
   const scenes = opts.plan.scenes.map((scene) => {
     const slot = opts.timeline.scenes.find((item) => item.id === scene.id);
@@ -273,6 +265,7 @@ const tl = gsap.timeline({ paused: true });
 for (const tw of tweens) {
   tl.fromTo("#" + tw.target, tw.from, Object.assign({}, tw.to, { duration: tw.duration, ease: tw.ease === "back.out" ? "back.out(1.4)" : tw.ease }), tw.at);
 }
+window.__timelines = window.__timelines || {};
 window.__timelines["main"] = tl;`;
 
   const html = `<!doctype html>
@@ -295,6 +288,19 @@ window.__timelines["main"] = tl;`;
 </body>
 </html>`;
 
+  return html;
+}
+
+export function compileProject(opts: { plan: Plan; timeline: Timeline; outDir: string }): void {
+  const dir = opts.outDir;
+  mkdirSync(resolve(dir, "assets/fonts"), { recursive: true });
+  copyFileSync(resolve(ROOT, "node_modules/gsap/dist/gsap.min.js"), resolve(dir, "assets/gsap.min.js"));
+  copyFileSync(resolve(ROOT, "node_modules/@fontsource/bricolage-grotesque/files/bricolage-grotesque-latin-700-normal.woff2"), resolve(dir, "assets/fonts/bricolage.woff2"));
+  copyFileSync(resolve(ROOT, "node_modules/@fontsource/kalam/files/kalam-devanagari-700-normal.woff2"), resolve(dir, "assets/fonts/kalam-deva.woff2"));
+  copyFileSync(resolve(ROOT, "node_modules/@fontsource/kalam/files/kalam-latin-700-normal.woff2"), resolve(dir, "assets/fonts/kalam-latin.woff2"));
+  copyFileSync(resolve(ROOT, "node_modules/@fontsource/caveat/files/caveat-latin-600-normal.woff2"), resolve(dir, "assets/fonts/caveat.woff2"));
+
+  const html = compileHtml(opts);
   writeFileSync(resolve(dir, "index.html"), html);
   writeFileSync(resolve(dir, "hyperframes.json"), JSON.stringify({
     $schema: "https://hyperframes.heygen.com/schema/hyperframes.json",

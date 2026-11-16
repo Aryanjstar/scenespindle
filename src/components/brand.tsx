@@ -18,7 +18,7 @@ export function Brand({ href = "/" }: { href?: string }) {
   return (
     <Link href={href} className="brand">
       <Lattu className="brand-mark" />
-      <span>Leela</span>
+      <span>SceneSpindle</span>
     </Link>
   );
 }

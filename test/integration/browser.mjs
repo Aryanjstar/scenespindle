@@ -128,6 +128,21 @@ try {
     const frame = page.locator('iframe[title="Preview"]');
     await expect(frame).toHaveAttribute('src', /api\/videos\/[a-f0-9]+\/preview/);
     await expect(page.frameLocator('iframe[title="Preview"]').locator('body')).toContainText('Example');
+    const previewFrame = page.frames().find(frame => frame.url().includes('/api/videos/'));
+    const visibility = await previewFrame.evaluate(async () => {
+      await Promise.all([...document.fonts].map(font => font.load()));
+      await document.fonts.ready;
+      window.previewSeek(1);
+      const first = [...document.querySelectorAll('.scene')].filter(el => getComputedStyle(el).visibility === 'visible').map(el => el.id);
+      window.previewSeek(5);
+      const later = [...document.querySelectorAll('.scene')].filter(el => getComputedStyle(el).visibility === 'visible').map(el => el.id);
+      window.previewSeek(1);
+      return { first, later, fonts: [...document.fonts].every(font => font.status === 'loaded') };
+    });
+    assert.deepEqual(visibility.first, ['scene-s1']);
+    assert.deepEqual(visibility.later, ['scene-s2']);
+    assert.equal(visibility.fonts, true);
+
     projects.push({ page, id: new URL(page.url()).pathname.split('/').pop() });
   }
   for (const [index, { page }] of projects.entries()) {

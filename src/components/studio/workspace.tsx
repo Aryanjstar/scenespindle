@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { validatePlan } from "../../contracts/plan";
 import { Brand } from "../brand";
@@ -60,7 +60,7 @@ export function Workspace() {
   const [previewPending, setPreviewPending] = useState(false);
   const [mouth, setMouth] = useState(0);
 
-  async function load() {
+  const load = useCallback(async () => {
     const response = await fetch(`/api/projects/${params.id}`);
     if (response.status === 401) {
       router.replace("/sign-in");
@@ -81,16 +81,18 @@ export function Workspace() {
       setVideoId(body.video.id);
       setWarnings(body.video.warnings || []);
     }
-  }
+  }, [params.id, router]);
 
   useEffect(() => {
+    // Fetch completion updates state asynchronously.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
     fetch(`/api/projects/${params.id}/messages`).then(async (response) => {
       if (!response.ok) return;
       const body = await response.json();
       setNotes(body.items || []);
     });
-  }, [params.id]);
+  }, [params.id, load]);
 
   useEffect(() => {
     if (mode !== "cartoon") return;

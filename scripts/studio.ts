@@ -1,4 +1,6 @@
-import { readFile } from 'node:fs/promises';
+import { previewHtml } from '../src/compiler/preview.js';
+import { resolve } from 'node:path';
+import { readFile, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { z } from 'zod';
 import { planSchema, validatePlan } from '../src/contracts/plan.js';
@@ -20,6 +22,14 @@ async function main(args: string[]) {
       };
     case 'capabilities':
       return { schemaVersion: 1, modes: ['explainer'], languages: ['en'], formats: ['9x16'], note: 'Plan validation and timed caption grouping only; this does not certify an MP4 workflow.' };
+    case 'preview': {
+      if (rest.length !== 3 || rest[1] !== '--output') throw new Error('Usage: preview <plan.json> --output <preview.html>');
+      const checked = validatePlan(JSON.parse(await readFile(rest[0], 'utf8')));
+      if (!checked.plan) { process.exitCode = 1; return { valid: false, issues: checked.issues }; }
+      if (resolve(rest[0]) === resolve(rest[2])) throw new Error('Output must differ from input');
+      await writeFile(rest[2], previewHtml(checked.plan), { flag: 'wx' });
+      return { output: resolve(rest[2]), kind: 'silent-preview', timing: 'estimated' };
+    }
     case 'schema': return z.toJSONSchema(planSchema);
     case 'validate-plan': {
       if (rest.length !== 1) throw new Error('Usage: validate-plan <plan.json>');
@@ -46,7 +56,7 @@ async function main(args: string[]) {
       if (rest.length !== 1 && !(rest.length === 3 && rest[1] === '--max-words')) throw new Error('Usage: captions <words.json> [--max-words N]');
       return groupCaptions(JSON.parse(await readFile(rest[0], 'utf8')), rest.length === 3 ? Number(rest[2]) : 6);
     }
-    default: throw new Error('Usage: studio <doctor|capabilities|schema|validate-plan|captions|brief>');
+    default: throw new Error('Usage: studio <doctor|capabilities|schema|validate-plan|preview|captions|brief>');
   }
 }
 main(process.argv.slice(2)).then(result => console.log(JSON.stringify(result, null, 2))).catch((error: unknown) => { console.error(error instanceof Error ? error.message : 'Command failed'); process.exitCode = 1; });

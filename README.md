@@ -44,3 +44,9 @@ Source of truth: [PRD](docs/PRD.md), [system design](docs/ARCHITECTURE.md), [dat
 Inspired by [NamasteVideo.ai](https://github.com/akshaymarch7/namaste-video-ai); reused third-party code/assets must retain their own license notices. Screenshots and reference links are inspiration, not redistribution permission. Never commit credentials, personal media, generated large artifacts or local environments.
 
 Planning references: [Brief Builder](docs/BRIEFING_WORKFLOW.md) and [on-demand toolbox](docs/toolbox/README.md). Implementation is in progress; the brief workflow is partial and the preview worker does not require plugins or models.
+
+## Offline storyboard preview
+
+`npm run studio -- preview path/to/plan.json --output /tmp/storyboard.html`
+
+Open the resulting HTML file in a browser. It bundles its runtime and fonts and makes no provider calls. It is a silent visual preview with estimated timing; it is not an MP4 or aligned narration. Existing output files are never overwritten. The same preview compiler serves the web studio. See [the free-first review](docs/RESEARCH_2026-11-16.md) for researched alternatives and their actual integration status.

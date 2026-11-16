@@ -1,10 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
-import { mkdirSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import mongoose from "mongoose";
 import { validatePlan, type Plan } from "../contracts/plan";
 import { slowScenes } from "../modules/revisions/slow";
-import { compileProject, type Timeline } from "../compiler/compile";
+import { estimatedTimeline, previewHtml } from "../compiler/preview";
 import { loadEnv } from "../config/env";
 import { findProtected } from "../config/protected";
 import { planTopic } from "../pipeline/make";
@@ -15,49 +13,7 @@ export function hashPlan(plan: unknown): string {
   return createHash("sha256").update(JSON.stringify(plan)).digest("hex");
 }
 
-export function estimatedTimeline(plan: Plan): Timeline {
-  let cursor = 320;
-  const scenes: Timeline["scenes"] = [];
-  const lines: Timeline["lines"] = [];
-  for (const scene of plan.scenes) {
-    const start = cursor;
-    for (const line of scene.lines) {
-      const words = line.text.split(/\s+/).filter(Boolean);
-      const durationMs = Math.max(2400, words.length * 380);
-      const slice = durationMs / Math.max(words.length, 1);
-      lines.push({
-        sceneId: scene.id,
-        lineId: line.id,
-        text: line.text,
-        audioFile: "data:,",
-        startMs: cursor,
-        durationMs,
-        words: words.map((text, index) => ({
-          text,
-          startMs: Math.round(index * slice),
-          endMs: Math.round((index + 1) * slice),
-        })),
-      });
-      cursor += durationMs + 180;
-    }
-    cursor += scene.holdMs ?? 160;
-    scenes.push({ id: scene.id, startMs: start, durationMs: cursor - start });
-  }
-  return { durationMs: cursor, scenes, lines };
-}
-
-export function previewHtml(plan: Plan, timeline = estimatedTimeline(plan)): string {
-  const dir = resolve(process.cwd(), ".data", "previews", hashPlan(plan).slice(0, 16));
-  mkdirSync(dir, { recursive: true });
-  compileProject({ plan, timeline, outDir: dir });
-  let html = readFileSync(resolve(dir, "index.html"), "utf8");
-  html = html.replace("src=\"assets/gsap.min.js\"", "src=\"/api/runtime/gsap\"");
-  html = html.replace(
-    "window.__timelines[\"main\"] = tl;",
-    "window.__timelines = window.__timelines || {}; window.__timelines[\"main\"] = tl; tl.play();",
-  );
-  return html;
-}
+export { estimatedTimeline, previewHtml } from "../compiler/preview";
 
 export async function ownProject(ownerId: mongoose.Types.ObjectId, id: string) {
   if (!mongoose.isValidObjectId(id)) return null;
