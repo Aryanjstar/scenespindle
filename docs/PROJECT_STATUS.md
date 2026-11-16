@@ -115,3 +115,7 @@ Next: your score on the reel. Then Sarvam word timings, the Pyodide worker, and 
 - Keep earlier milestones. Note a follow-up on the milestone it changes.
 - Statuses: **In progress**, **Complete — UI with sample data**, **Complete — end to end**, **Complete — docs only**. Do not mark unverified work as complete.
 - No credentials, tokens, or connection strings here.
+
+## Deployment evidence — 2026-11-16
+
+Code commit `d7fb4d6` pushed to `codex/portable-previews-release` at Aryanjstar/scenespindle and deployed from a clean git archive to the existing Vercel project. Production alias: https://leela-kappa.vercel.app. Deployment ID: `dpl_EjTACPHscQkmVoCWr3TWhWzDKJ2t`, READY. Read-only production checks: homepage/sign-in/join 200; health 200 with MongoDB up; private project/invite APIs 401 without a session. Local E2E used disposable creators, not production accounts. The persistent worker was not deployed by this Vercel web deployment; production queued jobs require a separately running worker. Narrated MP4 and the listed release gates remain open.
