@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Anek_Devanagari, Bricolage_Grotesque, Caveat, Instrument_Sans, JetBrains_Mono } from "next/font/google";
+import "@fontsource/bricolage-grotesque/latin-600.css";
+import "@fontsource/bricolage-grotesque/latin-700.css";
+import "@fontsource/bricolage-grotesque/latin-800.css";
+import "@fontsource/inter/latin.css";
+import "@fontsource/caveat/latin-600.css";
+import "@fontsource/caveat/latin-700.css";
+import "@fontsource/jetbrains-mono/latin-500.css";
+import "@fontsource/anek-devanagari/devanagari-700.css";
 import "./globals.css";
-
-const display = Bricolage_Grotesque({ subsets: ["latin"], weight: ["600", "700", "800"], variable: "--font-display" });
-const body = Instrument_Sans({ subsets: ["latin"], variable: "--font-body" });
-const hand = Caveat({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-hand" });
-const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
-const hindi = Anek_Devanagari({ subsets: ["devanagari", "latin"], variable: "--font-hindi" });
 
 export const metadata: Metadata = {
   title: "SceneSpindle",
@@ -18,9 +19,7 @@ export const viewport: Viewport = { themeColor: "#fff6e8" };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${display.variable} ${body.variable} ${hand.variable} ${mono.variable} ${hindi.variable}`}>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

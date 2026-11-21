@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { planProject, sceneCount, splitScript } from '../src/pipeline/planner.js';
+import { planProject, retrieveContext, sceneCount, splitScript } from '../src/pipeline/planner.js';
 import { keyStates, stateOf } from '../src/trace/states.js';
 import { traceProgram } from '../src/trace/interpret.js';
 import { beatsFromSamples, cutPoints } from '../src/pipeline/montage.js';
 import { applyEdits, paceScenes } from '../src/modules/revisions/rewrite.js';
 import { compileProject, LAYOUTS } from '../src/compiler/compile.js';
-import { estimatedTimeline } from '../src/server/studio.js';
+import { estimatedTimeline, previewHtml } from '../src/server/studio.js';
 import { validatePlan, type Plan } from '../src/contracts/plan.js';
 import { lyricsPlan } from '../src/pipeline/lyrics.js';
 import { parseCaptionText } from '../src/pipeline/caption-reel.js';
@@ -95,6 +95,22 @@ test('story plans perform on a 3D stage instead of a still', async () => {
   assert.match(html, /id="stage"/);
   assert.match(html, /buildReady\.stage = new Promise/);
   assert.doesNotMatch(html, /class="still"/);
+  const preview = previewHtml(result.plan);
+  assert.match(preview, /\/api\/runtime\/static\/three\.module\.js/);
+  assert.match(preview, /<script type="module">/);
+  assert.doesNotMatch(preview, /src="assets\/stage\.mjs"/);
+});
+
+test('story context retrieval ranks matching approved context and retains exclusions', () => {
+  const context = retrieveContext({
+    topic: 'yellow bus on the lane', language: 'en', format: '9x16', targetMs: 30000, mode: 'story', voiceId: 'test:tone',
+    series: { title: 'Tikku', world: 'A sunny lane with a yellow bus', tone: 'gentle', rules: ['The bus is yellow'], previous: ['Tikku waved at the driver'] },
+    cast: [{ id: 'a'.repeat(24), name: 'Tikku', description: 'A curious child who likes buses' }],
+    brief: { mustInclude: ['Show the yellow bus'], mustAvoid: ['No accidents'] },
+  });
+  assert.ok(context[0].includes('yellow bus'));
+  assert.ok(context.some((line) => line === 'Avoid: No accidents'));
+  assert.ok(context.length <= 8);
 });
 
 test('illustrated stories ask for stills with the cast as references', async () => {

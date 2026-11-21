@@ -9,5 +9,5 @@ export default defineConfig([
       "@next/next/no-img-element": "off",
     },
   },
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", ".data/**", "spikes/**", "docs/**", "skills/**", "node_modules/**"]),
+  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", ".data/**", "spikes/**", "docs/**", "skills/**", "node_modules/**", "scenespindle-brief-builder/**"]),
 ]);

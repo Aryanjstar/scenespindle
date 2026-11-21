@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import mongoose from "mongoose";
 import { type Plan } from "../contracts/plan";
@@ -58,7 +59,7 @@ export function previewHtml(plan: Plan, timeline = estimatedTimeline(plan), trac
     if (layer.component === "image.still@1" && typeof layer.props.assetId === "string" && /^[a-f0-9]{24}$/.test(layer.props.assetId)) images[layer.props.assetId] = `/api/assets/${layer.props.assetId}/file`;
   }
   const hash = hashPlan(plan).slice(0, 16);
-  const dir = resolve(process.cwd(), ".data", "previews", hash);
+  const dir = resolve(tmpdir(), "scenespindle-previews", hash);
   mkdirSync(dir, { recursive: true });
   compileProject({ plan, timeline, outDir: dir, trace, images });
   let html = readFileSync(resolve(dir, "index.html"), "utf8");

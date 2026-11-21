@@ -2,10 +2,12 @@ import { authed, isOwner, json } from "../../../server/guard";
 import { loadEnv } from "../../../config/env";
 import { monthlyAllowance } from "../../../config/providers";
 import { User } from "../../../server/db";
+import { azurePlanner } from "../../../server/providers/planner";
 import { creatorUsage, period, usageSummary } from "../../../server/usage";
 
 const PROVIDERS = [
-  { id: "gemini", label: "Planner (Gemini)", unit: "calls", key: "geminiApiKey" },
+  { id: "azure_planner", label: "Planner (Azure GPT)", unit: "calls", key: "azurePlannerKey" },
+  { id: "gemini", label: "Gemini (fallback, research, visual analysis)", unit: "calls", key: "geminiApiKey" },
   { id: "azure", label: "Voice (Azure Speech)", unit: "characters", key: "azureSpeechKey" },
   { id: "elevenlabs", label: "Voice (ElevenLabs)", unit: "characters", key: "elevenLabsApiKey" },
   { id: "sarvam", label: "Voice (Sarvam)", unit: "characters", key: "sarvamApiKey" },
@@ -31,7 +33,7 @@ export async function GET() {
     owner,
     providers: PROVIDERS.map((p) => ({
       id: p.id, label: p.label, unit: p.unit,
-      configured: p.key ? Boolean(env[p.key]) : p.id === "images" ? Boolean(process.env.AZURE_IMAGE_ENDPOINT) : true,
+      configured: p.id === "azure_planner" ? Boolean(azurePlanner()) : p.key ? Boolean(env[p.key]) : p.id === "images" ? Boolean(process.env.AZURE_IMAGE_ENDPOINT) : true,
       mine: (row(mine, p.id)?.used ?? 0) + (row(mine, p.id)?.reserved ?? 0),
       myLimit: typeof caps[p.id] === "number" ? caps[p.id] : null,
       ...(owner ? { studio: (row(studio, p.id)?.used ?? 0) + (row(studio, p.id)?.reserved ?? 0), studioLimit: monthlyAllowance(p.id as never) } : {}),

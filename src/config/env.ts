@@ -7,6 +7,9 @@ export type Env = {
   elevenLabsApiKey: string;
   azureSpeechKey: string;
   azureSpeechRegion: string;
+  azurePlannerEndpoint: string;
+  azurePlannerKey: string;
+  azurePlannerDeployment: string;
 };
 
 function parseFile(path: string): Map<string, string> {
@@ -36,6 +39,9 @@ export function loadEnv(root = process.cwd()): Env {
     elevenLabsApiKey: pick("ELEVENLABS_API_KEY"),
     azureSpeechKey: pick("AZURE_SPEECH_KEY"),
     azureSpeechRegion: pick("AZURE_SPEECH_REGION") || "eastus2",
+    azurePlannerEndpoint: pick("AZURE_PLANNER_ENDPOINT"),
+    azurePlannerKey: pick("AZURE_PLANNER_KEY"),
+    azurePlannerDeployment: pick("AZURE_PLANNER_DEPLOYMENT"),
   };
 }
 

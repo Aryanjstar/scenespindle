@@ -1,5 +1,7 @@
 # SceneSpindle — project status
 
+**Updated 2026-11-21. Recovered and carried forward the unfinished Azure GPT planner adapter work onto v4. Planner and Gemini fallback now go through a metered adapter; approved series/cast context and required/avoided constraints are retrieved for story plans. Previews compile in the OS temp directory. The site build uses local Fontsource files and Webpack so it can build without fetching Google Fonts. Checked: 60 unit tests, typecheck, lint, and optimized production build. Provider requests were stubbed in tests; no live provider call, browser journey, render frame review, push, or deploy was completed. Production health was unreachable from this environment.**
+
 **Updated 2026-11-10. Caption a reel, karaoke: with transcription on, Make my lyric video turns on as soon as a reel is chosen. Pasted lines do not need LRC times. If nothing is heard and no times are given, the lines are spread across the reel. Checked: 56 unit tests, signed-in browser, modes, and screens journeys.**
 
 **Updated 2026-11-08. A prompt can make a film on its own. Customize still opens the full editor. If a voice is out of credits, another configured voice reads the whole film and the job says who. Homepage story, cartoon, series and Code Lab films were rendered again: two arms each, and the code sits on a paper card.**
@@ -23,6 +25,8 @@
 **Still open**: YouTube/Instagram publishing (needs OAuth apps); Resend mail; a signed-in check on production after deploy.
 
 ## Current verified position
+
+- New local changes from 2026-11-21 are verified by the checks above but are not yet on GitHub or production. Deployment health was not reachable from this environment; re-check after deploy.
 
 - Live at https://scenespindle.blackforest-f0b810b6.centralindia.azurecontainerapps.io with web and worker apps, private Azure Blob storage and Atlas database `scenespindle`. The public page shows eight new films rendered by the current studio. Older showreel files are no longer linked.
 - Modes that render end to end: Explainer, Code Lab (trace-driven), Audio (kinetic type), Montage (beat cuts), Story and Cartoon (seekable Three.js stage: head, mouth and body from the narration), Lyrics (sung lines on a dark stage). Formats 9:16, 16:9, 1:1. Languages English, Hindi, Hinglish.

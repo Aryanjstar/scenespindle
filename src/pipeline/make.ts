@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import { briefSchema, expandBrief, validatePlan, type Plan, type PlanIssue } from "../contracts/plan";
 import { compileProject, type TimedLine, type Timeline } from "../compiler/compile";
-import { geminiJson } from "../server/providers/gemini";
+import { modelJson } from "../server/providers/planner";
 import { listVoices, pickVoice, synthesize, type WordTiming } from "../server/providers/elevenlabs";
 import { sarvamSpeak } from "../server/providers/sarvam";
 
@@ -63,7 +63,7 @@ export async function planTopic(apiKey: string, topic: string, issues?: PlanIssu
   let currentIssues: PlanIssue[] | undefined = issues;
   let model = "";
   for (let attempt = 0; attempt < 2; attempt++) {
-    const result = await geminiJson({
+    const result = await modelJson({
       apiKey,
       system: SYSTEM,
       user: attempt === 0 ? user : `${user}\n\nFix these issues:\n${(currentIssues ?? []).map((issue) => `- ${issue.path}: ${issue.message}`).join("\n")}`,

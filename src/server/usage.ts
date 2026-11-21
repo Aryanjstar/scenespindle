@@ -1,7 +1,7 @@
 import { monthlyAllowance, type VoiceEntry } from "../config/providers";
 import { Usage, User } from "./db";
 
-export type Provider = VoiceEntry["provider"] | "gemini" | "images" | "stt";
+export type Provider = VoiceEntry["provider"] | "gemini" | "azure_planner" | "images" | "stt";
 
 export class QuotaError extends Error {
   constructor(public provider: string, public scope: "studio" | "creator" = "studio") {

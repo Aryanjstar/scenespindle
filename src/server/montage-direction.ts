@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { FONT_IDS, GRADES, MONTAGE_STYLES, PACING, montageSettingsSchema, type MontageSettings } from "../catalog/montage-styles";
 import { loadEnv } from "../config/env";
-import { geminiJson } from "./providers/gemini";
+import { modelJson, plannerProvider, plannerReady } from "./providers/planner";
 import { meter } from "./usage";
 
 const direction = z.object({
@@ -28,10 +28,10 @@ export async function applyInstructions(settings: MontageSettings, ownerId: unkn
   const text = settings.instructions.trim();
   if (!text) return { settings };
   const env = loadEnv();
-  if (!env.geminiApiKey) return { settings, note: "Your edit notes were saved, but no planner key is set to apply them. The style's defaults were used." };
-  const usage = await meter("gemini", 1, ownerId);
+  if (!plannerReady(env.geminiApiKey)) return { settings, note: "Your edit notes were saved, but no planner key is set to apply them. The style's defaults were used." };
+  const usage = await meter(plannerProvider(), 1, ownerId);
   try {
-    const result = await geminiJson({
+    const result = await modelJson({
       apiKey: env.geminiApiKey,
       loose: true,
       system: `You turn a creator's montage editing instructions into settings. Return JSON with only the fields the instructions ask for:

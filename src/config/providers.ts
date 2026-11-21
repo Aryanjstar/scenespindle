@@ -168,7 +168,7 @@ export function voiceUnavailable(entry: VoiceEntry, keys: ProviderKeys, language
 }
 
 /** Monthly character allowances per provider. Cache hits do not count. */
-export function monthlyAllowance(provider: VoiceEntry["provider"] | "gemini" | "images"): number {
+export function monthlyAllowance(provider: VoiceEntry["provider"] | "gemini" | "azure_planner" | "images"): number {
   const read = (name: string, fallback: number) => {
     const value = Number(process.env[name]);
     return Number.isFinite(value) && value >= 0 ? value : fallback;
@@ -177,6 +177,7 @@ export function monthlyAllowance(provider: VoiceEntry["provider"] | "gemini" | "
   if (provider === "elevenlabs") return read("ELEVENLABS_MONTHLY_CHARS", 10_000);
   if (provider === "sarvam") return read("SARVAM_MONTHLY_CHARS", 20_000);
   if (provider === "gemini") return read("GEMINI_MONTHLY_CALLS", 500);
+  if (provider === "azure_planner") return read("AZURE_PLANNER_MONTHLY_CALLS", 500);
   if (provider === "images") return read("IMAGE_MONTHLY_IMAGES", 300);
   return Number.MAX_SAFE_INTEGER;
 }

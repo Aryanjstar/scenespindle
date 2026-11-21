@@ -10,14 +10,19 @@ test('environment variables take precedence over local file values, including an
   const oldGemini = process.env.GEMINI_API_KEY;
   const oldSarvam = process.env.SARVAM_API_KEY;
   const oldEleven = process.env.ELEVENLABS_API_KEY;
+  const oldAzurePlanner = Object.fromEntries(["AZURE_PLANNER_ENDPOINT", "AZURE_PLANNER_KEY", "AZURE_PLANNER_DEPLOYMENT"].map((key) => [key, process.env[key]]));
   try {
     await writeFile(join(dir, '.env.local'), 'GEMINI_API_KEY=file-value\nSARVAM_API_KEY=file-speech\nELEVENLABS_API_KEY=file-voice\n');
     process.env.GEMINI_API_KEY = 'process-value';
     process.env.SARVAM_API_KEY = '';
     delete process.env.ELEVENLABS_API_KEY;
-    assert.deepEqual(loadEnv(dir), { geminiApiKey: 'process-value', sarvamApiKey: '', elevenLabsApiKey: 'file-voice', azureSpeechKey: '', azureSpeechRegion: 'eastus2' });
+    for (const key of Object.keys(oldAzurePlanner)) delete process.env[key];
+    assert.deepEqual(loadEnv(dir), { geminiApiKey: 'process-value', sarvamApiKey: '', elevenLabsApiKey: 'file-voice', azureSpeechKey: '', azureSpeechRegion: 'eastus2', azurePlannerEndpoint: '', azurePlannerKey: '', azurePlannerDeployment: '' });
   } finally {
     for (const [key, value] of Object.entries({ GEMINI_API_KEY: oldGemini, SARVAM_API_KEY: oldSarvam, ELEVENLABS_API_KEY: oldEleven })) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+    for (const [key, value] of Object.entries(oldAzurePlanner)) {
       if (value === undefined) delete process.env[key]; else process.env[key] = value;
     }
     await rm(dir, { recursive: true, force: true });

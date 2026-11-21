@@ -4,6 +4,11 @@
  * markers; controls stay calm. Craft passes follow unslop by Damir Sokolovsky (CC BY 4.0).
  */
 :root {
+  --font-display: "Bricolage Grotesque";
+  --font-body: "Inter";
+  --font-hand: "Caveat";
+  --font-mono: "JetBrains Mono";
+  --font-hindi: "Anek Devanagari";
   --paper: #fff6e8;
   --paper-2: #fbeedb;
   --card: #fffdf8;

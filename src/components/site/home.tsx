@@ -23,7 +23,7 @@ const stack = [
   ["Studio", "Next.js, React, TypeScript"],
   ["Records", "MongoDB. Your projects stay on your account."],
   ["Picture", "HyperFrames and GSAP. FFmpeg writes the MP4."],
-  ["Plan", "Gemini, behind an adapter. The plan is data."],
+  ["Plan", "Azure GPT when configured, with Gemini as fallback. The plan is data."],
   ["Voice", "ElevenLabs or Sarvam, behind an adapter with a monthly allowance. A voice never swaps in silence."],
   ["Trace", "Code Lab reads an execution trace. The model does not invent the steps."],
 ];
